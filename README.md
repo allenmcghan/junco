@@ -1,99 +1,80 @@
 # Junco
 
-An open flight computer for experimental and ultralight aircraft.
+**Open engine and air data node for Part 103 and experimental aircraft.**
 
-Cheap sensors, an ESP32, your phone as the display, and a black box on an SD card.
-Built because ultralight and experimental pilots fly with an hour meter and an
-altimeter while a $30 microcontroller can log everything.
+Junco instruments an ultralight or experimental aircraft and streams flight and engine data to the pilot's phone or tablet. It logs everything to an SD card, emits GDL90 so existing electronic flight bag apps display it without any custom software, and generates draft logbook entries after each flight.
 
-**Status:** design and prototype. See [docs/roadmap.md](docs/roadmap.md).
+Target cost is under $250 in parts. Target build is one person with a soldering iron, no hot air station and no PCB order.
 
 ---
 
-## What it does
+## Status
 
-- **Air data and engine data**: altitude, climb rate, airspeed, tach, CHT, fuel
-- **Display**: streams to a phone or tablet mounted on the dash, over Bluetooth,
-  the same way an OBD adapter does
-- **Automated pilot logging**: connect to the aircraft and get a full flight
-  record, takeoff, route, speeds, times, ready for a logbook
-- **Black box**: everything to SD card. Experimental pilots currently have nothing
-- **Audio alerts** through the phone to a paired Bluetooth headset, which most
-  ultralight pilots already wear
-- **Angle of attack tone**, which is the highest-value loss-of-control
-  intervention per dollar in light aviation
+**Pre-Phase 0.** Nothing has flown. Nothing has been built. This repository currently contains requirements and specifications only.
 
-## Design principles
+See [docs/prd.md](docs/prd.md) section 16 for the phase plan and section 15 for the assumptions that only flight testing can resolve.
 
-**The sensor network does the work.** The phone is a display and a speaker. Losing
-the phone should not lose the flight data, so everything records locally.
+---
 
-**Open protocol on the wire.** Distributed sensors, standardized format, so someone
-can adapt it to something nobody has thought of yet, including small drone flight
-computers.
+## Design rules
 
-**Hand-solderable.** Through-hole, USB-C, off-the-shelf parts, 3D printed case.
-A builder with a soldering iron should be able to make one.
+These constrain the design. They are not disclaimers.
 
-**Open forever.** Anyone is free to build these, sell them, or fork this. There is
-a donate link and no paywall.
+1. **The sensor node is advisory only, enforced by being publish-only.** It publishes data and subscribes to nothing that influences its own outputs, so it structurally cannot be commanded. This scopes to the node, not the product family.
+2. **Mechanical gauges stay installed.** Junco supplements a panel, it does not replace one.
+3. **Draft, never file.** Logbook entries are proposed. The pilot reviews and confirms.
+4. **The owner owns the data.** Logs live on the owner's card. Recording is disableable.
+5. **Config, not code.** Adapting Junco to a different aircraft must never require a toolchain.
+6. **No claim of crash survivability.** It is a flight data logger, not a black box.
+7. **A unit always declares what it is.** Firmware reports build class, hardware revision, and calibration date.
 
-## Architecture
+---
 
-ESP32 collects sensor data and sends it to the phone over Bluetooth. The phone's
-own accelerometer, gyro, and barometer are used as additional sensors. A small
-always-on screen on the dash provides backup so basic function survives losing the
-phone connection.
+## Read this before building one
 
-See [docs/architecture.md](docs/architecture.md).
+Junco is not a certified aviation product and is not tested to any aviation standard. If you build one, you are responsible for the result. That responsibility does not transfer to anyone else and it is not affected by anything in the licenses below.
 
-## Autopilot
+Do not use Junco as a primary flight instrument. Do not remove working mechanical instruments because Junco duplicates them. Do not connect it to anything that moves a control surface.
 
-Not out of scope, but deliberately staged. Junco as it exists reads, displays,
-logs, and alerts. If it dies in flight, nothing happens.
+If you feed Junco data into an autopilot, you have made Junco flight-critical for that installation even though Junco itself never actuates. It is not designed or tested to that standard.
 
-The moment it moves a servo it becomes flight critical and needs a defined failure
-mode, a manual reversion path, and a development standard. **Those are two products
-with two standards, and the first must not quietly become the second.**
-
-Where an authority version is being developed, it is on aircraft whose control
-architecture is fail-safe by design. See the
-[airframe project](https://github.com/allenmcghan/nuthatch) for one example: a
-spoileron-controlled aircraft where the control is single-acting with spring
-return, so a servo hardover closes the spoiler rather than jamming the stick.
+---
 
 ## Repository layout
 
-```
-hardware/   schematic, board, case
-firmware/   ESP32
-app/        Android primary, iOS if it happens
-docs/       architecture, protocol spec, roadmap
-```
+| Path | Contents |
+|---|---|
+| `docs/` | Product requirements, design rationale |
+| `spec/` | Protocol and format specifications. The artifacts most likely to outlive the hardware |
+| `firmware/` | Node firmware |
+| `hardware/` | Schematics and board files |
+| `enclosure/` | Printable enclosure, pitot, static plenum |
+| `app/` | Android reference client |
+| `tools/` | Log recovery and analysis |
 
-## Compatibility goal
+---
 
-Every type of experimental and ultralight aircraft: gyroplanes, fixed wing, mini
-jets, paramotors. A config file describes the aircraft, all units software
-selectable, with a web-based configuration tool.
+## Licensing
 
-## License
+Different artifacts, different licenses. See [LICENSE](LICENSE), [LICENSE-HARDWARE](LICENSE-HARDWARE), and [LICENSE-DOCS](LICENSE-DOCS).
 
-| Scope | Licence | File |
-|---|---|---|
-| Firmware and app | MIT | [LICENSE](LICENSE) |
-| Hardware — `hardware/`, `enclosure/` | CERN-OHL-P-2.0 | [LICENSE-HARDWARE](LICENSE-HARDWARE) |
-| Docs and specs — `docs/`, `spec/` | CC BY 4.0 | [LICENSE-DOCS](LICENSE-DOCS) |
+| Artifact | License |
+|---|---|
+| Firmware, app, tools | MIT |
+| Board files, enclosure models | CERN-OHL-P-2.0 |
+| Documentation and specifications | CC-BY-4.0 |
 
-All three are permissive. Anyone is free to build these, sell them, or fork
-this.
+You may build Junco for yourself. You may sell assembled units. You may fork it, rename it, and compete with it. That is intentional.
 
-## Disclaimer
+---
 
-**Not certified for any purpose. Not a substitute for required instruments.**
+## Project goals beyond the hardware
 
-This is experimental hardware for experimental aircraft. If you build it and fly
-it, you are responsible for its behavior and for your own airworthiness
-determination. No warranty of any kind, expressed or implied.
+Junco is built to outlive whoever is maintaining it. That drives several decisions that would otherwise look like overkill:
 
-Do not use as a primary flight reference.
+- Sensors are specified by **requirement**, not part number, so a builder in 2034 can substitute what exists then
+- Log files are **self-describing**, so a 2027 flight is readable in 2040 with the file and nothing else
+- Protocols are documented separately from the implementation
+- Rationale is recorded alongside decisions, because successors break what they do not understand the reason for
+
+See [MAINTAINERS.md](MAINTAINERS.md).

@@ -1,37 +1,21 @@
-# PlatformIO / Arduino build output
-.pio/
-.pioenvs/
-.piolibdeps/
+# Build output
 build/
+dist/
+*.o
 *.elf
 *.bin
-*.hex
-
-# Android / Gradle build output
-app/build/
-*/build/
-.gradle/
-local.properties
-*.apk
-*.aab
-captures/
-
-# IDE
-.vscode/
-.idea/
-
-# Snapshot archives (not source)
-*.tar.gz
-
-# OS cruft
-Thumbs.db
-desktop.ini
-.DS_Store
+*.map
 
 # ESP-IDF
 sdkconfig.old
 managed_components/
 dependencies.lock
+
+# Android
+app/build/
+app/local.properties
+*.apk
+*.keystore
 
 # KiCad
 *-backups/
@@ -46,3 +30,7 @@ fp-info-cache
 # Flight logs (never commit these; they contain position data)
 *.jnc
 logs/
+
+# OS
+.DS_Store
+Thumbs.db
