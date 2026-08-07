@@ -79,7 +79,14 @@ selectable, with a web-based configuration tool.
 
 ## License
 
-Hardware: CERN-OHL-S v2. Firmware and app: MIT.
+| Scope | Licence | File |
+|---|---|---|
+| Firmware and app | MIT | [LICENSE](LICENSE) |
+| Hardware — `hardware/`, `enclosure/` | CERN-OHL-P-2.0 | [LICENSE-HARDWARE](LICENSE-HARDWARE) |
+| Docs and specs — `docs/`, `spec/` | CC BY 4.0 | [LICENSE-DOCS](LICENSE-DOCS) |
+
+All three are permissive. Anyone is free to build these, sell them, or fork
+this.
 
 ## Disclaimer
 
