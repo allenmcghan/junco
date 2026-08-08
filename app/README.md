@@ -11,3 +11,5 @@ Native rather than a web app, for two reasons in order of weight: a PWA cannot r
 iOS is not on the critical path for v1, but the protocol is deliberately reachable from it: BLE is available to third-party iOS apps, which is why the link is BLE rather than Bluetooth Classic SPP. There is no GDL90 output in v1, so an iOS user gets nothing from Junco until someone writes that client.
 
 Traffic display, if anyone builds it, is an app-side channel that never involves the node. See docs/prd.md section 22.
+
+This app is the reference client and the only one required in v1, but it is no longer the only client. A build with a panel and a Pi can reach pyEFIS through a FIX-Gateway plugin instead. See docs/prd.md section 24. The primary aircraft has no panel, which is why the phone comes first.

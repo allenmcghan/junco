@@ -8,7 +8,7 @@ the firmware and are the artifacts most worth getting right.
 |---|---|
 | `log-format.md` | Draft. Required for v1 |
 | `aircraft-profile.md` | Draft. Required for v1 |
-| `dronecan-engine-extension.md` | Draft. Not implemented in v1 |
+| `dronecan-engine-extension.md` | Draft. Not implemented in v1, and its choice of bus is reopened. See PRD section 24 |
 | `ble-telemetry.md` | **Not started. Required for v1, and the one that blocks code** |
 
 `ble-telemetry.md` is the gating document. It carries every value the pilot

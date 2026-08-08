@@ -2,6 +2,22 @@
 
 **Status:** draft, scope definition only. Not implemented in v1.
 
+## The bus protocol is not settled
+
+This document assumes DroneCAN. That assumption was inherited rather than
+decided, and PRD section 24 records the argument for re-making it.
+
+CAN-FIX is a CANbus protocol designed specifically for experimental aviation,
+its specification is Creative Commons, and its consumers are aircraft panels.
+DroneCAN's consumers are autopilots, which is a stage this project does not
+pursue.
+
+Everything below about standard types versus custom types applies to either bus
+and is worth keeping whichever one wins. Read this as "what the gap is" rather
+than "which bus fills it."
+
+Decide in v2, which is the first version that has a bus at all.
+
 ## Why this exists
 
 DroneCAN is the primary CAN protocol used by ArduPilot and PX4. Publishing

@@ -8,7 +8,9 @@ Target publish: AirVenture 2027
 
 Revision 2 moved position and attitude sensing onto the pilot's phone, moved the link to Bluetooth Low Energy, and reduced the node to engine and air data only.
 
-Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the pilot already owns, and opens the compute platform to a Linux single-board variant. Section 24 records what changed and why.
+Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the pilot already owns, and opens the compute platform to a Linux single-board variant.
+
+Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system. Section 25 records what changed and why.
 
 ---
 
@@ -208,6 +210,8 @@ Fuel is the highest risk channel and the one most likely to differ per aircraft.
 ## 10. Display and alerting
 
 **Reference client:** Android native, open source, APK published on GitHub releases and F-Droid. No store dependency, no developer account, no expiry.
+
+**Panel display:** pyEFIS, reached through a FIX-Gateway plugin, for builds that have a panel and a Pi. See section 24. The Android app stays the reference client and the only one required in v1, because the primary aircraft has no panel.
 
 **iOS:** the protocol supports it because BLE is available to third-party iOS apps. No app exists in v1, and iOS is not on the critical path of a project meant to outlive its maintainer.
 
@@ -416,10 +420,14 @@ Phase 0 gains thermal instrumentation as well. If the Pi-class build is going to
 
 | Artifact | License |
 |---|---|
-| Firmware | MIT |
-| Android app | MIT |
-| Board files, STLs | CERN-OHL-P-2.0 |
+| Firmware | GPL-2.0-or-later |
+| Android app | GPL-2.0-or-later |
+| Board files, STLs | CERN-OHL-S-2.0 |
 | Documentation and specs | CC-BY-4.0 |
+
+Code and hardware are copyleft. Specifications are not, deliberately: they are meant to be implemented by anyone in anything, and a protocol that cannot be adopted freely does not outlive its implementation.
+
+GPL v2 **or later** matches MakerPlane, so code moves in both directions between Junco and FIX-Gateway or pyEFIS without relicensing. See section 24.
 
 Stewardship requirements, driven by the goal of outliving the maintainer:
 
@@ -451,7 +459,11 @@ Successors break what they do not understand the reason for. Every rejection bel
 | Considered | Rejected because |
 |---|---|
 | Fork XCVario or GNUVario | Firmware is coupled to their dedicated hardware, their differential pressure parts are kilopascal-class against our sub-100 Pa dynamic pressure, and no board has thermocouple or isolated pulse inputs. Reuse their protocols, not their codebase |
-| Build on ArduPilot | GPL-3.0 rewrites the licensing plan, the parameter surface runs to hundreds of entries, it is architected for control rather than instrumentation, and the community is uneasy about manned use. Steal the parameter model and the self-describing log format instead |
+| Build v1 on the ArduPilot flight stack | The parameter surface runs to hundreds of entries, it is architected for control rather than instrumentation, and the community is uneasy about manned use. Steal the parameter model and the self-describing log format instead. Note this rejects the flight stack, which is not the same artifact as the row below |
+| Build v1 on ArduPilot AP_Periph | AP_Periph defeats half of the objection above, being a genuinely publish-only DroneCAN sensor node, and it is a real candidate for the v2 bus stage. It fails v1 on four other grounds: no BLE at all, STM32 only so neither of our compute paths qualifies, no thermocouple or ignition-pulse tach support, and its EFI backends talk to an ECU over serial, which a two-stroke on CDI does not have |
+| Rebuilding what MakerPlane already has | FIX-Gateway already brokers avionics data from arbitrary sources, pyEFIS already displays it, and plugins already exist for ADS-B, recording, annunciation, and multi-source voting. Junco writes the two-stroke engine front end nobody has and plugs into the rest. See section 24 |
+| Absorbing Junco into MakerPlane entirely | The engine and air data work needs its own hardware, specs, and test program, and a Part 103 powered parachute is a narrow enough target that it would be a poor fit for a general E-AB project's roadmap. Stay separate, contribute the plugin upstream |
+| CAN-FIX as a v1 requirement | v1 has no bus and no second node. CAN-FIX becomes the leading v2 candidate over DroneCAN, because its consumers are experimental aircraft panels rather than autopilots, and its specification is Creative Commons so implementing it costs nothing legally |
 | PWA as the primary client | Cannot bind a socket to a specific network, and cannot reach BLE on iOS at all. Native is required by the transport, not by preference |
 | Bluetooth Classic SPP | iOS blocks it for third-party apps without MFi. Locks the protocol to Android, not just the app |
 | Wi-Fi as the in-flight link | Joining the node's AP costs the phone its cellular data, and the node cannot usefully run AP and BLE together in flight |
@@ -475,22 +487,24 @@ Successors break what they do not understand the reason for. Every rejection bel
 
 ---
 
-## 20. Product roadmap beyond v1
+## 20. Roadmap beyond v1
 
-v1 is a DIY kit. It is not the end state. The architecture is chosen so later stages do not require redesign.
+**This project is not building a product line.** Its goal is to put a working, documented, reproducible engine and air data node into the world under a license that keeps it there. Revenue is not an objective and no stage below is a business plan.
 
-| Stage | Form | Who builds it |
+| Stage | Form | Who |
 |---|---|---|
-| v1 | Breadboard node, phone as hub over BLE, published files, kits at cost | Allen, plus builders reproducing from documentation |
-| v2 | Custom carrier board, DroneCAN bus, separate annunciator and sensor nodes, ADS-B receive, GDL90 restored over Wi-Fi | Allen, plus anyone selling assembled units |
-| v3 | Boxed product. Assembled, calibrated, warrantied, harness included | A production partner |
-| v4 | Autopilot node subscribing to the Junco bus | A production partner with a test program |
+| v1 | Breadboard node, phone as hub over BLE, published files, kits at cost | This project |
+| v2 | Custom carrier board, CAN bus, FIX-Gateway plugin upstreamed, separate annunciator node | This project. The intended end point |
+| v3 | Boxed product. Assembled, calibrated, warrantied, harness included | Anyone who wants it. Not pursued here |
+| v4 | Autopilot node subscribing to the Junco bus | Anyone with a test program. Not pursued here |
 
-**Why the sequence is ordered this way.** Each stage removes a dependency on one person. Kits depend on documentation quality. A boxed product depends on manufacturing and support capacity, which is why it goes to a partner. An actuating product depends on a test program and product liability insurance, neither of which a hobby project can supply.
+**Why the project stops at v2.** A boxed product depends on manufacturing and support capacity. An actuating product depends on a test program and product liability insurance. Neither is something this project intends to acquire, and pretending otherwise is how a volunteer project takes on obligations it cannot meet.
+
+**Why v3 and v4 are still described.** The architecture should not foreclose them, and someone will eventually want them, so recording what they require is more useful than pretending they do not exist. Copyleft means anyone who takes those stages passes the result on under the same terms, which is the outcome this project wants from them anyway.
 
 **What stands between v2 and an autopilot.** Junco has no attitude solution of its own, and the phone's is not one. A control loop needs reliable AHRS, and getting usable attitude off an IMU bolted to a two-stroke airframe is a real project: vibration isolation, filter design, and validation against a truth source. Assume AHRS is a full stage, not a checkbox on the autopilot stage. The revision 2 architecture makes this clearer rather than closer, because borrowing the phone's attitude for display deliberately does not produce an attitude source anything can be flown by.
 
-**What does not change across stages.** The BLE protocol, the log format, the configuration schema, and the licensing. Those are what let a partner take over production without the project forking.
+**What does not change across stages.** The BLE protocol, the log format, the configuration schema, and the licensing. Those are what let someone else take on a later stage without the project forking.
 
 ---
 
@@ -515,11 +529,11 @@ The target product is a single small enclosure that bolts to the frame, is calib
 | Rung | What it means | When it applies |
 |---|---|---|
 | Nothing | No requirement at all | Part 103 and experimental amateur-built. The entire v1 and v2 market |
-| Environmental qualification | DO-160 style testing for temperature, altitude, vibration, humidity, and EMI, self-declared | The meaningful milestone. Real engineering credibility, and what a production partner will ask for |
+| Environmental qualification | DO-160 style testing for temperature, altitude, vibration, humidity, and EMI, self-declared | The meaningful milestone. Real engineering credibility, and the first thing anyone taking this to a product will be asked for |
 | ASTM consensus standard | Compliance with the applicable LSA equipment standard | Only if an S-LSA manufacturer wants factory installation. Pursue on demand |
 | TSO | Full FAA technical standard order, DO-178C software, DO-254 hardware | Certified aircraft. Not this market. Naming it as a goal is how projects like this die |
 
-**Target the second rung.**
+**Target the second rung**, and treat it as an engineering standard to build against rather than a credential to obtain. This project is unlikely to fund a full environmental campaign, but designing as though one were coming is what makes the difference between a node that survives a season and one that does not. It also leaves the work in a state where someone pursuing v3 starts from a real design rather than a rewrite.
 
 ### Two risk profiles, one name
 
@@ -579,9 +593,11 @@ If effort goes to exactly one internet feed, it goes here and not to traffic.
 
 **One GDL90 listener. Not a demodulator.**
 
+For a build that already runs FIX-Gateway, none of this is Junco's work at all: a Stratux ADS-B plugin already exists there. This section applies to the phone-only case, which is the primary one.
+
 GDL90 is the common interface. A single UDP listener serves the Wi-Fi receivers and any local application that emits the format, which means Junco never owns demodulation code, never owns a driver, and never inherits the maintenance burden of either. The SDR-on-the-phone path is then a documented configuration a builder wires up, not a component we ship.
 
-Check the dump1090 and dump978 licenses against the MIT plan in section 17 before bundling anything.
+Check the dump1090 and dump978 licenses before bundling anything. The copyleft move in section 17 makes this easier rather than harder: a permissive upstream absorbs cleanly, and a GPLv3-only upstream would force the combined work to v3, which "or later" already permits.
 
 ---
 
@@ -636,7 +652,99 @@ Both builds meet the same channel requirements in section 8, write the same self
 
 ---
 
-## 24. Revision history
+## 24. Interoperability with MakerPlane
+
+MakerPlane is the closest existing project to Junco's problem, and it is a better neighbour than a competitor. It is built for experimental aviation rather than adapted from drones, and it is alive.
+
+| Component | What it is | License |
+|---|---|---|
+| CAN-FIX | CANbus protocol designed for experimental aviation | Creative Commons |
+| FIX-Gateway | Plugin-based avionics data broker, Python | GPL-2.0-or-later |
+| pyEFIS | EFIS display, Python, runs on a Raspberry Pi | GPL-2.0-or-later |
+
+### The decision
+
+**Junco stays a separate project and contributes a plugin.** It keeps its own repository, specifications, hardware, and BLE protocol, and publishes into FIX-Gateway through a plugin offered upstream.
+
+Reasons, in order of weight:
+
+1. The engine and air data work needs its own hardware, its own test program, and its own specifications. None of that belongs inside a general E-AB avionics project.
+2. A Part 103 powered parachute with a twin two-stroke is a narrow target and a poor fit for somebody else's roadmap.
+3. It is reversible. A plugin that proves valuable can be pushed further upstream later. A dissolved project cannot be reconstituted.
+
+### The integration
+
+```
+   Junco node ---- BLE ----> Junco Android app          in flight, no panel
+        |
+        +--------- BLE ----> FIX-Gateway plugin ----> pyEFIS     panel, Pi build
+                                    |
+                                    +----> every other FIX-Gateway plugin
+```
+
+The plugin is small. FIX-Gateway is explicitly protocol-agnostic and brokers arbitrary sources into a single parameter namespace, so a Junco source is the exact shape it expects.
+
+### What this removes from Junco's scope
+
+Several things this document specifies as Junco work already exist in FIX-Gateway and should be consumed rather than rebuilt.
+
+| Specified here | Already exists |
+|---|---|
+| Section 22 traffic display | Stratux ADS-B plugin |
+| Section 12 second recording | Data recorder and playback plugin |
+| Section 10 annunciation | Annunciation plugin |
+| Section 10 panel display | pyEFIS |
+| Design rule 8 disagreeing sources | Multi-source voting plugin |
+| Pi-class baro and IMU | Raspberry Pi sensor plugins |
+
+**This does not delete the Junco app.** A Part 103 aircraft with no panel and no Pi is still the primary case, and the phone-as-hub architecture in section 6 stands unchanged. What it means is that the app becomes one client rather than the only one, which restores fallback paths revision 2 removed.
+
+### What stays Junco's
+
+Nothing in that stack reads a two-stroke with CDI ignition and no ECU. The engine plugins that exist are Grand Rapids EIS and MegaSquirt, and both assume an engine with a computer in it. A Part 103 aircraft does not have one.
+
+- Four thermocouples, cold junction compensated
+- Two opto-isolated ignition-pulse tachometer channels
+- Sub-100 Pa differential pressure, where the glider projects are kilopascal-class
+- A static plenum that works in prop blast
+- The fuel backends in section 9
+- The aircraft profile, the log format, and the BLE protocol
+
+That list is narrower than what this document described before, and it is the part nobody else has done.
+
+### CAN-FIX and the v2 bus
+
+`spec/dronecan-engine-extension.md` picks DroneCAN. That choice should be re-made rather than inherited.
+
+DroneCAN's consumers are autopilots, which is stage v4 and not pursued here. CAN-FIX's consumers are experimental aircraft panels, which is what this aircraft has. The spec's own argument, that custom types mean somebody has to write a driver and therefore nobody will, points at whichever bus the target community already runs.
+
+CAN-FIX is also Creative Commons, so implementing it carries no licensing consequence, unlike consuming a GPL implementation of it.
+
+Not decided in v1, which has no bus and no second node. Recorded so v2 decides it deliberately.
+
+### One honest caveat about design rule 1
+
+A Pi-class build per section 23 could run the node firmware, FIX-Gateway, and pyEFIS in one enclosure. The node function still publishes and the display still subscribes, so nothing influences a published value and design rule 1 holds in substance.
+
+But the boundary becomes a software boundary rather than a physical one, and software boundaries are weaker. If that build is pursued, the node process stays separable and independently testable, and imports nothing from the display side.
+
+---
+
+## 25. Revision history
+
+### Revision 4, August 2026: copyleft, and a neighbour instead of a competitor
+
+**What changed.** Code moved to GPL-2.0-or-later and hardware to CERN-OHL-S-2.0. Specifications stayed CC-BY. The commercial roadmap in section 20 stopped being the project's plan and became a description of what others may do. A new section 24 positions Junco as the engine and air data front end for the MakerPlane stack.
+
+**Why the license.** The project's purpose is to put this capability into the world permanently. A permissive license lets a better funded fork take the work closed and outrun the original, and copyleft prevents that at no cost to any use this project cares about. GPL v2 or later specifically, because it matches MakerPlane and lets code move both ways without relicensing.
+
+**Why the specifications stayed permissive.** They are meant to be implemented by anyone in anything. A protocol nobody may adopt freely does not outlive its implementation, which is the whole reason `spec/` exists. CAN-FIX is Creative Commons for the same reason.
+
+**What it cost.** Very little that this project wanted. GPL still permits building, selling, forking, and competing. What it forecloses is a closed derivative, and section 20 no longer has a stage that depends on offering one.
+
+**What got smaller, usefully.** Section 24's scope table removes six items from Junco's work because FIX-Gateway already has them. What remains is the two-stroke engine front end nobody has built, which is a sharper description of the project than any previous revision managed.
+
+**What is still open.** Whether the v2 bus is DroneCAN or CAN-FIX. Revision 4 records the argument and explicitly does not decide it, because v1 has no bus.
 
 ### Revision 3, August 2026: traffic without a receiver, and a second compute path
 
