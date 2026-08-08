@@ -2,11 +2,13 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 2
+Status: Draft, revision 3
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
-Revision 2 moves position and attitude sensing onto the pilot's phone, moves the link to Bluetooth Low Energy, and reduces the node to engine and air data only. Section 22 records what changed and why.
+Revision 2 moved position and attitude sensing onto the pilot's phone, moved the link to Bluetooth Low Energy, and reduced the node to engine and air data only.
+
+Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the pilot already owns, and opens the compute platform to a Linux single-board variant. Section 24 records what changed and why.
 
 ---
 
@@ -47,7 +49,7 @@ These constrain the design. They are not disclaimers.
 
 - Custom PCB
 - Distributed multi-node CAN network
-- ADS-B receive
+- **A Junco-built ADS-B receiver.** Junco does not demodulate ADS-B and is not planned to. Displaying traffic from a receiver the pilot already owns is in scope as an optional channel. See section 22
 - GDL90 output. Demoted to phase 2, see section 14
 - iOS native application. The protocol supports it, the app does not exist yet
 - Angle of attack
@@ -135,6 +137,8 @@ No custom board. An off the shelf ESP32-S3 development board on a screw terminal
 **Deleted in revision 2:** the u-blox MAX-M10S GNSS module and its antenna. The phone supplies position.
 
 **Compute is specified by requirement, not part number.** The module must provide: two cores, PSRAM, Bluetooth Low Energy, a native CAN 2.0B controller, SD, and at least 20 usable GPIO. Wi-Fi is required for the on-demand AP mode but is not on the flight-critical path. The ESP32-S3 is v1's reference implementation, not a dependency.
+
+**A Linux single-board variant is a supported second build**, not a fork. It changes what the node can do and what the enclosure has to do. Section 23 records the full trade and the requirements a Pi-class build must meet.
 
 **Bluetooth Classic is not required.** Revision 1 noted the ESP32-S31's Classic BR/EDR support as a reason to prefer it. Choosing BLE removes that reason. See section 14.
 
@@ -325,7 +329,8 @@ The architecture change helps here. Position and time now come from the phone, w
 | Junco BLE GATT telemetry | Node to phone | **Required in v1. Separate specification document** |
 | Junco log record format | On card and on phone | Required in v1. Published with recovery tool |
 | Wi-Fi AP, on demand | Bidirectional | Required in v1 for log pull, config, and firmware only. Never in flight |
-| GDL90 over UDP 4000 | Node to EFB | **Phase 2.** Arrives with ADS-B |
+| GDL90 over UDP 4000, outbound | Node to EFB | **Phase 2.** Junco publishing its own channels to a third-party EFB |
+| GDL90 over UDP 4000, inbound | Receiver to phone | **Optional channel.** Traffic and weather from a receiver the pilot owns. See section 22 |
 | DroneCAN engine and fuel extension | Bus | Separate specification document. Not implemented in v1 |
 
 ### Why BLE and not Bluetooth Classic
@@ -340,7 +345,17 @@ BLE is available to third-party apps on both platforms, carries telemetry comfor
 
 **GDL90 to a third-party EFB.** GDL90 is UDP over Wi-Fi, and the node cannot usefully hold a BLE link and a Wi-Fi AP in flight on one 2.4 GHz radio. Revision 1 treated free display in ForeFlight and Avare as a major benefit. That is given up.
 
-It costs less than it appears. The main thing GDL90 delivered was position into the EFB, and the phone now has its own position, so an EFB works normally alongside the Junco app. What GDL90 still uniquely delivers is ADS-B traffic and weather, and that arrives in phase 2 with the receiver, at which point the Wi-Fi path is worth turning on.
+It costs less than it appears. The main thing GDL90 delivered was position into the EFB, and the phone now has its own position, so an EFB works normally alongside the Junco app. What GDL90 still uniquely delivers outbound is Junco's own channels reaching a third-party display, and that stays in phase 2.
+
+### Consuming GDL90 is not the same as emitting it
+
+These are two different features that share a format, and conflating them is what kept traffic looking expensive.
+
+**Emitting** GDL90 requires the node to run a Wi-Fi AP in flight, which it cannot usefully do while holding BLE. That is the phase 2 problem described above.
+
+**Consuming** GDL90 requires nothing of the node at all. The receiver is the pilot's, the transport is the receiver's, and the listener is a UDP socket in the app. The node is not in the path, is not aware of it, and cannot be affected by it. Design rule 1 is preserved without any argument, because there is nothing to argue about.
+
+That asymmetry is why traffic display does not have to wait for phase 2 and does not have to wait for a Junco receiver that is never going to be built.
 
 ### BLE requirements
 
@@ -367,6 +382,10 @@ These are assumptions until a phase closes them.
 | Phone attitude is stable enough on a vibrating airframe to be worth showing | Phase 1 | Drop the attitude display rather than show a bad one |
 | Magnetic float fuel sensing survives vibration and slosh | Phase 3 | Fall back to burn integration only |
 | A pitot can be placed usefully on a powered parachute | Phase 4 | Ship without airspeed, document why |
+| A ram-air-cooled enclosure holds a Pi-class board inside its range on an engine cage | Phase 0, plus a summer season | Pi build restricted to a cockpit mount, or dropped |
+| Ground idle on a hot day does not heat-soak the enclosure before takeoff | Phase 0 ground runs | Thermal mass, a shroud, or a documented warm-up limit |
+| A cooling inlet near the pitot does not couple into the static plenum | Phase 1 | Altitude and vertical speed corrupted by cooling airflow |
+| The phone holds BLE to the node, USB OTG to an SDR, and audio to a headset at once | Traffic work | Traffic falls back to a separate receiver over Wi-Fi |
 
 ---
 
@@ -384,6 +403,10 @@ These are assumptions until a phase closes them.
 | 7. AirVenture 2027 | July 2027 | Flying unit, a season of logs, three builds that are not his |
 
 Phase 0 gains a test. BLE link stability under twin CDI ignition is now flight-relevant in a way an I2C bus alone was not, because the link carries every value the pilot sees.
+
+Phase 0 gains thermal instrumentation as well. If the Pi-class build is going to be viable on an engine cage, the enclosure temperature during ground runs and after a hot shutdown is the measurement that decides it, and it costs one logged channel to collect while the EMI runs are happening anyway.
+
+**Traffic is not a phase.** It is an optional app-side channel that can be built whenever someone wants it, because it blocks on nothing in this table and touches no node hardware. It should not be allowed to displace phases 1 through 4, which are the ones that produce an instrument.
 
 ---
 
@@ -442,6 +465,11 @@ Successors break what they do not understand the reason for. Every rejection bel
 | Onboard lithium cell | A cell in a vibrating enclosure next to gasoline, to replace a USB-C input from a bank the phone requires anyway |
 | Hard-specifying the compute module | The ESP32-S31 shipped two months after the S3 was selected. Specify by requirement, name a reference implementation |
 | Unified stale-data handling | Holding the last value is correct for a display and dangerous on a link. Two consumers, two behaviors, deliberately |
+| Decoding ADS-B on the ESP32-S3 node | Its USB OTG is full speed, 12 Mbps. An RTL-SDR at 2.4 MSPS is roughly 38 Mbps of raw I/Q, and practical full-speed bulk throughput is nearer 8 Mbps. The bus is short by a factor of four before any demodulation, and a 240 MHz Xtensa could not demodulate it anyway |
+| Building a Junco ADS-B receiver | A Pi-class board and a dongle is Stratux, which already exists, is open, is documented, and costs about $50. Rebuilding it spends the budget twice and inherits a maintenance burden someone else is already carrying |
+| ForeFlight Sentry as a supported receiver | It does not emit GDL90 to third-party apps and is iOS only. A supported receiver has to speak an open protocol, which is the same standard we hold ourselves to |
+| Internet-sourced traffic as an alerting source | Crowdsourced ground receivers are line of sight and thin below 1000 to 2000 ft AGL, which is exactly where this aircraft lives, and 5 to 15 seconds of latency displaces a target by roughly a third of a mile |
+| Rejecting a Linux single-board node on its 0 to 50C rating | That is an enclosure and airflow problem, on an aircraft already routing a pitot line to the same location. Solve it with insulation, self-heating, and ram air rather than with a different processor. See section 23 |
 
 ---
 
@@ -499,7 +527,124 @@ A builder-assumes-risk notice works reasonably against the builder. It does not 
 
 ---
 
-## 22. Revision history
+## 22. Traffic and ADS-B In
+
+Traffic is defined the way fuel is defined in section 9: **a channel with pluggable backends**, selected by the owner. The app sees targets. It does not see a method.
+
+**The node is never in the path.** Every backend below terminates at the phone. The node does not receive, decode, relay, or know about traffic. This is not a restriction that had to be negotiated, it is a consequence of the receiver being someone else's hardware, and it means design rule 1 holds without needing to be defended.
+
+### Backends
+
+| Backend | Pilot cost | Transport | Notes |
+|---|---|---|---|
+| USB SDR on the phone | $30 to $40 per band | USB OTG | Android only, permanently. Needs a powered OTG hub and a real antenna |
+| Portable receiver | $210 to $850 | GDL90 over Wi-Fi | Preserves a future iOS path. Stratux is the reference |
+| Internet feed | Free | Cellular | Advisory layer only. Never alerts |
+| OGN and FLARM | Free | Cellular | Only worth enabling near glider operations |
+
+**1090 ES and 978 UAT are separate radios.** Dual band means two dongles or a receiver that does both. In the United States, FIS-B weather and TIS-B traffic are carried on 978 only, so a 1090-only build gets direct traffic and nothing else.
+
+**ForeFlight Sentry is excluded** and the exclusion should be stated plainly in the documentation, because it is the most commonly recommended portable and it does not emit GDL90 to third-party apps.
+
+### Two rules
+
+1. **Every target carries its source tag**, per design rule 8. A target decoded from a local receiver and a target pulled from an internet feed are not the same kind of object and must never render identically.
+2. **Internet-sourced traffic never generates an alert.** It is a map layer. It may not drive audio, may not drive the annunciator, and may not be the basis of any advisory.
+
+### What ADS-B In does not show you
+
+This belongs in the requirements rather than in a footnote, because the failure mode is a pilot trusting a screen.
+
+**Part 103 aircraft are not required to carry ADS-B Out, and most carry none.** The traffic most likely to conflict with a powered parachute at 800 feet is other ultralights, gliders, banner tows, and ag aircraft, which is precisely the traffic least likely to appear on the display.
+
+**TIS-B is conditional.** It uplinks radar-derived traffic, including aircraft with no ADS-B Out, but only inside a service volume triggered by a properly equipped ADS-B Out aircraft. An aircraft without Out does not trigger its own. You receive it when someone equipped happens to be nearby, and not otherwise. Radar coverage at 500 to 1500 feet AGL is thin regardless.
+
+**Internet feeds have a coverage floor.** These networks are crowdsourced ground receivers operating line of sight. Below roughly 1000 to 2000 feet AGL in rural areas there is no coverage at all. Latency of 5 to 15 seconds displaces a target by roughly a third of a mile at closure speeds that matter.
+
+The consequence is a display requirement: **a traffic screen must not imply completeness.** A screen showing two airliners overhead and nothing else reads as an empty sky, and the sky is not empty. Traffic display is a supplement to looking outside, and the interface has to carry that rather than assume it.
+
+### Weather is the better use of the internet path
+
+`aviationweather.gov` publishes METAR and TAF as JSON, free, without a key. It is low rate, tolerant of latency, has no coverage floor, and creates no false confidence about collision risk.
+
+It also improves a feature that already exists. The density altitude advisory in section 10 currently compares against a profile limit. A real altimeter setting and temperature turn that from an estimate into a number.
+
+If effort goes to exactly one internet feed, it goes here and not to traffic.
+
+### What Junco implements
+
+**One GDL90 listener. Not a demodulator.**
+
+GDL90 is the common interface. A single UDP listener serves the Wi-Fi receivers and any local application that emits the format, which means Junco never owns demodulation code, never owns a driver, and never inherits the maintenance burden of either. The SDR-on-the-phone path is then a documented configuration a builder wires up, not a component we ship.
+
+Check the dump1090 and dump978 licenses against the MIT plan in section 17 before bundling anything.
+
+---
+
+## 23. Compute platform
+
+Section 7 specifies compute by requirement rather than part number. This section records the trade behind that requirement, because the choice looks obvious in both directions depending on which constraint is examined first.
+
+### Two reference builds
+
+| | ESP32-S3 build | Pi-class build |
+|---|---|---|
+| Mount | Engine cage | Engine cage or cockpit |
+| Boot | ~300 ms | 20 to 40 s |
+| Draw at 5V | 120 to 160 mA | 100 mA idle, several times that under load |
+| Temperature rating | −40 to +85C | 0 to +50C, commercial |
+| Boot medium | Soldered flash | microSD |
+| Power loss | Close the file. No OS to corrupt | Orderly stop, or a read-only root |
+| ADS-B, GDL90 out | Neither, ever | Both, natively |
+
+### What the Pi buys
+
+**One box instead of two.** A Pi-class board and a dongle is Stratux. A Pi-based node therefore does engine, air data, ADS-B In on both bands, FIS-B weather, GDL90 out, and the on-demand configuration AP in a single enclosure. It collapses section 22's optional receiver and section 14's phase 2 GDL90 output into the node itself.
+
+**Development and longevity.** Linux and plain C or Python, no cross-compile, no pinned toolchain. For a project whose stated goal is being buildable in 2040, that ages better than a specific ESP-IDF release. Production is committed through at least January 2030.
+
+**The real-time objection is weak and should not be repeated.** This workload peaks at 25 Hz on the pressure channels, and a tachometer at 10,000 RPM with one pulse per revolution is 167 Hz. Linux handles that comfortably. The ESP32's hardware pulse counters are cleaner, not necessary.
+
+### Temperature is an enclosure problem
+
+The 0 to 50C commercial rating is not a reason to reject the board. The aircraft already routes a pitot line to the node's location, so a ram air source is available at the same place, and the cold end is insulation plus a board that dissipates one to two watts into a small volume.
+
+Requirements that follow, for a Pi-class build:
+
+1. **Cooling is ducted ram air.** The inlet, the duct, and the outlet are enclosure design, not an afterthought.
+2. **The cooling path must not couple into the static plenum or disturb the pitot.** A cooling inlet is a pressure source. The rule in section 6 that keeps the phone barometer out of the vertical speed calculation exists because a pressure source that varies with airspeed makes a vario report throttle position, and a badly placed cooling duct reintroduces exactly that failure a foot from where it was designed out.
+3. **Ground idle is the sizing case, not cruise.** Ram air produces nothing on the ground, which is the same reason section 19 rejects the ram air turbine. The enclosure needs enough thermal mass to survive a hot-day taxi and runup, or the profile needs a documented temperature gate before takeoff.
+4. **Cold start is out of spec at t=0**, before self-heating. An insulated enclosure holds the board well above ambient within minutes but not at power-on. Either accept and publish a warm-up interval, or add a resistive heater.
+5. **A vented enclosure is not a shielded enclosure.** Section 7 requires shielding against CDI ignition. A ducted inlet needs screening or a labyrinth, and it will breathe moisture. Conformal coat the board.
+
+### What temperature does not solve
+
+Two distinctions survive the thermal work and are requirements on any Pi-class build rather than arguments against it:
+
+1. **The boot medium is the computer.** On the ESP32, firmware lives in soldered flash and the SD card carries only the log, so a card failure costs data and the instrument keeps running. On a Pi the card is the system, and a vibration-induced failure on a two-stroke airframe is a dead instrument in flight. Mitigation is mandatory: **read-only root with a RAM overlay, and the log on a separate card from the boot medium.**
+2. **An unclean stop can corrupt the root filesystem, not just the log.** Section 12 sizes a supercapacitor to close a file. A Pi-class build needs it sized for an orderly stop at that board's actual draw, which is several times the ESP32's. A read-only root reduces this from a bricking risk to a lost record, which is why requirement 1 is not optional.
+
+Boot time is the visible consequence: 20 to 40 seconds against 300 milliseconds. Publish it, and make sure a mid-flight brownout reboot cannot be mistaken for a working instrument during the interval when it is not one.
+
+### What does not change
+
+Both builds meet the same channel requirements in section 8, write the same self-describing log format in section 12, expose the same BLE protocol in section 14, and load the same aircraft profile in section 11. A log file does not record which processor produced it beyond the hardware revision required by design rule 7, and no consumer needs to care.
+
+---
+
+## 24. Revision history
+
+### Revision 3, August 2026: traffic without a receiver, and a second compute path
+
+**What changed.** Traffic became a pluggable app-side channel with the node explicitly outside the path. The non-goal in section 4 was re-scoped from "ADS-B receive" to "a Junco-built ADS-B receiver," which is a narrower and more honest statement of the same position. A Linux single-board variant was admitted as a supported second build rather than a fork.
+
+**Why.** Two findings. First, consuming GDL90 costs the node nothing, because the receiver belongs to the pilot and the listener is a socket in the app, so the feature was never as expensive as bundling it with a receiver made it look. Second, the ESP32-S3 cannot decode ADS-B under any circumstances, its USB being short of the required bandwidth by a factor of four, which settles the node's role rather than constraining it.
+
+**On temperature.** The 0 to 50C rating was initially treated as disqualifying for a Pi-class board on an engine cage, by analogy with the e-paper rejection in section 10. That analogy does not hold. A display panel cannot be ducted and a circuit board can, and the aircraft is already routing pneumatic tubing to the same location. The rating became an enclosure requirement, recorded in section 23.
+
+**What is still open.** Whether a ram-air-cooled enclosure actually holds the range on an engine cage, and whether ground idle heat-soak defeats it, are measurements rather than arguments. Both went into section 15 and get instrumented during phase 0, where the hardware is already running for the EMI checks.
+
+**What it did not change.** The node stays publish-only. The phone stays the hub. No traffic backend, including the ones that run on the phone, may generate an alert from internet-sourced data, and no traffic display may imply that it is showing everything in the sky.
 
 ### Revision 2, August 2026: phone as hub
 
