@@ -283,6 +283,8 @@ Contents:
 
 **The profile lives on the node**, not on the phone, so a borrowed phone or a replacement tablet inherits the correct configuration by connecting. The app reads it over BLE on connect and caches it against the profile hash.
 
+**The profile describes the aircraft and nothing else.** Configuration that describes the pilot's own equipment stays app-side, on the phone. Traffic backend selection in section 22 is the current example: it is a property of what is in the flight bag, it changes without the aircraft changing, and the node is not in that data path. Putting it in the profile would make the node authoritative over something it cannot see.
+
 ---
 
 ## 12. Logging
@@ -414,8 +416,8 @@ Phase 0 gains thermal instrumentation as well. If the Pi-class build is going to
 
 | Artifact | License |
 |---|---|
-| Firmware | MIT or Apache 2.0 |
-| Android app | MIT or Apache 2.0 |
+| Firmware | MIT |
+| Android app | MIT |
 | Board files, STLs | CERN-OHL-P-2.0 |
 | Documentation and specs | CC-BY-4.0 |
 
@@ -529,7 +531,9 @@ A builder-assumes-risk notice works reasonably against the builder. It does not 
 
 ## 22. Traffic and ADS-B In
 
-Traffic is defined the way fuel is defined in section 9: **a channel with pluggable backends**, selected by the owner. The app sees targets. It does not see a method.
+Traffic is defined the way fuel is defined in section 9: **a channel with pluggable backends**. The app sees targets. It does not see a method.
+
+Unlike fuel, the selection is **app-side configuration and not part of the aircraft profile**, per section 11. A receiver lives in the flight bag rather than on the airframe, and the node cannot see it.
 
 **The node is never in the path.** Every backend below terminates at the phone. The node does not receive, decode, relay, or know about traffic. This is not a restriction that had to be negotiated, it is a consequence of the receiver being someone else's hardware, and it means design rule 1 holds without needing to be defended.
 

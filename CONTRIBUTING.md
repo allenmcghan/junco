@@ -29,6 +29,8 @@ be declined regardless of its merits elsewhere.
 - Logbook entries are proposed, never filed
 - Adapting to a new aircraft never requires a toolchain
 - A unit always declares its build class
+- Every channel declares its source, and invalid data is published as invalid
+  rather than held at its last value
 
 ## Specifications before implementations
 

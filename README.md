@@ -2,9 +2,9 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft.**
 
-Junco instruments an ultralight or experimental aircraft and streams flight and engine data to the pilot's phone or tablet. It logs everything to an SD card, emits GDL90 so existing electronic flight bag apps display it without any custom software, and generates draft logbook entries after each flight.
+Junco instruments an ultralight or experimental aircraft and streams engine, fuel, and air data over Bluetooth Low Energy to an app on the pilot's phone or tablet. The phone supplies position, attitude, and time. The node supplies what a phone cannot measure from inside its own case. It logs to an SD card and generates draft logbook entries after each flight.
 
-Target cost is under $250 in parts. Target build is one person with a soldering iron, no hot air station and no PCB order.
+Target cost is under $180 in parts. Target build is one person with a soldering iron, no hot air station and no PCB order.
 
 ---
 
@@ -27,6 +27,7 @@ These constrain the design. They are not disclaimers.
 5. **Config, not code.** Adapting Junco to a different aircraft must never require a toolchain.
 6. **No claim of crash survivability.** It is a flight data logger, not a black box.
 7. **A unit always declares what it is.** Firmware reports build class, hardware revision, and calibration date.
+8. **Every channel declares its source.** A value from the phone's barometer and a value from a plumbed static plenum are not interchangeable. The display, the log, and the protocol must all say which one produced a given reading.
 
 ---
 

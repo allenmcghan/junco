@@ -44,9 +44,32 @@ Every file identifies the unit that wrote it, per PRD design rule 7.
 A v1 self-build must be distinguishable from a later qualified unit using the
 log file alone, with no external record.
 
+## Required per-record content
+
+Every sample carries the source that produced it, per PRD design rule 8. A
+pressure altitude derived from a plumbed static plenum and one derived from a
+phone barometer are different measurements, and a reader that cannot tell them
+apart will silently merge them.
+
+Invalid data is flagged invalid or omitted. It is never written at its last
+known value. Holding is a display behavior and has no place in a log.
+
+## Time
+
+There are two recordings and they are required to merge without manual
+alignment: the node log on the card, and the phone log that also carries
+position and attitude.
+
+The node has no real-time clock and must never be assumed to have one. It
+timestamps with a monotonic counter. The phone sends its wall clock on connect,
+and the node writes the offset into the file as a record, so a card recovered on
+its own can still be placed in real time.
+
 ## Not yet specified
 
 - Record type identifiers and their allocation
 - Descriptor record encoding
+- The source tag enumeration. This is shared with the BLE protocol and should be
+  defined once and referenced, not written twice
 - Whether records are a raw partition or a file on FAT
 - Export mapping to CSV and GPX

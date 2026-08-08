@@ -38,6 +38,17 @@ km/h, Fahrenheit or Celsius, gallons or liters, inHg or hPa.
 **Build class.** Self-built, kit-built, or factory-qualified. Written into
 every log header.
 
+## What the profile does not contain
+
+The profile describes the aircraft, and it lives on the node so a borrowed phone
+or a replacement tablet inherits the right configuration by connecting.
+
+Anything describing the pilot's own equipment rather than the aircraft is
+app-side configuration and stays on the phone. Traffic backend selection is the
+current example: which receiver or feed a pilot uses is a property of what is in
+their flight bag, it changes without the aircraft changing, and the node is not
+in that data path at all. See PRD section 22.
+
 ## Not yet specified
 
 - Serialization format. Leading candidate is TOML for hand-editability
