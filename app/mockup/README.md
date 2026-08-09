@@ -45,6 +45,26 @@ and open it on the phone, then use the browser's *Add to Home Screen*. The
 service worker caches the shell on first load, so it runs afterwards with no
 signal.
 
+## As an Android app
+
+`android/` wraps the same files in an APK. It exists for one reason: device
+orientation and geolocation are only available to a **secure context**, so a
+WebView loading `file://` would silently kill exactly the sensors the app is
+for. The wrapper serves the bundled assets over an `https://` origin and
+intercepts those requests locally. Nothing leaves the device and no network is
+used.
+
+Build it with `android/build.sh`, which needs `ANDROID_HOME` and build-tools 35
+or newer. It uses the raw SDK tools rather than Gradle, because one activity
+with no dependencies does not need a plugin and a version matrix.
+
+**The APK is not committed.** `.gitignore` excludes `*.apk` deliberately, so the
+`Mockup APK` workflow builds it instead: every run uploads it as an artifact,
+and pushing a `mockup-v*` tag attaches it to a release.
+
+It is debug-signed, so installing it means allowing unknown sources. That is
+appropriate for a mockup and would not be appropriate for anything else.
+
 ## What is real and what is invented
 
 **Real, from the device:** attitude, heading, track, ground speed, GPS altitude,
