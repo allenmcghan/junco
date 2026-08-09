@@ -6,4 +6,4 @@ Phase 0 is an EMI reality check, not firmware: an ESP32-S3 and one baro sensor o
 
 Two compute paths are supported and both meet the same specifications. The ESP32-S3 build is an ESP-IDF project. A Pi-class build is Linux and carries extra requirements on its boot medium and shutdown path. See docs/prd.md section 23.
 
-Nothing substantial can be written here before `spec/ble-telemetry.md` exists, because that link carries every value the pilot sees.
+`spec/ble-telemetry.md` is the document this code is written against. It is a draft with its field widths, UUID base, and configuration schema still open, so read its "Not yet specified" section before assuming anything is settled.

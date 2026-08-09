@@ -51,6 +51,11 @@ pressure altitude derived from a plumbed static plenum and one derived from a
 phone barometer are different measurements, and a reader that cannot tell them
 apart will silently merge them.
 
+**The source tag enumeration is defined in `ble-telemetry.md`.** It is not
+restated here, because two copies of an enumeration diverge. That document
+allocates values for phone-supplied sources as well, which never cross the BLE
+link but do appear in this file.
+
 Invalid data is flagged invalid or omitted. It is never written at its last
 known value. Holding is a display behavior and has no place in a log.
 
@@ -69,7 +74,5 @@ its own can still be placed in real time.
 
 - Record type identifiers and their allocation
 - Descriptor record encoding
-- The source tag enumeration. This is shared with the BLE protocol and should be
-  defined once and referenced, not written twice
 - Whether records are a raw partition or a file on FAT
 - Export mapping to CSV and GPX
