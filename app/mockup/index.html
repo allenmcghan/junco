@@ -114,6 +114,8 @@
     background: #0B0F12; border: 1px solid var(--rule); border-radius: 3px;
     padding: 8px 10px; min-width: 78px; text-align: center;
   }
+  input.val, select.val, textarea.val { font-family: var(--mono); background:#0B0F12; color:var(--white); border:1px solid var(--rule); border-radius:3px; padding:8px; font-size:13px; }
+  .lbl { font-family: var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
   .hint { font-size: 12px; line-height: 1.5; color: var(--dim); margin: 7px 0 0; }
   .hint b { color: var(--white); }
   .stat { font-family: var(--mono); font-size: 11.5px; line-height: 1.7; color: var(--dim); }
@@ -183,7 +185,7 @@
   <rect x="133" y="22" width="82" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
   <polygon points="126,238 139,221 215,221 215,255 139,255" fill="#000" stroke="#FFF" stroke-width="2"/>
   <text id="asiVal" x="211" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="end">28</text>
-  <text x="174" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">MPH</text>
+  <text id="asiUnit" x="174" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">MPH</text>
   <text x="174" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
 
   <!-- ALTITUDE -->
@@ -192,7 +194,7 @@
   <rect x="673" y="22" width="84" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
   <polygon points="765,238 752,221 673,221 673,255 752,255" fill="#000" stroke="#FFF" stroke-width="2"/>
   <text id="altVal" x="677" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="start">1180</text>
-  <text x="715" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">FT</text>
+  <text id="altUnit" x="715" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">FT</text>
   <text x="715" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
 
   <!-- VSI -->
@@ -202,7 +204,7 @@
   <polygon id="vsiPtr" points="761,238 776,231 776,245" fill="#FFF"/>
   <text id="vsiVal" x="783" y="243" font-size="12" font-weight="700" fill="#FFF" text-anchor="start">0</text>
   <rect x="761" y="22" width="42" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
-  <text x="782" y="470" font-size="10" font-weight="700" fill="#93A0A8" text-anchor="middle">FPM</text>
+  <text id="vsiUnit" x="782" y="470" font-size="10" font-weight="700" fill="#93A0A8" text-anchor="middle">FPM</text>
 
   <!-- HEADING TAPE -->
   <rect x="223" y="460" width="442" height="42" fill="#000" fill-opacity="0.62"/>
@@ -231,6 +233,68 @@
 
 <div id="panel">
   <div class="wrap">
+
+
+    <div class="grp">
+      <h3>Aircraft</h3>
+      <div class="row">
+        <select id="acSel" class="val" style="flex:1;min-width:180px"></select>
+        <button id="acDup">Duplicate</button>
+        <button id="acDel">Delete</button>
+      </div>
+      <div class="row"><span class="lbl">Name</span><input id="acName" class="val" style="flex:1"></div>
+      <div class="row"><span class="lbl">Reg</span><input id="acReg" class="val" style="flex:1"></div>
+      <div class="row">
+        <span class="lbl">Engines</span><input id="acEng" class="val" type="number" min="1" max="4" style="width:64px">
+        <span class="lbl">CHT/eng</span><input id="acCht" class="val" type="number" min="0" max="6" style="width:64px">
+        <span class="lbl">EGT/eng</span><input id="acEgt" class="val" type="number" min="0" max="6" style="width:64px">
+      </div>
+      <div class="row">
+        <span class="lbl">RPM max</span><input id="acRpm" class="val" type="number" style="width:88px">
+        <span class="lbl">CHT max</span><input id="acChtMax" class="val" type="number" style="width:80px">
+        <span class="lbl">EGT max</span><input id="acEgtMax" class="val" type="number" style="width:80px">
+      </div>
+      <div class="row">
+        <span class="lbl">Vs0</span><input id="acVs0" class="val" type="number" style="width:74px">
+        <span class="lbl">Vne</span><input id="acVne" class="val" type="number" style="width:74px">
+        <span class="lbl">Cruise</span><input id="acCru" class="val" type="number" style="width:74px">
+      </div>
+      <div class="row">
+        <span class="lbl">Fuel cap</span><input id="acCap" class="val" type="number" style="width:84px">
+        <span class="lbl">Burn</span><input id="acBurn" class="val" type="number" style="width:84px">
+      </div>
+      <div class="row">
+        <span class="lbl">Units</span>
+        <select id="uSpeed" class="val"><option value="mph">mph</option><option value="kt">kt</option><option value="kmh">km/h</option></select>
+        <select id="uAlt" class="val"><option value="ft">ft</option><option value="m">m</option></select>
+        <select id="uTemp" class="val"><option value="F">&deg;F</option><option value="C">&deg;C</option></select>
+        <select id="uFuel" class="val"><option value="gal">gal</option><option value="L">L</option></select>
+      </div>
+      <div class="row"><button class="go" id="acSave" style="flex:1">Apply to display</button></div>
+      <p class="hint" id="acErr"></p>
+      <p class="hint">Limits and speeds are entered in the display units above. Stored in SI, because
+      units are a display concern and never travel with the data.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Share, back up, transfer</h3>
+      <div class="row">
+        <button class="go" id="acExport" style="flex:1">Export this aircraft</button>
+        <button id="acImportBtn">Import</button>
+        <input type="file" id="acFile" accept=".toml,.txt,text/plain" style="display:none">
+      </div>
+      <textarea id="acText" class="val" style="width:100%;height:150px;text-align:left;margin-top:8px;display:none"></textarea>
+      <div class="row" id="acTextRow" style="display:none">
+        <button id="acCopy">Copy</button>
+        <button id="acShare">Share</button>
+        <button id="acDownload">Download .toml</button>
+        <button id="acLoadText">Load from text</button>
+      </div>
+      <p class="hint">A profile is a small TOML file. <b>That is the whole sync story.</b> Copy it,
+      mail it, drop it in your own cloud, hand it to another builder. There is no account and no
+      server, because a service that has to be paid for is the thing that kills a project when the
+      maintainer moves on, and a profile carries your registration and home field.</p>
+    </div>
 
     <div class="grp">
       <h3>Mounting calibration</h3>
@@ -295,6 +359,7 @@
   </div>
 </div>
 
+<script src="./profile.js"></script>
 <script>
 (function () {
 "use strict";
@@ -303,349 +368,379 @@ var $ = function (id) { return document.getElementById(id); };
 function el(n, a, t) { var e = document.createElementNS(NS, n);
   for (var k in a) { if (Object.prototype.hasOwnProperty.call(a, k)) { e.setAttribute(k, a[k]); } }
   if (t !== undefined) { e.textContent = t; } return e; }
+function clear(g) { while (g.firstChild) { g.removeChild(g.firstChild); } }
 var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+var JP = window.JuncoProfile;
 
-/* ---------------------------------------------------------------------------
-   Orientation maths.
-
-   The whole point: the phone can be mounted at any angle, and we want the
-   AIRCRAFT's attitude, not the phone's. A two-axis "cage" cannot do this,
-   because zeroing pitch and roll still assumes the phone's axes line up with
-   the airframe's. So we capture the full rotation instead.
-
-   At SET LEVEL, with the aircraft level, gravity in the device frame tells us
-   which way is DOWN through the airframe. Combined with the screen axis the
-   pilot nominates as the right wing, that fixes all three aircraft axes in
-   device coordinates. Everything after that is a change of basis.
---------------------------------------------------------------------------- */
-
-// W3C: R = Rz(alpha) Rx(beta) Ry(gamma), device -> earth (ENU, +Z up)
-function devToEarth(al, be, ga) {
-  var cA = Math.cos(al), sA = Math.sin(al);
-  var cB = Math.cos(be), sB = Math.sin(be);
-  var cG = Math.cos(ga), sG = Math.sin(ga);
-  return [
-    [cA * cG - sA * sB * sG, -cB * sA, cG * sA * sB + cA * sG],
-    [cG * sA + cA * sB * sG,  cA * cB, sA * sG - cA * cG * sB],
-    [-cB * sG,                sB,      cB * cG]
-  ];
+/* =====================================================================
+   Orientation. The phone may be mounted at any angle; we want the
+   AIRCRAFT's attitude. Two offsets cannot do that, so SET LEVEL captures
+   the whole mounting rotation: gravity gives the true down axis through
+   the airframe, the nominated screen direction gives the right wing, and
+   their cross product gives forward. Everything after is a basis change.
+   ===================================================================== */
+function devToEarth(al, be, ga) {           // W3C: Rz(a)Rx(b)Ry(g), device -> ENU
+  var cA = Math.cos(al), sA = Math.sin(al), cB = Math.cos(be), sB = Math.sin(be),
+      cG = Math.cos(ga), sG = Math.sin(ga);
+  return [[cA*cG - sA*sB*sG, -cB*sA, cG*sA*sB + cA*sG],
+          [cG*sA + cA*sB*sG,  cA*cB, sA*sG - cA*cG*sB],
+          [-cB*sG,            sB,    cB*cG]];
 }
-function mulTv(m, v) { // transpose(m) * v
-  return [m[0][0]*v[0] + m[1][0]*v[1] + m[2][0]*v[2],
-          m[0][1]*v[0] + m[1][1]*v[1] + m[2][1]*v[2],
-          m[0][2]*v[0] + m[1][2]*v[1] + m[2][2]*v[2]];
-}
-function mulv(m, v) {
-  return [m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2],
-          m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2],
-          m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]];
-}
-function norm(v) { var n = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/n, v[1]/n, v[2]/n]; }
-function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
-function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function mulTv(m, v) { return [m[0][0]*v[0]+m[1][0]*v[1]+m[2][0]*v[2],
+                               m[0][1]*v[0]+m[1][1]*v[1]+m[2][1]*v[2],
+                               m[0][2]*v[0]+m[1][2]*v[1]+m[2][2]*v[2]]; }
+function mulv(m, v)  { return [m[0][0]*v[0]+m[0][1]*v[1]+m[0][2]*v[2],
+                               m[1][0]*v[0]+m[1][1]*v[1]+m[1][2]*v[2],
+                               m[2][0]*v[0]+m[2][1]*v[1]+m[2][2]*v[2]]; }
+function nrm(v) { var n = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/n, v[1]/n, v[2]/n]; }
+function crs(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function dt(a, b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 
-var cal = null;        // {fwd, right, down} aircraft axes in DEVICE coordinates
-var rotDeg = 0;        // which screen direction is the right wing
-
+var cal = null, rotDeg = 0;
 function calibrate(R) {
-  // gravity direction (earth down) expressed in the device frame
-  var down = norm(mulTv(R, [0, 0, -1]));
-  // nominated right-wing axis in the screen plane
-  var right = [Math.cos(rotDeg * D2R), Math.sin(rotDeg * D2R), 0];
-  // make it perpendicular to down
-  right = norm([right[0] - down[0]*dot(right, down),
-                right[1] - down[1]*dot(right, down),
-                right[2] - down[2]*dot(right, down)]);
-  var fwd = norm(cross(right, down));   // right x down = forward
-  cal = { fwd: fwd, right: right, down: down };
-  saveCal();
+  var down = nrm(mulTv(R, [0, 0, -1]));
+  var right = [Math.cos(rotDeg*D2R), Math.sin(rotDeg*D2R), 0];
+  right = nrm([right[0]-down[0]*dt(right,down), right[1]-down[1]*dt(right,down), right[2]-down[2]*dt(right,down)]);
+  cal = { fwd: nrm(crs(right, down)), right: right, down: down };
+  try { localStorage.setItem("junco.cal", JSON.stringify({ cal: cal, rot: rotDeg })); } catch (e) {}
 }
-
 function attitude(R) {
   if (!cal) { return null; }
   var f = mulv(R, cal.fwd), r = mulv(R, cal.right), d = mulv(R, cal.down);
-  var pitch = Math.asin(Math.max(-1, Math.min(1, f[2]))) * R2D;
-  var roll  = Math.atan2(-r[2], -d[2]) * R2D;
-  var hdg   = (Math.atan2(f[0], f[1]) * R2D + 360) % 360;   // ENU -> compass
-  return { pitch: pitch, roll: roll, hdg: hdg };
+  return { pitch: Math.asin(Math.max(-1, Math.min(1, f[2])))*R2D,
+           roll: Math.atan2(-r[2], -d[2])*R2D,
+           hdg: (Math.atan2(f[0], f[1])*R2D + 360) % 360 };
 }
+(function () { try { var s = JSON.parse(localStorage.getItem("junco.cal") || "null");
+  if (s && s.cal) { cal = s.cal; rotDeg = s.rot || 0; } } catch (e) {} })();
 
-function saveCal() {
-  try {
-    localStorage.setItem("junco.cal", JSON.stringify({ cal: cal, rot: rotDeg }));
-  } catch (e) { /* private mode */ }
-}
-(function loadCal() {
-  try {
-    var s = JSON.parse(localStorage.getItem("junco.cal") || "null");
-    if (s && s.cal) { cal = s.cal; rotDeg = s.rot || 0; }
-  } catch (e) { /* ignore */ }
-})();
-
-/* ---------------- state ---------------- */
-var mode = "demo";                                   // demo | live
-var raw = { R: null, has: false };
+/* ================= state ================= */
+var P = JP.active();
+var mode = "demo", raw = { R: null, has: false };
 var att = { pitch: 0, roll: 0, hdg: 0 };
-var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, acc: null, vs: 0, tAlt: 0, tMs: 0 };
-var sim = { rpmL:5840, rpmR:5795, chtL:381, chtR:376, egtL:1118, egtR:1104,
-            fuel:6.2, oat:79, alt:1180, vsi:0, ias:28, t:0 };
-var hot = false, linkDown = false;
+var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, vs: 0, tA: 0, tM: 0 };
+var hot = false, linkDown = false, t = 0;
 var diag = { count: 0, perm: "—", geo: "—" };
+var sim = {};            // SI throughout: m/s, m, degC, litres
+var rows = [];           // engine strip, generated from the profile
 
-/* ---------------- static build ---------------- */
-(function ladder() {
+function uSpd() { return JP.conv("speed", P.units.speed); }
+function uAlt() { return JP.conv("alt", P.units.alt); }
+function uTmp() { return JP.conv("temp", P.units.temp); }
+function uFul() { return JP.conv("fuel", P.units.fuel); }
+function uVs()  { return JP.conv("vs", P.units.vs); }
+
+/* ================= profile-driven build ================= */
+function rowDefs() {
+  var out = [], e, c, tag;
+  for (e = 0; e < P.engines.count; e++) {
+    tag = P.engines.count > 1 ? (e === 0 ? " L" : e === 1 ? " R" : " " + (e + 1)) : "";
+    out.push({ k: "rpm" + e, l: "RPM" + tag, min: 0, max: P.limits.rpmMax * 1.06,
+               red: P.limits.rpmMax, kind: "rpm" });
+    for (c = 0; c < P.engines.cht; c++) {
+      out.push({ k: "cht" + e + "_" + c, l: "CHT" + tag + (P.engines.cht > 1 ? " " + (c + 1) : ""),
+                 min: 40, max: P.limits.chtMax * 1.12, red: P.limits.chtMax, kind: "temp" });
+    }
+    for (c = 0; c < P.engines.egt; c++) {
+      out.push({ k: "egt" + e + "_" + c, l: "EGT" + tag + (P.engines.egt > 1 ? " " + (c + 1) : ""),
+                 min: 300, max: P.limits.egtMax * 1.12, red: P.limits.egtMax, kind: "temp" });
+    }
+  }
+  out.push({ k: "fuel", l: "FUEL", min: 0, max: P.fuel.capacity, red: null,
+             low: P.fuel.capacity * 0.12, kind: "fuel" });
+  return out;
+}
+
+function rebuild() {
+  rows = rowDefs();
+
+  // seed the simulation for whatever channels this aircraft has
+  var e, c, k;
+  sim.alt = 360; sim.vs = 0; sim.ias = P.speeds.cruise; sim.oat = 26;
+  if (sim.fuel === undefined) { sim.fuel = P.fuel.usable * 0.65; }
+  sim.fuel = Math.min(sim.fuel, P.fuel.capacity);
+  for (e = 0; e < P.engines.count; e++) {
+    k = "rpm" + e;
+    if (sim[k] === undefined) { sim[k] = P.limits.rpmMax * 0.86 - e * 45; }
+    for (c = 0; c < P.engines.cht; c++) {
+      k = "cht" + e + "_" + c;
+      if (sim[k] === undefined) { sim[k] = P.limits.chtMax * 0.86 - c * 6; }
+    }
+    for (c = 0; c < P.engines.egt; c++) {
+      k = "egt" + e + "_" + c;
+      if (sim[k] === undefined) { sim[k] = P.limits.egtMax * 0.88 - c * 9; }
+    }
+  }
+
+  // engine strip, sized to fit however many rows this aircraft needs
+  var g = $("eis"); clear(g);
+  g.appendChild(el("text", { x: 65, y: 40, "font-size": 11, "font-weight": 700, fill: "#93A0A8",
+    "text-anchor": "middle", "letter-spacing": 1.4 }, "ENGINE"));
+  var top = 58, bot = 528, twin = P.engines.count > 1;
+  var slots = rows.length + (twin ? 1 : 0);
+  var h = Math.max(24, Math.min(38, (bot - top) / slots));
+  var y = top + 12;
+  rows.forEach(function (r) {
+    var fs = h < 30 ? 9 : 10, vs = h < 30 ? 13 : 15;
+    g.appendChild(el("text", { x: 12, y: y, "font-size": fs, "font-weight": 700, fill: "#93A0A8" }, r.l));
+    g.appendChild(el("text", { x: 120, y: y, "font-size": vs, "font-weight": 700, fill: "#FFF",
+      "text-anchor": "end", id: "e-" + r.k }, "—"));
+    g.appendChild(el("rect", { x: 12, y: y + 5, width: 108, height: 5, fill: "#000",
+      stroke: "#2E363C", "stroke-width": 1 }));
+    g.appendChild(el("rect", { x: 13, y: y + 6, width: 0, height: 3, fill: "#3FCF6A", id: "b-" + r.k }));
+    if (r.red !== null) {
+      var rx = 13 + 106 * (r.red - r.min) / (r.max - r.min);
+      g.appendChild(el("line", { x1: rx, y1: y + 3, x2: rx, y2: y + 12, stroke: "#E8483D", "stroke-width": 2 }));
+    }
+    y += h;
+  });
+  if (twin) {
+    g.appendChild(el("text", { x: 12, y: y + 4, "font-size": 10, "font-weight": 700, fill: "#93A0A8" }, "SYNC"));
+    g.appendChild(el("text", { x: 120, y: y + 4, "font-size": 13, "font-weight": 700, fill: "#FFF",
+      "text-anchor": "end", id: "syncT" }, "Δ 0"));
+    g.appendChild(el("rect", { x: 12, y: y + 10, width: 108, height: 7, fill: "#000", stroke: "#2E363C", "stroke-width": 1 }));
+    g.appendChild(el("line", { x1: 66, y1: y + 10, x2: 66, y2: y + 17, stroke: "#93A0A8", "stroke-width": 1.5 }));
+    g.appendChild(el("rect", { x: 66, y: y + 11, width: 0, height: 5, fill: "#3FCF6A", id: "syncB" }));
+  }
+  g.appendChild(el("text", { x: 65, y: 546, "font-size": 8.5, "font-weight": 700, fill: "#35D6E8",
+    "text-anchor": "middle" }, "NODE · WIRED"));
+  g.appendChild(el("text", { x: 65, y: 562, "font-size": 8.5, "font-weight": 700, fill: "#93A0A8",
+    "text-anchor": "middle" }, (P.name || "").slice(0, 18).toUpperCase()));
+
+  // airspeed bands and scale, from V-speeds in this aircraft's units
+  var span = Math.max(12, uSpd().to(P.speeds.vne) - uSpd().to(P.speeds.vs0));
+  asiPx = Math.max(2.2, Math.min(9, 210 / span));
+  var bg = $("asiBands"); clear(bg);
+  function band(lo, hi, col) {
+    var yT = 238 - (uSpd().to(hi) - uSpd().to(P.speeds.cruise)) * asiPx;
+    var yB = 238 - (uSpd().to(lo) - uSpd().to(P.speeds.cruise)) * asiPx;
+    bg.appendChild(el("rect", { x: 203, y: yT, width: 12, height: Math.max(0, yB - yT), fill: col }));
+  }
+  band(P.speeds.vs1, P.speeds.vno, "#3FCF6A");
+  band(P.speeds.vs0, P.speeds.vs1, "#FFFFFF");
+  band(P.speeds.vno, P.speeds.vne, "#E8A33D");
+  band(P.speeds.vne, P.speeds.vne * 1.3, "#E8483D");
+  band(P.speeds.vs0 * 0.6, P.speeds.vs0, "#E8483D");
+
+  $("asiUnit").textContent = uSpd().label;
+  $("altUnit").textContent = uAlt().label;
+  $("vsiUnit").textContent = uVs().label;
+}
+var asiPx = 6.6;
+
+/* ================= static chrome ================= */
+(function () {
   var g = $("ladder");
   for (var d = -30; d <= 30; d += 5) {
     if (!d) { continue; }
-    var y = 238 - d * 7.0, maj = d % 10 === 0, h = maj ? 60 : 30;
-    g.appendChild(el("line", { x1: 444 - h, y1: y, x2: 444 + h, y2: y }));
+    var y = 238 - d * 7, maj = d % 10 === 0, w = maj ? 60 : 30;
+    g.appendChild(el("line", { x1: 444 - w, y1: y, x2: 444 + w, y2: y }));
     if (maj) {
-      g.appendChild(el("text", { x: 444 - h - 10, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
-      g.appendChild(el("text", { x: 444 + h + 10, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
+      g.appendChild(el("text", { x: 444 - w - 10, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
+      g.appendChild(el("text", { x: 444 + w + 10, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
     }
   }
-})();
-(function bank() {
-  var g = $("bank");
+  var b = $("bank");
   [-60,-45,-30,-20,-10,10,20,30,45,60].forEach(function (a) {
-    var big = Math.abs(a) === 30 || Math.abs(a) === 60;
-    var r1 = 168, r2 = big ? 150 : 157, t = (a - 90) * D2R;
-    g.appendChild(el("line", { x1: 444 + Math.cos(t)*r1, y1: 238 + Math.sin(t)*r1,
-      x2: 444 + Math.cos(t)*r2, y2: 238 + Math.sin(t)*r2, "stroke-width": big ? 3 : 2 }));
+    var big = Math.abs(a) === 30 || Math.abs(a) === 60, r1 = 168, r2 = big ? 150 : 157, th = (a - 90) * D2R;
+    b.appendChild(el("line", { x1: 444 + Math.cos(th)*r1, y1: 238 + Math.sin(th)*r1,
+      x2: 444 + Math.cos(th)*r2, y2: 238 + Math.sin(th)*r2, "stroke-width": big ? 3 : 2 }));
   });
-  g.appendChild(el("polygon", { points: "444,52 436,38 452,38", fill: "#FFF" }));
-})();
-(function vsi() {
-  var g = $("vsiScale");
-  for (var v = -1000; v <= 1000; v += 250) {
-    var y = 238 - (v / 1000) * 180, maj = v % 500 === 0;
-    g.appendChild(el("line", { x1: 777, y1: y, x2: maj ? 792 : 786, y2: y }));
-    if (maj && v) { g.appendChild(el("text", { x: 795, y: y + 4 }, String(Math.abs(v / 100)))); }
+  b.appendChild(el("polygon", { points: "444,52 436,38 452,38", fill: "#FFF" }));
+  var v = $("vsiScale");
+  for (var s = -1000; s <= 1000; s += 250) {
+    var yy = 238 - (s / 1000) * 180, maj2 = s % 500 === 0;
+    v.appendChild(el("line", { x1: 777, y1: yy, x2: maj2 ? 792 : 786, y2: yy }));
+    if (maj2 && s) { v.appendChild(el("text", { x: 795, y: yy + 4 }, String(Math.abs(s / 100)))); }
   }
-})();
-(function bands() {
-  var g = $("asiBands");
-  function b(lo, hi, c) {
-    var t = 238 - (hi - 28) * 6.6, bo = 238 - (lo - 28) * 6.6;
-    g.appendChild(el("rect", { x: 203, y: t, width: 12, height: Math.max(0, bo - t), fill: c }));
-  }
-  b(22, 38, "#3FCF6A"); b(14, 22, "#E8483D"); b(38, 50, "#E8483D");
-})();
-
-var eisRows = [
-  { k:"rpmL", l:"RPM L", min:0,   max:7000, red:6800 },
-  { k:"rpmR", l:"RPM R", min:0,   max:7000, red:6800 },
-  { k:"chtL", l:"CHT L", min:100, max:480,  red:435 },
-  { k:"chtR", l:"CHT R", min:100, max:480,  red:435 },
-  { k:"egtL", l:"EGT L", min:700, max:1350, red:1250 },
-  { k:"egtR", l:"EGT R", min:700, max:1350, red:1250 },
-  { k:"fuel", l:"FUEL",  min:0,   max:10,   red:null, low:1.5 }
-];
-(function eis() {
-  var g = $("eis"), y = 66;
-  eisRows.forEach(function (r) {
-    g.appendChild(el("text", { x: 12, y: y, "font-size": 10, "font-weight": 700, fill: "#93A0A8" }, r.l));
-    g.appendChild(el("text", { x: 120, y: y, "font-size": 15, "font-weight": 700, fill: "#FFF", "text-anchor": "end", id: "e-" + r.k }, "—"));
-    g.appendChild(el("rect", { x: 12, y: y + 5, width: 108, height: 6, fill: "#000", stroke: "#2E363C", "stroke-width": 1 }));
-    g.appendChild(el("rect", { x: 13, y: y + 6, width: 0, height: 4, fill: "#3FCF6A", id: "b-" + r.k }));
-    if (r.red !== null) {
-      var rx = 13 + 106 * (r.red - r.min) / (r.max - r.min);
-      g.appendChild(el("line", { x1: rx, y1: y + 3, x2: rx, y2: y + 13, stroke: "#E8483D", "stroke-width": 2 }));
-    }
-    y += 38;
-  });
-  g.appendChild(el("text", { x: 12, y: y + 8, "font-size": 10, "font-weight": 700, fill: "#93A0A8" }, "SYNC"));
-  g.appendChild(el("text", { x: 120, y: y + 8, "font-size": 13, "font-weight": 700, fill: "#FFF", "text-anchor": "end", id: "syncT" }, "Δ 0"));
-  g.appendChild(el("rect", { x: 12, y: y + 14, width: 108, height: 8, fill: "#000", stroke: "#2E363C", "stroke-width": 1 }));
-  g.appendChild(el("line", { x1: 66, y1: y + 14, x2: 66, y2: y + 22, stroke: "#93A0A8", "stroke-width": 1.5 }));
-  g.appendChild(el("rect", { x: 66, y: y + 15, width: 0, height: 6, fill: "#3FCF6A", id: "syncB" }));
-  g.appendChild(el("text", { x: 65, y: y + 42, "font-size": 9, "font-weight": 700, fill: "#35D6E8", "text-anchor": "middle" }, "NODE · WIRED"));
 })();
 
 var rcRows = [
-  { id:"aoa",  l:"AOA EST",  u:"°",   c:"#E8A33D" },
-  { id:"oat",  l:"OAT",      u:"°F",  c:"#35D6E8" },
-  { id:"dalt", l:"DENS ALT", u:"ft",  c:"#FFF" },
-  { id:"gs",   l:"GND SPD",  u:"mph", c:"#E845E8" },
-  { id:"gpsa", l:"GPS ALT",  u:"ft",  c:"#E845E8" },
-  { id:"endu", l:"ENDURANCE",u:"",    c:"#FFF" }
+  { id:"aoa",  l:"AOA EST",  c:"#E8A33D" }, { id:"oat",  l:"OAT",      c:"#35D6E8" },
+  { id:"dalt", l:"DENS ALT", c:"#FFF" },    { id:"gs",   l:"GND SPD",  c:"#E845E8" },
+  { id:"gpsa", l:"GPS ALT",  c:"#E845E8" }, { id:"endu", l:"ENDURANCE",c:"#FFF" }
 ];
-(function rcol() {
+(function () {
   var g = $("rcol"), y = 46;
   rcRows.forEach(function (r) {
     g.appendChild(el("text", { x: 821, y: y, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, r.l));
     g.appendChild(el("text", { x: 984, y: y + 25, "font-size": 24, "font-weight": 700, fill: r.c, "text-anchor": "end", id: "r-" + r.id }, "—"));
-    g.appendChild(el("text", { x: 984, y: y + 38, "font-size": 9, "font-weight": 700, fill: "#93A0A8", "text-anchor": "end" }, r.u));
+    g.appendChild(el("text", { x: 984, y: y + 38, "font-size": 9, "font-weight": 700, fill: "#93A0A8", "text-anchor": "end", id: "ru-" + r.id }, ""));
     y += 68;
   });
-})();
-(function bbar() {
-  var g = $("bbar");
-  [["POSITION","pos",145,"#E845E8"],["TRACK","trk",470,"#E845E8"],
-   ["WIND","wind",610,"#E8A33D"],["ALERT","alert",760,"#93A0A8"]].forEach(function (c) {
-    g.appendChild(el("text", { x: c[2], y: 528, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, c[0]));
-    g.appendChild(el("text", { x: c[2], y: 553, "font-size": 16, "font-weight": 700, fill: c[3], id: "bb-" + c[1] }, "—"));
+  var b = $("bbar");
+  [["AIRCRAFT","ac",145,"#FFF"],["POSITION","pos",380,"#E845E8"],
+   ["TRACK","trk",640,"#E845E8"],["ALERT","alert",760,"#93A0A8"]].forEach(function (c) {
+    b.appendChild(el("text", { x: c[2], y: 528, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, c[0]));
+    b.appendChild(el("text", { x: c[2], y: 553, "font-size": 15, "font-weight": 700, fill: c[3], id: "bb-" + c[1] }, "—"));
   });
 })();
 
-/* ---------------- tapes ---------------- */
-function tapeASI(v) {
-  var g = $("asiTape"); while (g.firstChild) { g.removeChild(g.firstChild); }
-  for (var s = Math.floor((v - 34) / 2) * 2; s <= v + 34; s += 2) {
+/* ================= tapes ================= */
+function tapeASI(vDisp) {
+  var g = $("asiTape"); clear(g);
+  var step = asiPx > 5 ? 2 : asiPx > 3 ? 5 : 10, lab = step * 5;
+  for (var s = Math.floor((vDisp - 220 / asiPx) / step) * step; s <= vDisp + 220 / asiPx; s += step) {
     if (s < 0) { continue; }
-    var y = 238 - (s - v) * 6.6; if (y < 16 || y > 460) { continue; }
-    var maj = s % 10 === 0;
+    var y = 238 - (s - vDisp) * asiPx; if (y < 16 || y > 460) { continue; }
+    var maj = Math.abs(s % lab) < 0.001;
     g.appendChild(el("line", { x1: maj ? 184 : 196, y1: y, x2: 203, y2: y }));
-    if (maj) { g.appendChild(el("text", { x: 180, y: y + 6 }, String(s))); }
+    if (maj) { g.appendChild(el("text", { x: 180, y: y + 6 }, String(Math.round(s)))); }
   }
 }
-function tapeALT(v) {
-  var g = $("altTape"); while (g.firstChild) { g.removeChild(g.firstChild); }
-  for (var s = Math.floor((v - 360) / 20) * 20; s <= v + 360; s += 20) {
-    var y = 238 - (s - v) * 0.6; if (y < 16 || y > 460) { continue; }
-    var maj = s % 100 === 0;
+function tapeALT(vDisp) {
+  var g = $("altTape"); clear(g);
+  var m = P.units.alt === "m" ? 0.3048 : 1, step = 20 * m, lab = 100 * m, px = 0.6 / m;
+  for (var s = Math.floor((vDisp - 360 * m) / step) * step; s <= vDisp + 360 * m; s += step) {
+    var y = 238 - (s - vDisp) * px; if (y < 16 || y > 460) { continue; }
+    var maj = Math.abs(s % lab) < 0.001;
     g.appendChild(el("line", { x1: 675, y1: y, x2: maj ? 700 : 690, y2: y }));
-    if (maj) { g.appendChild(el("text", { x: 704, y: y + 6 }, String(s))); }
+    if (maj) { g.appendChild(el("text", { x: 704, y: y + 6 }, String(Math.round(s)))); }
   }
 }
 function tapeHDG(h) {
-  var g = $("hdgTape"); while (g.firstChild) { g.removeChild(g.firstChild); }
+  var g = $("hdgTape"); clear(g);
   var card = { 0:"N", 90:"E", 180:"S", 270:"W" };
   for (var a = -60; a <= 60; a += 5) {
-    var v = ((Math.round(h / 5) * 5 + a) % 360 + 360) % 360;
+    var v = ((Math.round(h/5)*5 + a) % 360 + 360) % 360;
     var x = 444 + (((v - h + 540) % 360) - 180) * 3.4;
     if (x < 228 || x > 660) { continue; }
-    var maj = v % 10 === 0;
-    g.appendChild(el("line", { x1: x, y1: 462, x2: x, y2: maj ? 474 : 469 }));
+    g.appendChild(el("line", { x1: x, y1: 462, x2: x, y2: v % 10 === 0 ? 474 : 469 }));
     if (v % 30 === 0) {
       g.appendChild(el("text", { x: x, y: 492, "font-size": card[v] !== undefined ? 18 : 14,
-        fill: card[v] !== undefined ? "#FFF" : "#C6D0D6" }, card[v] !== undefined ? card[v] : String(v / 10)));
+        fill: card[v] !== undefined ? "#FFF" : "#C6D0D6" }, card[v] !== undefined ? card[v] : String(v/10)));
     }
   }
 }
 
-/* ---------------- demo ---------------- */
-function demo(t) {
-  var T = t * 0.35;
-  var roll = 18 * Math.sin(T * 0.28) + 6 * Math.sin(T * 0.11);
-  demo.h = ((demo.h || 247) + roll * 0.055 + 360) % 360;
-  return { pitch: 5.5 * Math.sin(T * 0.19) + 1.6 * Math.sin(T * 0.63), roll: roll, hdg: demo.h };
+/* ================= demo ================= */
+function demo(tt) {
+  var T = tt * 0.35, roll = 18*Math.sin(T*0.28) + 6*Math.sin(T*0.11);
+  demo.h = ((demo.h || 247) + roll*0.055 + 360) % 360;
+  return { pitch: 5.5*Math.sin(T*0.19) + 1.6*Math.sin(T*0.63), roll: roll, hdg: demo.h };
 }
 
-/* ---------------- loop ---------------- */
+/* ================= loop ================= */
 function frame() {
-  sim.t += 0.05;
-  var src = null;
-  if (mode === "live" && raw.has && raw.R) { src = attitude(raw.R); }
-  if (!src) { src = demo(sim.t); }
-
-  var k = (mode === "live") ? 0.14 : 0.22;
+  t += 0.05;
+  var src = (mode === "live" && raw.has && raw.R) ? attitude(raw.R) : null;
+  if (!src) { src = demo(t); }
+  var k = mode === "live" ? 0.14 : 0.22;
   att.pitch += (src.pitch - att.pitch) * k;
   att.roll  += (src.roll  - att.roll)  * k;
   var dh = src.hdg - att.hdg; while (dh > 180) { dh -= 360; } while (dh < -180) { dh += 360; }
-  att.hdg = (att.hdg + dh * 0.12 + 360) % 360;
+  att.hdg = (att.hdg + dh*0.12 + 360) % 360;
 
-  var p = Math.max(-32, Math.min(32, att.pitch));
-  var r = Math.max(-80, Math.min(80, att.roll));
-  $("horizon").setAttribute("transform", "rotate(" + (-r) + " 444 238) translate(0 " + (p * 7.0) + ")");
-  $("rollPtr").setAttribute("transform", "rotate(" + (-r) + " 444 238)");
-  $("slip").setAttribute("x", 430 + Math.max(-16, Math.min(16, r * 0.13)));
+  var pp = Math.max(-32, Math.min(32, att.pitch)), rr = Math.max(-80, Math.min(80, att.roll));
+  $("horizon").setAttribute("transform", "rotate(" + (-rr) + " 444 238) translate(0 " + (pp*7) + ")");
+  $("rollPtr").setAttribute("transform", "rotate(" + (-rr) + " 444 238)");
+  $("slip").setAttribute("x", 430 + Math.max(-16, Math.min(16, rr*0.13)));
 
   if (!linkDown) {
-    sim.rpmL = 5840 + Math.sin(sim.t * 6) * 12;
-    sim.rpmR = 5795 + Math.sin(sim.t * 5.3) * 12;
-    sim.egtL = 1118 + Math.sin(sim.t * 4) * 8;
-    sim.egtR = 1104 + Math.sin(sim.t * 3.7) * 8;
-    sim.chtR = 376 + Math.sin(sim.t * 2) * 4;
-    sim.chtL = hot ? Math.min(458, sim.chtL + 1.3) : (sim.chtL > 383 ? sim.chtL - 1 : 381 + Math.sin(sim.t * 2.2) * 4);
-    sim.ias  = 28 + Math.sin(sim.t * 0.5) * 1.2;
-    sim.alt  = 1180 + Math.sin(sim.t * 0.3) * 22;
-    sim.vsi  = Math.cos(sim.t * 0.3) * 22 * 0.3 * 60;
-    sim.fuel = Math.max(0, sim.fuel - 0.00012);
+    rows.forEach(function (r, i) {
+      if (r.kind === "fuel") { return; }
+      var base = r.kind === "rpm" ? P.limits.rpmMax * 0.86
+               : r.k.indexOf("cht") === 0 ? P.limits.chtMax * 0.86
+               : P.limits.egtMax * 0.88;
+      if (hot && r.k.indexOf("cht") === 0 && r.k.indexOf("cht0") === 0) {
+        sim[r.k] = Math.min(P.limits.chtMax * 1.06, sim[r.k] + 0.55);
+      } else {
+        var tgt = base - (i % 3) * (r.kind === "rpm" ? 45 : 6);
+        sim[r.k] += (tgt - sim[r.k]) * 0.02 + Math.sin(t * (2 + i * 0.4)) * (r.kind === "rpm" ? 1.4 : 0.25);
+      }
+    });
+    sim.fuel = Math.max(0, sim.fuel - 0.00035);
+    sim.ias  = P.speeds.cruise + Math.sin(t*0.5) * 0.5;
+    sim.alt  = 360 + Math.sin(t*0.3) * 7;
+    sim.vs   = Math.cos(t*0.3) * 2.1 * 0.3;
   }
 
-  tapeASI(sim.ias); tapeALT(sim.alt); tapeHDG(att.hdg);
-  $("asiVal").textContent = linkDown ? "– –" : sim.ias.toFixed(0);
-  $("altVal").textContent = linkDown ? "– – – –" : sim.alt.toFixed(0);
+  var iasD = uSpd().to(sim.ias), altD = uAlt().to(sim.alt), vsD = uVs().to(sim.vs);
+  tapeASI(iasD); tapeALT(altD); tapeHDG(att.hdg);
+  $("asiVal").textContent = linkDown ? "– –" : iasD.toFixed(0);
+  $("altVal").textContent = linkDown ? "– – – –" : altD.toFixed(0);
   $("hdgVal").textContent = (mode === "live" && !cal) ? "—" : String(Math.round(att.hdg)).padStart(3, "0");
 
-  var vc = Math.max(-1000, Math.min(1000, linkDown ? 0 : sim.vsi));
-  var vy = 238 - (vc / 1000) * 180;
-  $("vsiPtr").setAttribute("points", "761," + vy + " 776," + (vy - 7) + " 776," + (vy + 7));
+  var vmax = P.units.vs === "ms" ? 5 : 1000;
+  var vc = Math.max(-vmax, Math.min(vmax, linkDown ? 0 : vsD));
+  var vy = 238 - (vc / vmax) * 180;
+  $("vsiPtr").setAttribute("points", "761," + vy + " 776," + (vy-7) + " 776," + (vy+7));
   $("vsiBar").setAttribute("y", Math.min(238, vy));
   $("vsiBar").setAttribute("height", Math.abs(238 - vy));
-  $("vsiVal").textContent = linkDown ? "–" : (vc >= 0 ? "+" : "") + vc.toFixed(0);
+  $("vsiVal").textContent = linkDown ? "–" : (vc >= 0 ? "+" : "") + vc.toFixed(P.units.vs === "ms" ? 1 : 0);
 
-  // track bug on the heading tape
   if (gps.trk !== null) {
-    var tx = 444 + (((gps.trk - att.hdg + 540) % 360) - 180) * 3.4;
-    tx = Math.max(228, Math.min(660, tx));
-    $("trkBug").setAttribute("points", tx + ",500 " + (tx - 7) + ",486 " + (tx + 7) + ",486");
+    var tx = Math.max(228, Math.min(660, 444 + (((gps.trk - att.hdg + 540) % 360) - 180) * 3.4));
+    $("trkBug").setAttribute("points", tx + ",500 " + (tx-7) + ",486 " + (tx+7) + ",486");
     $("trkBug").setAttribute("opacity", 1);
   } else { $("trkBug").setAttribute("opacity", 0.2); }
 
-  // flight path marker and AoA estimate, both from real GNSS when moving
   var aoa = null;
-  if (gps.gs !== null && gps.gs > 8) {
-    var tas = gps.gs * 1.4667;                       // mph -> ft/s
-    var fpa = Math.atan2(gps.vs / 60, tas) * R2D;    // flight path angle
+  if (gps.gs !== null && gps.gs > 3.5) {
+    var fpa = Math.atan2(gps.vs, gps.gs) * R2D;
     aoa = att.pitch - fpa;
     $("fpm").setAttribute("opacity", 1);
-    $("fpm").setAttribute("transform", "translate(0 " + Math.max(-90, Math.min(90, (att.pitch - fpa) * 7.0)) + ")");
+    $("fpm").setAttribute("transform", "translate(0 " + Math.max(-90, Math.min(90, (att.pitch - fpa) * 7)) + ")");
   } else { $("fpm").setAttribute("opacity", 0); }
 
-  eisRows.forEach(function (row) {
-    var v = sim[row.k], t = $("e-" + row.k), b = $("b-" + row.k);
-    if (linkDown) { t.textContent = "– –"; t.setAttribute("fill", "#93A0A8"); b.setAttribute("width", 0); return; }
-    t.textContent = v.toFixed(row.k === "fuel" ? 1 : 0);
-    b.setAttribute("width", Math.max(0, Math.min(1, (v - row.min) / (row.max - row.min))) * 106);
-    var over = (row.red !== null && v >= row.red) || (row.low !== undefined && v <= row.low);
-    b.setAttribute("fill", over ? "#E8483D" : (row.red !== null && v >= row.red * 0.94 ? "#E8A33D" : "#3FCF6A"));
-    t.setAttribute("fill", over ? "#E8483D" : "#FFF");
+  rows.forEach(function (r) {
+    var v = sim[r.k], tn = $("e-" + r.k), bn = $("b-" + r.k);
+    if (!tn) { return; }
+    if (linkDown) { tn.textContent = "– –"; tn.setAttribute("fill", "#93A0A8"); bn.setAttribute("width", 0); return; }
+    var disp = r.kind === "temp" ? uTmp().to(v) : r.kind === "fuel" ? uFul().to(v) : v;
+    tn.textContent = disp.toFixed(r.kind === "fuel" ? 1 : 0);
+    bn.setAttribute("width", Math.max(0, Math.min(1, (v - r.min) / (r.max - r.min))) * 106);
+    var over = (r.red !== null && v >= r.red) || (r.low !== undefined && v <= r.low);
+    var near = r.red !== null && v >= r.red * 0.94;
+    bn.setAttribute("fill", over ? "#E8483D" : near ? "#E8A33D" : "#3FCF6A");
+    tn.setAttribute("fill", over ? "#E8483D" : "#FFF");
   });
-  var dR = linkDown ? 0 : sim.rpmL - sim.rpmR, sw = Math.max(-52, Math.min(52, dR / 300 * 52));
-  $("syncB").setAttribute("x", sw < 0 ? 66 + sw : 66);
-  $("syncB").setAttribute("width", Math.abs(sw));
-  $("syncB").setAttribute("fill", Math.abs(dR) > 100 ? "#E8A33D" : "#3FCF6A");
-  $("syncT").textContent = linkDown ? "– –" : "Δ " + Math.abs(dR).toFixed(0);
 
-  var burn = 1.6 + (sim.rpmL + sim.rpmR) / 2 / 3000, hrs = sim.fuel / burn;
-  function rc(i, v) { $("r-" + i).textContent = v; }
-  rc("aoa",  aoa === null ? "—" : (aoa >= 0 ? "+" : "") + aoa.toFixed(1));
-  rc("oat",  linkDown ? "– –" : sim.oat.toFixed(0));
-  rc("dalt", linkDown ? "– –" : (1180 + (sim.oat - 59) * 118).toFixed(0));
-  rc("gs",   gps.gs === null ? "—" : gps.gs.toFixed(0));
-  rc("gpsa", gps.alt === null ? "—" : gps.alt.toFixed(0));
-  rc("endu", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"));
+  if (P.engines.count > 1 && $("syncB")) {
+    var dR = linkDown ? 0 : sim.rpm0 - sim.rpm1, sw = Math.max(-52, Math.min(52, dR/300*52));
+    $("syncB").setAttribute("x", sw < 0 ? 66 + sw : 66);
+    $("syncB").setAttribute("width", Math.abs(sw));
+    $("syncB").setAttribute("fill", Math.abs(dR) > 100 ? "#E8A33D" : "#3FCF6A");
+    $("syncT").textContent = linkDown ? "– –" : "Δ " + Math.abs(dR).toFixed(0);
+  }
 
+  var hrs = sim.fuel / P.fuel.burnCruise;
+  function rc(i, v, u) { $("r-" + i).textContent = v; $("ru-" + i).textContent = u || ""; }
+  rc("aoa",  aoa === null ? "—" : (aoa >= 0 ? "+" : "") + aoa.toFixed(1), "°");
+  rc("oat",  linkDown ? "– –" : uTmp().to(sim.oat).toFixed(0), uTmp().label);
+  rc("dalt", linkDown ? "– –" : uAlt().to(sim.alt + (sim.oat - 15) * 36).toFixed(0), uAlt().label);
+  rc("gs",   gps.gs === null ? "—" : uSpd().to(gps.gs).toFixed(0), uSpd().label);
+  rc("gpsa", gps.alt === null ? "—" : uAlt().to(gps.alt).toFixed(0), uAlt().label);
+  rc("endu", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"), "");
+
+  $("bb-ac").textContent = P.name;
   $("bb-pos").textContent = gps.lat === null ? "—" : gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5);
   $("bb-trk").textContent = gps.trk === null ? "—" : String(Math.round(gps.trk)).padStart(3, "0") + "°";
-  $("bb-wind").textContent = "245° / 9";
-  var alert = linkDown ? ["NODE LINK LOST", "#E8483D"]
-            : (!linkDown && sim.chtL >= 435) ? ["CHT LEFT OVER LIMIT", "#E8483D"]
-            : (hrs < 0.75) ? ["FUEL BELOW RESERVE", "#E8A33D"]
-            : (mode === "live" && !cal) ? ["NOT CALIBRATED — SET LEVEL", "#E8A33D"]
-            : ["NONE", "#93A0A8"];
-  $("bb-alert").textContent = alert[0];
-  $("bb-alert").setAttribute("fill", alert[1]);
+  var chtOver = false;
+  rows.forEach(function (r) { if (r.k.indexOf("cht") === 0 && r.red !== null && sim[r.k] >= r.red) { chtOver = true; } });
+  var al = linkDown ? ["NODE LINK LOST", "#E8483D"]
+         : chtOver ? ["CHT OVER LIMIT", "#E8483D"]
+         : hrs < P.fuel.reserveHr ? ["FUEL BELOW RESERVE", "#E8A33D"]
+         : (mode === "live" && !cal) ? ["NOT CALIBRATED — SET LEVEL", "#E8A33D"]
+         : ["NONE", "#93A0A8"];
+  $("bb-alert").textContent = al[0]; $("bb-alert").setAttribute("fill", al[1]);
 
-  var a = (mode === "live" && cal) ? ["PHONE AHRS · ADVISORY", "#E8A33D"]
-        : (mode === "live") ? ["UNCALIBRATED · SET LEVEL", "#E8483D"]
-        : ["DEMO · SIMULATED ATTITUDE", "#35D6E8"];
-  if ($("annTxt").textContent !== a[0]) {
-    $("annTxt").textContent = a[0];
-    $("annTxt").setAttribute("fill", a[1]);
-    $("annBox").setAttribute("stroke", a[1]);
+  var an = (mode === "live" && cal) ? ["PHONE AHRS · ADVISORY", "#E8A33D"]
+         : mode === "live" ? ["UNCALIBRATED · SET LEVEL", "#E8483D"]
+         : ["DEMO · SIMULATED ATTITUDE", "#35D6E8"];
+  if ($("annTxt").textContent !== an[0]) {
+    $("annTxt").textContent = an[0];
+    $("annTxt").setAttribute("fill", an[1]);
+    $("annBox").setAttribute("stroke", an[1]);
   }
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 
-/* ---------------- sensors ---------------- */
+/* ================= sensors ================= */
 function onOrient(e) {
   if (e.alpha === null && e.beta === null && e.gamma === null) { return; }
   diag.count++;
-  raw.R = devToEarth((e.alpha || 0) * D2R, (e.beta || 0) * D2R, (e.gamma || 0) * D2R);
+  raw.R = devToEarth((e.alpha||0)*D2R, (e.beta||0)*D2R, (e.gamma||0)*D2R);
   raw.has = true;
   if (mode !== "live") { mode = "live"; }
   stats();
@@ -655,13 +750,12 @@ function startGeo() {
   diag.geo = "acquiring"; stats();
   navigator.geolocation.watchPosition(function (p) {
     var c = p.coords, now = p.timestamp || 0;
-    gps.lat = c.latitude; gps.lon = c.longitude; gps.acc = c.accuracy;
-    gps.gs = (c.speed === null || isNaN(c.speed)) ? 0 : c.speed * 2.23694;
+    gps.lat = c.latitude; gps.lon = c.longitude;
+    gps.gs = (c.speed === null || isNaN(c.speed)) ? 0 : c.speed;      // m/s
     gps.trk = (c.heading === null || isNaN(c.heading)) ? gps.trk : c.heading;
-    var a = (c.altitude === null || isNaN(c.altitude)) ? null : c.altitude * 3.28084;
-    if (a !== null) {
-      if (gps.tMs && now > gps.tMs) { gps.vs = (a - gps.tAlt) / ((now - gps.tMs) / 1000) * 60; }
-      gps.tAlt = a; gps.tMs = now; gps.alt = a;
+    if (c.altitude !== null && !isNaN(c.altitude)) {
+      if (gps.tM && now > gps.tM) { gps.vs = (c.altitude - gps.tA) / ((now - gps.tM) / 1000); }
+      gps.tA = c.altitude; gps.tM = now; gps.alt = c.altitude;
     }
     diag.geo = "fix ±" + Math.round(c.accuracy) + " m"; stats();
   }, function (err) { diag.geo = err.code === 1 ? "denied" : "unavailable"; stats(); },
@@ -672,9 +766,9 @@ function goLive() {
   var D = window.DeviceOrientationEvent;
   if (D && typeof D.requestPermission === "function") {
     diag.perm = "asking"; stats();
-    D.requestPermission().then(function (res) {
-      diag.perm = res;
-      if (res === "granted") { window.addEventListener("deviceorientation", onOrient, true); }
+    D.requestPermission().then(function (r) {
+      diag.perm = r;
+      if (r === "granted") { window.addEventListener("deviceorientation", onOrient, true); }
       stats();
     }).catch(function (e) { diag.perm = (e && e.name) || "rejected"; stats(); });
   } else {
@@ -683,37 +777,151 @@ function goLive() {
     stats();
   }
   mode = "live"; stats();
-  setTimeout(function () { if (diag.count === 0) { stats(); } }, 2500);
 }
 function stats() {
-  function s(id, v, c) { var e = $(id); e.textContent = v; e.className = c || ""; }
+  function s(id, v, c) { var e = $(id); if (!e) { return; } e.textContent = v; e.className = c || ""; }
   s("sMode", mode === "live" ? (cal ? "live, calibrated" : "live, NOT calibrated") : "demo",
     mode === "live" ? (cal ? "ok" : "warn") : "warn");
   s("sSecure", window.isSecureContext ? "yes" : "no", window.isSecureContext ? "ok" : "bad");
-  s("sFrame", window.self !== window.top ? "yes — sensors blocked" : "no",
-    window.self !== window.top ? "bad" : "ok");
+  s("sFrame", window.self !== window.top ? "yes — sensors blocked" : "no", window.self !== window.top ? "bad" : "ok");
   s("sCount", String(diag.count), diag.count ? "ok" : "bad");
-  s("sPerm", diag.perm);
-  s("sGeo", diag.geo);
+  s("sPerm", diag.perm); s("sGeo", diag.geo);
   $("calState").textContent = cal ? "calibrated" : "not set";
   $("rotVal").textContent = rotDeg + "°";
 }
 
-/* ---------------- controls ---------------- */
+/* ================= aircraft panel ================= */
+function fillList() {
+  var sel = $("acSel"); sel.innerHTML = "";
+  JP.all().forEach(function (p) {
+    var o = document.createElement("option");
+    o.value = p.id; o.textContent = p.name + (p.registration ? "  (" + p.registration + ")" : "");
+    if (p.id === P.id) { o.selected = true; }
+    sel.appendChild(o);
+  });
+}
+function fillForm() {
+  $("acName").value = P.name; $("acReg").value = P.registration;
+  $("acEng").value = P.engines.count; $("acCht").value = P.engines.cht; $("acEgt").value = P.engines.egt;
+  $("acRpm").value = Math.round(P.limits.rpmMax);
+  $("acChtMax").value = Math.round(uTmp().to(P.limits.chtMax));
+  $("acEgtMax").value = Math.round(uTmp().to(P.limits.egtMax));
+  $("acVs0").value = Math.round(uSpd().to(P.speeds.vs0));
+  $("acVne").value = Math.round(uSpd().to(P.speeds.vne));
+  $("acCru").value = Math.round(uSpd().to(P.speeds.cruise));
+  $("acCap").value = Math.round(uFul().to(P.fuel.capacity) * 10) / 10;
+  $("acBurn").value = Math.round(uFul().to(P.fuel.burnCruise) * 10) / 10;
+  $("uSpeed").value = P.units.speed; $("uAlt").value = P.units.alt;
+  $("uTemp").value = P.units.temp; $("uFuel").value = P.units.fuel;
+  $("acErr").textContent = "";
+}
+function readForm() {
+  var q = JSON.parse(JSON.stringify(P));
+  q.units.speed = $("uSpeed").value; q.units.alt = $("uAlt").value;
+  q.units.temp = $("uTemp").value; q.units.fuel = $("uFuel").value;
+  var sp = JP.conv("speed", q.units.speed), tp = JP.conv("temp", q.units.temp), fl = JP.conv("fuel", q.units.fuel);
+  q.name = $("acName").value.trim() || "Unnamed";
+  q.registration = $("acReg").value.trim();
+  q.engines.count = parseInt($("acEng").value, 10) || 1;
+  q.engines.cht = parseInt($("acCht").value, 10); if (isNaN(q.engines.cht)) { q.engines.cht = 1; }
+  q.engines.egt = parseInt($("acEgt").value, 10); if (isNaN(q.engines.egt)) { q.engines.egt = 1; }
+  q.limits.rpmMax = parseFloat($("acRpm").value) || 6800;
+  q.limits.chtMax = tp.from(parseFloat($("acChtMax").value));
+  q.limits.egtMax = tp.from(parseFloat($("acEgtMax").value));
+  q.speeds.vs0 = sp.from(parseFloat($("acVs0").value));
+  q.speeds.vs1 = q.speeds.vs0 * 1.09;
+  q.speeds.vne = sp.from(parseFloat($("acVne").value));
+  q.speeds.vno = q.speeds.vne * 0.88;
+  q.speeds.cruise = sp.from(parseFloat($("acCru").value));
+  q.fuel.capacity = fl.from(parseFloat($("acCap").value));
+  q.fuel.usable = Math.min(q.fuel.usable, q.fuel.capacity);
+  q.fuel.burnCruise = fl.from(parseFloat($("acBurn").value));
+  return q;
+}
+function applyProfile(p) {
+  P = p; JP.put(P); JP.setActive(P.id);
+  sim = {}; rebuild(); fillList(); fillForm();
+}
+
+$("acSel").onchange = function () {
+  JP.all().forEach(function (p) { if (p.id === this.value) { applyProfile(p); } }, this);
+};
+$("acSave").onclick = function () {
+  var q = readForm(), bad = JP.validate(q);
+  if (bad.length) { $("acErr").innerHTML = '<b style="color:#E8483D">' + bad[0] + "</b>"; return; }
+  applyProfile(q);
+  $("acErr").innerHTML = '<b style="color:#3FCF6A">applied</b>';
+};
+$("acDup").onclick = function () {
+  var q = readForm();
+  q.id = JP.uniqueId(q.id + "-copy"); q.name = q.name + " copy";
+  applyProfile(q);
+};
+$("acDel").onclick = function () {
+  if (JP.all().length < 2) { $("acErr").textContent = "the last aircraft cannot be deleted"; return; }
+  var lib = JP.remove(P.id); applyProfile(lib[0]);
+};
+
+function showText(txt) {
+  $("acText").value = txt; $("acText").style.display = "block"; $("acTextRow").style.display = "flex";
+}
+$("acExport").onclick = function () { showText(JP.toTOML(readForm())); };
+$("acCopy").onclick = function () {
+  var ta = $("acText"); ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () { document.execCommand("copy"); }); }
+  else { document.execCommand("copy"); }
+  this.textContent = "Copied";
+  var b = this; setTimeout(function () { b.textContent = "Copy"; }, 1200);
+};
+$("acShare").onclick = function () {
+  var txt = $("acText").value, name = (P.id || "aircraft") + ".toml";
+  if (navigator.share) {
+    var data = { title: name, text: txt };
+    if (navigator.canShare) {
+      try {
+        var f = new File([txt], name, { type: "text/plain" });
+        if (navigator.canShare({ files: [f] })) { data = { files: [f], title: name }; }
+      } catch (e) {}
+    }
+    navigator.share(data).catch(function () {});
+  } else { this.textContent = "Not available here — use Copy"; }
+};
+$("acDownload").onclick = function () {
+  var blob = new Blob([$("acText").value], { type: "text/plain" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = (P.id || "aircraft") + ".toml";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+};
+$("acLoadText").onclick = function () {
+  try {
+    var p = JP.fromTOML($("acText").value);
+    p.id = JP.uniqueId(p.id);
+    applyProfile(p);
+    $("acErr").innerHTML = '<b style="color:#3FCF6A">imported ' + p.name + "</b>";
+  } catch (e) { $("acErr").innerHTML = '<b style="color:#E8483D">' + e.message + "</b>"; }
+};
+$("acImportBtn").onclick = function () { $("acFile").click(); };
+$("acFile").onchange = function () {
+  var f = this.files && this.files[0]; if (!f) { return; }
+  var r = new FileReader();
+  r.onload = function () { showText(String(r.result)); $("acLoadText").click(); };
+  r.readAsText(f);
+};
+
+/* ================= controls ================= */
 $("menuBtn").onclick = function () { $("panel").classList.add("open"); stats(); };
 $("btnClose").onclick = function () { $("panel").classList.remove("open"); };
 $("btnLevel").onclick = function () {
   if (!raw.R) { diag.perm = "no sensor data yet"; stats(); return; }
   calibrate(raw.R); mode = "live"; stats();
 };
-$("btnClear").onclick = function () {
-  cal = null; try { localStorage.removeItem("junco.cal"); } catch (e) {} stats();
-};
-function bumpRot(d) { rotDeg = ((rotDeg + d) % 360 + 360) % 360; if (raw.R) { calibrate(raw.R); } saveCal(); stats(); }
-$("rotM90").onclick = function () { bumpRot(-90); };
-$("rotP90").onclick = function () { bumpRot(90); };
-$("rotM5").onclick  = function () { bumpRot(-5); };
-$("rotP5").onclick  = function () { bumpRot(5); };
+$("btnClear").onclick = function () { cal = null; try { localStorage.removeItem("junco.cal"); } catch (e) {} stats(); };
+function bump(d) { rotDeg = ((rotDeg + d) % 360 + 360) % 360; if (raw.R) { calibrate(raw.R); } stats(); }
+$("rotM90").onclick = function () { bump(-90); };
+$("rotP90").onclick = function () { bump(90); };
+$("rotM5").onclick  = function () { bump(-5); };
+$("rotP5").onclick  = function () { bump(5); };
 $("btnLive").onclick = goLive;
 $("btnDemo").onclick = function () { mode = "demo"; stats(); };
 $("btnHot").onclick  = function () { hot = !hot; this.className = hot ? "on" : ""; };
@@ -732,10 +940,12 @@ $("btnWake").onclick = function () {
   if (!("wakeLock" in navigator)) { b.textContent = "Wake lock unsupported"; return; }
   if (wl) { wl.release(); wl = null; b.className = ""; b.textContent = "Keep screen awake"; }
   else { navigator.wakeLock.request("screen").then(function (w) { wl = w; b.className = "on"; b.textContent = "Screen awake"; })
-         .catch(function () { b.textContent = "Wake lock refused"; }); }
+    .catch(function () { b.textContent = "Wake lock refused"; }); }
 };
 window.addEventListener("orientationchange", stats);
-stats();
+
+rebuild(); fillList(); fillForm(); stats();
+requestAnimationFrame(frame);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); });

@@ -52,7 +52,7 @@ jobs:
           test -f "$APK"
           "$BT/apksigner" verify "$APK"
           # The whole point of the wrapper is that the web assets ship inside it.
-          for f in index.html manifest.webmanifest sw.js icon-192.png icon-512.png; do
+          for f in index.html profile.js manifest.webmanifest sw.js icon-192.png icon-512.png; do
             unzip -l "$APK" | grep -q "assets/$f" || { echo "missing assets/$f"; exit 1; }
           done
           "$BT/aapt2" dump badging "$APK" | grep -q "package: name='org.junco.mockup'"
