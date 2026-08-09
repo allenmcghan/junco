@@ -32,8 +32,14 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import android.webkit.JavascriptInterface;
+
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,10 +91,67 @@ public class MainActivity extends Activity {
             }
         });
 
+        web.addJavascriptInterface(new Bridge(), "JuncoNative");
+
         immersive();
         requestLocation();
 
         web.loadUrl(START);
+    }
+
+
+    /**
+     * Minimal HTTP bridge for hosts that refuse CORS.
+     *
+     * aviationweather.gov serves no access-control-allow-origin header at all,
+     * so a browser cannot read it. Rather than proxy through a server we do not
+     * want to run, the app fetches it directly.
+     *
+     * The host allowlist is not decoration. addJavascriptInterface exposes this
+     * to every page in the WebView, and without the allowlist it would be an
+     * open proxy sitting inside the app.
+     */
+    public class Bridge {
+        private static final String[] ALLOWED = {
+            "aviationweather.gov",
+            "api.airplanes.live"
+        };
+
+        @JavascriptInterface
+        public String httpGet(String spec) {
+            HttpURLConnection c = null;
+            try {
+                URL u = new URL(spec);
+                if (!"https".equals(u.getProtocol())) { return ""; }
+                boolean ok = false;
+                for (String h : ALLOWED) { if (h.equalsIgnoreCase(u.getHost())) { ok = true; break; } }
+                if (!ok) { return ""; }
+
+                c = (HttpURLConnection) u.openConnection();
+                c.setRequestMethod("GET");
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(12000);
+                c.setRequestProperty("User-Agent", "Junco-PFD-mockup/0.1 (layout mockup; not an instrument)");
+                c.setRequestProperty("Accept", "application/json");
+                if (c.getResponseCode() / 100 != 2) { return ""; }
+
+                StringBuilder sb = new StringBuilder();
+                BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), "UTF-8"));
+                String line;
+                int budget = 1024 * 1024;           // a runaway response must not eat the heap
+                while ((line = r.readLine()) != null) {
+                    budget -= line.length();
+                    if (budget < 0) { break; }
+                    sb.append(line);
+                }
+                r.close();
+                return sb.toString();
+            } catch (Exception e) {
+                return "";
+            } finally {
+                if (c != null) { c.disconnect(); }
+            }
+        }
     }
 
     /** Serve a bundled asset for a request against our synthetic https origin. */

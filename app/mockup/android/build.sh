@@ -41,7 +41,7 @@ mkdir -p "$OUT/assets" "$OUT/flat" "$OUT/gen" "$OUT/classes"
 
 # The web app is the payload. Copy it in rather than symlink so the APK is
 # self-contained and the source of truth stays one directory up.
-cp "$WEB/index.html" "$WEB/profile.js" "$WEB/manifest.webmanifest" "$WEB/sw.js" \
+cp "$WEB/index.html" "$WEB/profile.js" "$WEB/net.js" "$WEB/manifest.webmanifest" "$WEB/sw.js" \
    "$WEB/icon-192.png" "$WEB/icon-512.png" "$OUT/assets/"
 
 echo "==> resources"

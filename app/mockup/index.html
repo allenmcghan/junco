@@ -122,6 +122,37 @@
   .stat span { float: right; }
   .ok { color: var(--green); } .bad { color: var(--red); } .warn { color: var(--amber); }
 
+  /* on-screen controls: reachable in flight, out of the scan */
+  #quick {
+    position: fixed; left: 0; bottom: 0; z-index: 20;
+    display: flex; gap: 5px;
+    padding: 5px calc(5px + env(safe-area-inset-left)) calc(5px + env(safe-area-inset-bottom)) 5px;
+  }
+  #quick button {
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    padding: 9px 10px; background: rgba(0,0,0,.62); border: 1px solid var(--rule);
+    color: var(--dim); border-radius: 3px; min-width: 54px;
+  }
+  #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
+  #quick button.live { color: var(--green); border-color: var(--green); }
+  #quick button.warn { color: var(--amber); border-color: var(--amber); }
+  #menuBtn { top: calc(6px + env(safe-area-inset-top)); right: calc(6px + env(safe-area-inset-right)); }
+  #panel, #wxPage { padding-top: calc(14px + env(safe-area-inset-top)); }
+
+  #wxPage {
+    position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
+    display: none; overflow-y: auto; padding: 14px;
+  }
+  #wxPage.open { display: block; }
+  .tfc { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  .tfc th { text-align: left; color: var(--dim); font-size: 10px; letter-spacing: .12em;
+            text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+  .tfc td { padding: 5px 6px; border-bottom: 1px solid #1A2025; color: var(--white); }
+  .tfc td.near { color: var(--amber); }
+  pre.raw { font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--white);
+            background: #0B0F12; border: 1px solid var(--rule); border-radius: 3px;
+            padding: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -141,7 +172,7 @@
     <clipPath id="cHDG"><rect x="223" y="460" width="442" height="42"/></clipPath>
   </defs>
 
-  <rect x="0" y="0" width="1000" height="580" fill="#000000"/>
+  <rect id="bgRect" x="0" y="0" width="1000" height="580" fill="#000000"/>
 
   <!-- ATTITUDE -->
   <g clip-path="url(#cAI)">
@@ -158,7 +189,7 @@
     <polygon points="444,58 434,76 454,76" fill="#FFFFFF"/>
     <rect id="slip" x="430" y="80" width="28" height="8" fill="#FFFFFF" rx="1.5"/>
   </g>
-  <g>
+  <g id="acSym">
     <polygon points="366,238 366,247 410,247 410,258 421,258 421,238" fill="#000" stroke="#000" stroke-width="5"/>
     <polygon points="522,238 522,247 478,247 478,258 467,258 467,238" fill="#000" stroke="#000" stroke-width="5"/>
     <polygon points="366,238 366,246 412,246 412,256 421,256 421,238" fill="#F2C63D"/>
@@ -176,60 +207,106 @@
     <rect id="annBox" x="248" y="412" width="200" height="24" fill="#000" fill-opacity="0.7" stroke="#E8A33D" stroke-width="1.5" rx="2"/>
     <text id="annTxt" x="348" y="429" font-size="13" font-weight="700" fill="#E8A33D" text-anchor="middle" letter-spacing="1">PHONE AHRS · ADVISORY</text>
   </g>
-  <rect x="223" y="22" width="442" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <rect id="aiFr" x="223" y="22" width="442" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
 
   <!-- AIRSPEED -->
-  <rect x="133" y="22" width="82" height="432" fill="#000" fill-opacity="0.62"/>
+  <rect id="asiBg" x="133" y="22" width="82" height="432" fill="#000" fill-opacity="0.62"/>
   <g clip-path="url(#cASI)"><g id="asiBands"></g>
     <g id="asiTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="17" font-weight="700" text-anchor="end"></g></g>
-  <rect x="133" y="22" width="82" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
-  <polygon points="126,238 139,221 215,221 215,255 139,255" fill="#000" stroke="#FFF" stroke-width="2"/>
-  <text id="asiVal" x="211" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="end">28</text>
+  <rect id="asiFr" x="133" y="22" width="82" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <g id="asiBox"><polygon points="126,238 139,221 215,221 215,255 139,255" fill="#000" stroke="#FFF" stroke-width="2"/>
+  <text id="asiVal" x="211" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="end">28</text></g>
   <text id="asiUnit" x="174" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">MPH</text>
-  <text x="174" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
+  <text id="asiSrc" x="174" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
 
   <!-- ALTITUDE -->
-  <rect x="673" y="22" width="84" height="432" fill="#000" fill-opacity="0.62"/>
+  <rect id="altBg" x="673" y="22" width="84" height="432" fill="#000" fill-opacity="0.62"/>
   <g clip-path="url(#cALT)"><g id="altTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="17" font-weight="700" text-anchor="start"></g></g>
-  <rect x="673" y="22" width="84" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
-  <polygon points="765,238 752,221 673,221 673,255 752,255" fill="#000" stroke="#FFF" stroke-width="2"/>
-  <text id="altVal" x="677" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="start">1180</text>
+  <rect id="altFr" x="673" y="22" width="84" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <g id="altBox"><polygon points="765,238 752,221 673,221 673,255 752,255" fill="#000" stroke="#FFF" stroke-width="2"/>
+  <text id="altVal" x="677" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="start">1180</text></g>
   <text id="altUnit" x="715" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">FT</text>
-  <text x="715" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
+  <text id="altSrc" x="715" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
 
   <!-- VSI -->
-  <rect x="761" y="22" width="42" height="432" fill="#000" fill-opacity="0.62"/>
-  <g id="vsiScale" stroke="#93A0A8" stroke-width="1.5" fill="#93A0A8" font-size="11" font-weight="700"></g>
+  <rect id="vsiBg" x="761" y="22" width="42" height="432" fill="#000" fill-opacity="0.62"/>
+  <g id="vsiGrp"><g id="vsiScale" stroke="#93A0A8" stroke-width="1.5" fill="#93A0A8" font-size="11" font-weight="700"></g>
   <rect id="vsiBar" x="765" y="238" width="12" height="0" fill="#35D6E8"/>
   <polygon id="vsiPtr" points="761,238 776,231 776,245" fill="#FFF"/>
-  <text id="vsiVal" x="783" y="243" font-size="12" font-weight="700" fill="#FFF" text-anchor="start">0</text>
-  <rect x="761" y="22" width="42" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <text id="vsiVal" x="783" y="243" font-size="12" font-weight="700" fill="#FFF" text-anchor="start">0</text></g>
+  <rect id="vsiFr" x="761" y="22" width="42" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
   <text id="vsiUnit" x="782" y="470" font-size="10" font-weight="700" fill="#93A0A8" text-anchor="middle">FPM</text>
 
   <!-- HEADING TAPE -->
-  <rect x="223" y="460" width="442" height="42" fill="#000" fill-opacity="0.62"/>
+  <g id="hdgGrp"><rect id="hdgBg" x="223" y="460" width="442" height="42" fill="#000" fill-opacity="0.62"/>
   <g clip-path="url(#cHDG)"><g id="hdgTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="15" font-weight="700" text-anchor="middle"></g>
     <polygon id="trkBug" points="444,500 437,486 451,486" fill="#E845E8"/></g>
   <rect x="223" y="460" width="442" height="42" fill="none" stroke="#2E363C" stroke-width="1.5"/>
   <polygon points="444,460 437,472 451,472" fill="#F2C63D"/>
   <rect x="410" y="504" width="68" height="22" fill="#000" stroke="#FFF" stroke-width="1.5" rx="2"/>
-  <text id="hdgVal" x="444" y="520" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">—</text>
+  <text id="hdgVal" x="444" y="520" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">—</text></g>
 
   <!-- ENGINE STRIP -->
-  <rect x="4" y="22" width="123" height="554" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <rect id="eisBg" x="4" y="22" width="123" height="554" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
   <text x="65" y="40" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1.4">ENGINE</text>
   <g id="eis"></g>
 
   <!-- RIGHT DATA -->
-  <rect x="809" y="22" width="187" height="432" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <rect id="rcolBg" x="809" y="22" width="187" height="432" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
   <g id="rcol"></g>
 
   <!-- BOTTOM BAR -->
-  <rect x="133" y="508" width="863" height="68" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
-  <g id="bbar"></g>
+  <g id="botGrp"><rect x="133" y="508" width="863" height="68" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <g id="bbar"></g></g>
 </svg>
 
+<div id="quick">
+  <button id="qCal">CAL</button>
+  <button id="qMode">SIM</button>
+  <button id="qWx">WX/TFC</button>
+</div>
+
 <button id="menuBtn" aria-label="Settings">☰</button>
+
+<div id="wxPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Weather &mdash; nearest reporting station</h3>
+      <div class="row">
+        <button class="go" id="wxRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="wxAge">—</span>
+      </div>
+      <p class="hint" id="wxErr"></p>
+      <pre class="raw" id="wxRaw" style="margin-top:8px">No observation yet.</pre>
+      <div class="row" style="margin-top:8px">
+        <span class="val" id="wxDA">DA —</span>
+        <span class="val" id="wxWind">Wind —</span>
+        <span class="val" id="wxVis">Vis —</span>
+      </div>
+      <p class="hint"><b>This is METAR, not ATIS.</b> ATIS is a recorded broadcast that also gives
+      the active runway and approach in use, and there is no free feed for it. METAR carries the same
+      weather and does not carry the runway. Calling it ATIS would be a lie you might act on.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Traffic &mdash; advisory only</h3>
+      <div class="row">
+        <button class="go" id="tfcRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="tfcAge">—</span>
+        <span class="val" id="tfcCount">0</span>
+      </div>
+      <p class="hint" id="tfcErr"></p>
+      <table class="tfc" id="tfcTable" style="margin-top:8px"><tbody></tbody></table>
+      <p class="hint"><b>Do not use this to see and avoid.</b> Coverage is crowdsourced ground
+      receivers on line of sight, so below roughly 1000&ndash;2000 ft AGL there is often nothing at
+      all &mdash; which is where you fly. Latency runs 5&ndash;15 seconds. Part 103 aircraft are not
+      required to carry ADS-B Out and mostly do not, so the traffic most likely to conflict with you
+      is the traffic least likely to appear here. Per design rule 9 this never raises an alert.</p>
+    </div>
+
+    <div class="row"><button class="go" id="wxClose" style="flex:1">Close</button></div>
+  </div>
+</div>
 
 <div id="panel">
   <div class="wrap">
@@ -360,6 +437,7 @@
 </div>
 
 <script src="./profile.js"></script>
+<script src="./net.js"></script>
 <script>
 (function () {
 "use strict";
@@ -420,6 +498,7 @@ var mode = "demo", raw = { R: null, has: false };
 var att = { pitch: 0, roll: 0, hdg: 0 };
 var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, vs: 0, tA: 0, tM: 0 };
 var hot = false, linkDown = false, t = 0;
+var dataMode = "sim";      // sim | live
 var diag = { count: 0, perm: "—", geo: "—" };
 var sim = {};            // SI throughout: m/s, m, degC, litres
 var rows = [];           // engine strip, generated from the profile
@@ -476,7 +555,7 @@ function rebuild() {
   var g = $("eis"); clear(g);
   g.appendChild(el("text", { x: 65, y: 40, "font-size": 11, "font-weight": 700, fill: "#93A0A8",
     "text-anchor": "middle", "letter-spacing": 1.4 }, "ENGINE"));
-  var top = 58, bot = 528, twin = P.engines.count > 1;
+  var top = 58, bot = VBH - 52, twin = P.engines.count > 1;
   var slots = rows.length + (twin ? 1 : 0);
   var h = Math.max(24, Math.min(38, (bot - top) / slots));
   var y = top + 12;
@@ -502,9 +581,9 @@ function rebuild() {
     g.appendChild(el("line", { x1: 66, y1: y + 10, x2: 66, y2: y + 17, stroke: "#93A0A8", "stroke-width": 1.5 }));
     g.appendChild(el("rect", { x: 66, y: y + 11, width: 0, height: 5, fill: "#3FCF6A", id: "syncB" }));
   }
-  g.appendChild(el("text", { x: 65, y: 546, "font-size": 8.5, "font-weight": 700, fill: "#35D6E8",
+  g.appendChild(el("text", { x: 65, y: VBH - 34, "font-size": 8.5, "font-weight": 700, fill: "#35D6E8",
     "text-anchor": "middle" }, "NODE · WIRED"));
-  g.appendChild(el("text", { x: 65, y: 562, "font-size": 8.5, "font-weight": 700, fill: "#93A0A8",
+  g.appendChild(el("text", { x: 65, y: VBH - 18, "font-size": 8.5, "font-weight": 700, fill: "#93A0A8",
     "text-anchor": "middle" }, (P.name || "").slice(0, 18).toUpperCase()));
 
   // airspeed bands and scale, from V-speeds in this aircraft's units
@@ -527,6 +606,38 @@ function rebuild() {
   $("vsiUnit").textContent = uVs().label;
 }
 var asiPx = 6.6;
+var DY = 0, INSTH = 432, VBH = 580;
+
+/* The Fold's inner screen is nearly square and its outer screen is very tall.
+   A fixed 1000x580 viewBox letterboxes badly on both, so the box tracks the
+   window and the instrument cluster is re-centred and stretched into it. */
+function layout() {
+  var w = window.innerWidth || 1000, h = window.innerHeight || 580;
+  VBH = Math.max(470, Math.min(1050, Math.round(1000 * h / Math.max(1, w))));
+  var hdgY = VBH - 116, botY = VBH - 68;
+  INSTH = Math.max(220, hdgY - 30);
+  DY = (22 + INSTH / 2) - 238;
+
+  $("pfd").setAttribute("viewBox", "0 0 1000 " + VBH);
+  $("bgRect").setAttribute("height", VBH);
+
+  ["asiBg","asiFr","altBg","altFr","vsiBg","vsiFr","aiFr","rcolBg"].forEach(function (id) {
+    $(id).setAttribute("height", INSTH);
+  });
+  $("eisBg").setAttribute("height", VBH - 26);
+  document.querySelector("#cAI rect").setAttribute("height", INSTH);
+  document.querySelector("#cASI rect").setAttribute("height", INSTH);
+  document.querySelector("#cALT rect").setAttribute("height", INSTH);
+
+  var sh = "translate(0," + DY + ")";
+  ["bank","acSym","fpm","ann","asiBox","altBox","vsiGrp","asiTape","altTape","asiBands","asiSrc","altSrc","asiUnit","altUnit","vsiUnit"].forEach(function (id) {
+    if ($(id)) { $(id).setAttribute("transform", sh); }
+  });
+  $("hdgGrp").setAttribute("transform", "translate(0," + (hdgY - 460) + ")");
+  document.querySelector("#cHDG rect").setAttribute("y", hdgY);
+  $("botGrp").setAttribute("transform", "translate(0," + (botY - 508) + ")");
+  if (typeof rebuild === "function" && rows.length) { rebuild(); }
+}
 
 /* ================= static chrome ================= */
 (function () {
@@ -582,7 +693,7 @@ function tapeASI(vDisp) {
   var step = asiPx > 5 ? 2 : asiPx > 3 ? 5 : 10, lab = step * 5;
   for (var s = Math.floor((vDisp - 220 / asiPx) / step) * step; s <= vDisp + 220 / asiPx; s += step) {
     if (s < 0) { continue; }
-    var y = 238 - (s - vDisp) * asiPx; if (y < 16 || y > 460) { continue; }
+    var y = 238 - (s - vDisp) * asiPx; if (y < 16 - DY || y > 16 + INSTH - DY) { continue; }
     var maj = Math.abs(s % lab) < 0.001;
     g.appendChild(el("line", { x1: maj ? 184 : 196, y1: y, x2: 203, y2: y }));
     if (maj) { g.appendChild(el("text", { x: 180, y: y + 6 }, String(Math.round(s)))); }
@@ -592,7 +703,7 @@ function tapeALT(vDisp) {
   var g = $("altTape"); clear(g);
   var m = P.units.alt === "m" ? 0.3048 : 1, step = 20 * m, lab = 100 * m, px = 0.6 / m;
   for (var s = Math.floor((vDisp - 360 * m) / step) * step; s <= vDisp + 360 * m; s += step) {
-    var y = 238 - (s - vDisp) * px; if (y < 16 || y > 460) { continue; }
+    var y = 238 - (s - vDisp) * px; if (y < 16 - DY || y > 16 + INSTH - DY) { continue; }
     var maj = Math.abs(s % lab) < 0.001;
     g.appendChild(el("line", { x1: 675, y1: y, x2: maj ? 700 : 690, y2: y }));
     if (maj) { g.appendChild(el("text", { x: 704, y: y + 6 }, String(Math.round(s)))); }
@@ -632,8 +743,8 @@ function frame() {
   att.hdg = (att.hdg + dh*0.12 + 360) % 360;
 
   var pp = Math.max(-32, Math.min(32, att.pitch)), rr = Math.max(-80, Math.min(80, att.roll));
-  $("horizon").setAttribute("transform", "rotate(" + (-rr) + " 444 238) translate(0 " + (pp*7) + ")");
-  $("rollPtr").setAttribute("transform", "rotate(" + (-rr) + " 444 238)");
+  $("horizon").setAttribute("transform", "translate(0," + DY + ") rotate(" + (-rr) + " 444 238) translate(0 " + (pp*7) + ")");
+  $("rollPtr").setAttribute("transform", "translate(0," + DY + ") rotate(" + (-rr) + " 444 238)");
   $("slip").setAttribute("x", 430 + Math.max(-16, Math.min(16, rr*0.13)));
 
   if (!linkDown) {
@@ -655,14 +766,30 @@ function frame() {
     sim.vs   = Math.cos(t*0.3) * 2.1 * 0.3;
   }
 
-  var iasD = uSpd().to(sim.ias), altD = uAlt().to(sim.alt), vsD = uVs().to(sim.vs);
+  // In LIVE there is no node, so the tapes show what the phone actually knows:
+  // GNSS altitude and ground speed, annunciated as such. Simulated values would
+  // be worse than useless in an aircraft.
+  var srcAlt = "NODE PLENUM", srcSpd = "NODE PITOT";
+  var ias = sim.ias, alt = sim.alt, vs = sim.vs;
+  if (dataMode === "live") {
+    if (gps.alt !== null) { alt = gps.alt; srcAlt = "PHONE GNSS"; }
+    if (gps.gs !== null)  { ias = gps.gs;  srcSpd = "PHONE GNSS GS"; }
+    vs = gps.vs || 0;
+  }
+  if ($("altSrc").textContent !== srcAlt) {
+    $("altSrc").textContent = srcAlt;
+    $("altSrc").setAttribute("fill", dataMode === "live" ? "#E845E8" : "#35D6E8");
+    $("asiSrc").textContent = srcSpd;
+    $("asiSrc").setAttribute("fill", dataMode === "live" ? "#E845E8" : "#35D6E8");
+  }
+  var iasD = uSpd().to(ias), altD = uAlt().to(alt), vsD = uVs().to(vs);
   tapeASI(iasD); tapeALT(altD); tapeHDG(att.hdg);
-  $("asiVal").textContent = linkDown ? "– –" : iasD.toFixed(0);
-  $("altVal").textContent = linkDown ? "– – – –" : altD.toFixed(0);
+  $("asiVal").textContent = (linkDown && dataMode !== "live") ? "– –" : iasD.toFixed(0);
+  $("altVal").textContent = (linkDown && dataMode !== "live") ? "– – – –" : altD.toFixed(0);
   $("hdgVal").textContent = (mode === "live" && !cal) ? "—" : String(Math.round(att.hdg)).padStart(3, "0");
 
   var vmax = P.units.vs === "ms" ? 5 : 1000;
-  var vc = Math.max(-vmax, Math.min(vmax, linkDown ? 0 : vsD));
+  var vc = Math.max(-vmax, Math.min(vmax, (linkDown && dataMode !== "live") ? 0 : vsD));
   var vy = 238 - (vc / vmax) * 180;
   $("vsiPtr").setAttribute("points", "761," + vy + " 776," + (vy-7) + " 776," + (vy+7));
   $("vsiBar").setAttribute("y", Math.min(238, vy));
@@ -944,8 +1071,96 @@ $("btnWake").onclick = function () {
 };
 window.addEventListener("orientationchange", stats);
 
-rebuild(); fillList(); fillForm(); stats();
+/* ================= quick controls, live data, outside data ================= */
+function setMode(m) {
+  dataMode = m;
+  var b = $("qMode");
+  b.textContent = m === "live" ? "LIVE" : "SIM";
+  b.className = m === "live" ? "live" : "";
+  if (m === "live") { goLive(); }
+  stats();
+}
+$("qMode").onclick = function () { setMode(dataMode === "live" ? "sim" : "live"); };
+$("qCal").onclick = function () {
+  if (!raw.R) { goLive(); flash($("qCal"), "WAIT", "warn"); return; }
+  calibrate(raw.R); mode = "live"; stats(); flash($("qCal"), "SET", "live");
+};
+function flash(b, txt, cls) {
+  var o = b.textContent, oc = b.className;
+  b.textContent = txt; b.className = cls;
+  setTimeout(function () { b.textContent = o; b.className = oc; }, 1400);
+}
+function refreshCal() { $("qCal").className = cal ? "" : "warn"; }
+
+/* ---- weather and traffic ---- */
+var N = window.JuncoNet;
+function wxRender() {
+  var m = N.wx.metar;
+  $("wxAge").textContent = N.wx.at ? N.fmtAge(N.wx.at) : "—";
+  $("wxErr").innerHTML = N.wx.err ? '<b style="color:#E8483D">' + N.wx.err + "</b>" : "";
+  if (!m) { return; }
+  $("wxRaw").textContent = (N.wx.station || "") + "\n\n" + (m.rawOb || "") +
+    (N.wx.taf && N.wx.taf.rawTAF ? "\n\nTAF\n" + N.wx.taf.rawTAF : "");
+  var da = N.densityAltFt(m);
+  $("wxDA").textContent = da === null ? "DA —" : "DA " + Math.round(da) + " ft";
+  $("wxWind").textContent = (m.wdir === null || m.wdir === undefined) ? "Wind —"
+    : "Wind " + String(m.wdir).padStart(3, "0") + "° / " + (m.wspd || 0) + " kt";
+  $("wxVis").textContent = m.visib === undefined ? "Vis —" : "Vis " + m.visib;
+}
+function tfcRender() {
+  var t = N.traffic;
+  $("tfcAge").textContent = t.at ? N.fmtAge(t.at) : "—";
+  $("tfcCount").textContent = t.list.length + " ac";
+  $("tfcErr").innerHTML = t.err ? '<b style="color:#E8483D">' + t.err + "</b>" : "";
+  var tb = $("tfcTable").querySelector("tbody");
+  tb.innerHTML = "<tr><th>Callsign</th><th>Type</th><th>Dist</th><th>Brg</th><th>Alt</th><th>Rel</th></tr>";
+  t.list.slice(0, 14).forEach(function (a) {
+    var tr = document.createElement("tr");
+    var near = a.dist < 5 && a.rel !== null && Math.abs(a.rel) < 2000;
+    tr.innerHTML = "<td" + (near ? ' class="near"' : "") + ">" + a.id + "</td><td>" + (a.type || "—") +
+      "</td><td>" + a.dist.toFixed(1) + " nm</td><td>" + String(Math.round(a.brg)).padStart(3, "0") +
+      "°</td><td>" + (a.onGround ? "GND" : (a.alt === null ? "—" : a.alt)) + "</td><td>" +
+      (a.rel === null ? "—" : (a.rel > 0 ? "+" : "") + Math.round(a.rel)) + "</td>";
+    tb.appendChild(tr);
+  });
+}
+function pullOutside() {
+  if (gps.lat === null) { $("tfcErr").innerHTML = '<b style="color:#E8A33D">no position yet — switch to LIVE</b>'; return; }
+  var altFt = gps.alt === null ? null : gps.alt * 3.28084;
+  N.fetchTraffic(gps.lat, gps.lon, 40, altFt).then(tfcRender);
+  N.fetchWx(gps.lat, gps.lon).then(wxRender);
+}
+$("qWx").onclick = function () { $("wxPage").classList.add("open"); pullOutside(); wxRender(); tfcRender(); };
+$("wxClose").onclick = function () { $("wxPage").classList.remove("open"); };
+$("wxRefresh").onclick = function () { N.fetchWx(gps.lat, gps.lon).then(wxRender); };
+$("tfcRefresh").onclick = function () {
+  var altFt = gps.alt === null ? null : gps.alt * 3.28084;
+  N.fetchTraffic(gps.lat, gps.lon, 40, altFt).then(tfcRender);
+};
+setInterval(function () {
+  if ($("wxPage").classList.contains("open") && dataMode === "live") { pullOutside(); }
+  refreshCal();
+}, 30000);
+
+window.addEventListener("resize", layout);
+layout();
+rebuild(); fillList(); fillForm(); stats(); refreshCal();
 requestAnimationFrame(frame);
+
+/* Sensors start themselves. Making the pilot hunt through a menu for the one
+   thing the app is for was the wrong default. Permission is still asked; on
+   iOS the gesture requirement means the first tap anywhere completes it. */
+(function autoStart() {
+  var tried = false;
+  function go() { if (tried) { return; } tried = true; goLive(); }
+  go();
+  ["pointerdown", "touchstart"].forEach(function (ev) {
+    window.addEventListener(ev, function once() {
+      if (diag.count === 0) { tried = false; go(); }
+      window.removeEventListener(ev, once);
+    }, { once: true });
+  });
+})();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); });
