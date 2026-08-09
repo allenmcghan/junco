@@ -12,4 +12,6 @@ iOS is not on the critical path for v1, but the protocol is deliberately reachab
 
 Traffic display, if anyone builds it, is an app-side channel that never involves the node. See docs/prd.md section 22.
 
+`mockup/` holds a PFD layout prototype as an installable web app. It is not the client and is not on the path to being it — it exists to settle layout questions before anyone writes an APK, because a tape range is cheap to change there and expensive here. See its README for what it answers and how to serve it.
+
 This app is the reference client and the only one required in v1, but it is no longer the only client. A build with a panel and a Pi can reach pyEFIS through a FIX-Gateway plugin instead. See docs/prd.md section 24. The primary aircraft has no panel, which is why the phone comes first.
