@@ -1,0 +1,78 @@
+# Build the PFD layout mockup APK.
+#
+# The APK is deliberately not committed to the repository: .gitignore excludes
+# *.apk on purpose, and a binary in git rots. This workflow is where the APK
+# comes from instead. Every run publishes it as a downloadable artifact, and
+# pushing a mockup-v* tag also attaches it to a GitHub release.
+#
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+name: Mockup APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/mockup/**', '.github/workflows/mockup-apk.yml']
+    tags: ['mockup-v*']
+  pull_request:
+    paths: ['app/mockup/**', '.github/workflows/mockup-apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # build-tools 35 or newer is required. The d8 in 34.0.0 predates JDK 21
+      # and fails on every class with an opaque NPE while writing the dex.
+      - name: Install SDK packages
+        run: |
+          yes 2>/dev/null | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-34" "build-tools;35.0.0"
+
+      - name: Build APK
+        run: ./app/mockup/android/build.sh
+
+      - name: Check the APK is well formed
+        run: |
+          APK=app/mockup/android/build/junco-pfd-mockup.apk
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          test -f "$APK"
+          "$BT/apksigner" verify "$APK"
+          # The whole point of the wrapper is that the web assets ship inside it.
+          for f in index.html manifest.webmanifest sw.js icon-192.png icon-512.png; do
+            unzip -l "$APK" | grep -q "assets/$f" || { echo "missing assets/$f"; exit 1; }
+          done
+          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='org.junco.mockup'"
+          echo "APK OK: $(du -h "$APK" | cut -f1)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: junco-pfd-mockup-apk
+          path: app/mockup/android/build/junco-pfd-mockup.apk
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/mockup-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            app/mockup/android/build/junco-pfd-mockup.apk \
+            --title "PFD layout mockup ${GITHUB_REF_NAME}" \
+            --notes "Layout mockup only. Not an instrument, not airworthy, not the Junco client. Debug-signed for sideloading; enable install from unknown sources. See app/mockup/README.md." \
+            || gh release upload "${GITHUB_REF_NAME}" \
+                 app/mockup/android/build/junco-pfd-mockup.apk --clobber

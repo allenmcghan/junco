@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07090B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Junco — Primary Flight Display</title>
+<style>
+  /* Deliberately single-theme: a cockpit display is dark in every cockpit.
+     Every colour is painted explicitly so the page holds on either host ground. */
+  :root {
+    --bezel:    #07090B;
+    --panel:    #12161A;
+    --rule:     #2A3238;
+    --white:    #FFFFFF;
+    --dim:      #9AA6AE;
+    --magenta:  #E845E8;
+    --cyan:     #35D6E8;
+    --green:    #3FCF6A;
+    --amber:    #E8A33D;
+    --red:      #E8483D;
+    --font-data: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bezel);
+    color: var(--white);
+    font-family: var(--font-ui);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .stage {
+    width: 100%;
+    background: var(--bezel);
+    padding: 6px;
+  }
+
+  svg.pfd {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--bezel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    touch-action: manipulation;
+  }
+
+  text { font-family: var(--font-data); }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 6px 4px;
+  }
+
+  button {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--white);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 9px 11px;
+    cursor: pointer;
+  }
+  button:hover { background: #1B2126; }
+  button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: var(--cyan); border-color: var(--cyan); color: #04262B; }
+  button.primary { background: var(--cyan); border-color: var(--cyan); color: #04262B; }
+
+  .diag {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 10px 12px;
+    font-family: var(--font-data);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--dim);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+  }
+  .diag h4 {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--white);
+    margin: 0 0 6px;
+  }
+  .diag .row { display: flex; justify-content: space-between; gap: 12px; }
+  .diag .ok   { color: var(--green); }
+  .diag .bad  { color: var(--red); }
+  .diag .warn { color: var(--amber); }
+
+  .notes {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 14px 12px 40px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--dim);
+  }
+  .notes h3 {
+    font-family: var(--font-data);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--white);
+    margin: 20px 0 6px;
+  }
+  .notes p { margin: 0 0 9px; }
+  .notes strong { color: var(--white); }
+  .notes code {
+    font-family: var(--font-data);
+    font-size: 12px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: var(--white);
+  }
+  .key { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="stage">
+  <svg class="pfd" viewBox="0 0 1000 660" role="img" aria-label="Primary flight display">
+
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#2E8FE0"/>
+        <stop offset="100%" stop-color="#12508F"/>
+      </linearGradient>
+      <linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#8A5A2B"/>
+        <stop offset="100%" stop-color="#4A2E14"/>
+      </linearGradient>
+      <clipPath id="aiClip"><rect x="262" y="24" width="444" height="404" rx="3"/></clipPath>
+      <clipPath id="asiClip"><rect x="162" y="24" width="92" height="404"/></clipPath>
+      <clipPath id="altClip"><rect x="714" y="24" width="98" height="404"/></clipPath>
+      <clipPath id="hsiClip"><circle cx="484" cy="546" r="101"/></clipPath>
+    </defs>
+
+    <rect x="0" y="0" width="1000" height="660" fill="#07090B"/>
+
+    <!-- ================= ATTITUDE INDICATOR ================= -->
+    <g clip-path="url(#aiClip)">
+      <!-- horizon group: rotates by roll, translates by pitch -->
+      <g id="horizon">
+        <rect x="-700" y="-1400" width="2200" height="1626" fill="url(#sky)"/>
+        <rect x="-700" y="226"   width="2200" height="1626" fill="url(#gnd)"/>
+        <line x1="-700" y1="226" x2="1500" y2="226" stroke="#FFFFFF" stroke-width="2.5"/>
+        <g id="ladder" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
+           font-size="15" font-weight="700" text-anchor="middle"></g>
+      </g>
+    </g>
+
+    <!-- bank scale: fixed to the display, pointer rotates -->
+    <g id="bankScale" stroke="#FFFFFF" stroke-width="2.5" fill="#FFFFFF"></g>
+    <g id="rollPointer">
+      <polygon points="484,64 474,84 494,84" fill="#FFFFFF"/>
+      <rect id="slipSkid" x="470" y="88" width="28" height="9" fill="#FFFFFF" rx="1.5"/>
+    </g>
+
+    <!-- fixed aircraft reference symbol -->
+    <g id="acSymbol">
+      <polygon points="404,226 404,236 452,236 452,248 464,248 464,226" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
+      <polygon points="564,226 564,236 516,236 516,248 504,248 504,226" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
+      <polygon points="404,226 404,234 454,234 454,246 464,246 464,226" fill="#F2C63D"/>
+      <polygon points="564,226 564,234 514,234 514,246 504,246 504,226" fill="#F2C63D"/>
+      <rect x="478" y="222" width="12" height="9" fill="#F2C63D" stroke="#0A0C0E" stroke-width="1.5"/>
+    </g>
+
+    <!-- AHRS source annunciator: design rule 8 in PFD idiom -->
+    <g id="ahrsAnn">
+      <rect id="ahrsBox" x="286" y="386" width="188" height="26" fill="#0A0C0E" fill-opacity="0.72" stroke="#E8A33D" stroke-width="1.5" rx="2"/>
+      <text id="ahrsTxt" x="380" y="404" font-size="14" font-weight="700" fill="#E8A33D" text-anchor="middle" letter-spacing="1">PHONE AHRS · ADVISORY</text>
+    </g>
+
+    <rect x="262" y="24" width="444" height="404" fill="none" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+
+    <!-- ================= AIRSPEED TAPE ================= -->
+    <rect x="162" y="24" width="92" height="404" fill="#000000" fill-opacity="0.62"/>
+    <g clip-path="url(#asiClip)">
+      <g id="asiBands"></g>
+      <g id="asiTape" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
+         font-size="19" font-weight="700" text-anchor="end"></g>
+    </g>
+    <rect x="162" y="24" width="92" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
+    <!-- current value box -->
+    <polygon points="154,226 168,208 254,208 254,244 168,244" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="2"/>
+    <text id="asiVal" x="250" y="238" font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="end">28</text>
+    <text x="208" y="16" font-size="13" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1">MPH IAS</text>
+    <text x="208" y="446" font-size="13" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
+
+    <!-- ================= ALTITUDE TAPE ================= -->
+    <rect x="714" y="24" width="98" height="404" fill="#000000" fill-opacity="0.62"/>
+    <g clip-path="url(#altClip)">
+      <g id="altTape" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
+         font-size="19" font-weight="700" text-anchor="start"></g>
+    </g>
+    <rect x="714" y="24" width="98" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
+    <polygon points="820,226 806,208 714,208 714,244 806,244" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="2"/>
+    <text id="altVal" x="718" y="238" font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="start">1180</text>
+    <text x="763" y="16" font-size="13" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1">FT</text>
+    <text x="763" y="446" font-size="13" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
+
+    <!-- ================= VSI ================= -->
+    <rect x="818" y="24" width="50" height="404" fill="#000000" fill-opacity="0.62"/>
+    <g id="vsiScale" stroke="#9AA6AE" stroke-width="1.5" fill="#9AA6AE" font-size="12" font-weight="700"></g>
+    <rect id="vsiBar" x="822" y="226" width="14" height="0" fill="#35D6E8"/>
+    <polygon id="vsiPtr" points="818,226 834,218 834,234" fill="#FFFFFF"/>
+    <text id="vsiVal" x="843" y="231" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="start">0</text>
+    <rect x="818" y="24" width="50" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
+    <text x="843" y="446" font-size="12" font-weight="700" fill="#9AA6AE" text-anchor="middle">FPM</text>
+
+    <!-- ================= HSI ================= -->
+    <circle cx="484" cy="546" r="101" fill="#0A0C0E" stroke="#2A3238" stroke-width="1.5"/>
+    <g clip-path="url(#hsiClip)">
+      <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
+         font-size="15" font-weight="700" text-anchor="middle"></g>
+    </g>
+    <!-- fixed lubber line and aircraft -->
+    <polygon points="484,441 476,457 492,457" fill="#F2C63D"/>
+    <polygon points="484,532 478,558 490,558" fill="#F2C63D" stroke="#0A0C0E" stroke-width="1"/>
+    <!-- heading readout -->
+    <rect x="440" y="424" width="88" height="28" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="1.5" rx="2"/>
+    <text id="hdgVal" x="484" y="445" font-size="21" font-weight="700" fill="#FFFFFF" text-anchor="middle">—</text>
+    <!-- track diamond, magenta = GPS derived, standard avionics convention -->
+    <polygon id="trkDia" points="484,452 478,462 484,472 490,462" fill="#E845E8"/>
+    <text x="484" y="666" font-size="12" font-weight="700" fill="#E845E8" text-anchor="middle">PHONE GNSS TRACK</text>
+
+    <!-- ================= LEFT: ENGINE STRIP (EIS) ================= -->
+    <rect x="8" y="24" width="146" height="628" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <text x="81" y="44" font-size="12" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1.5">ENGINE</text>
+    <line x1="16" y1="52" x2="146" y2="52" stroke="#2A3238" stroke-width="1.5"/>
+    <g id="eis"></g>
+
+    <!-- ================= RIGHT: DATA COLUMN ================= -->
+    <rect x="876" y="24" width="116" height="404" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <g id="rightCol"></g>
+
+    <!-- ================= BOTTOM RIGHT: NAV + ALERTS ================= -->
+    <rect x="600" y="440" width="392" height="212" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <text x="614" y="462" font-size="12" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">POSITION</text>
+    <text id="posVal" x="614" y="484" font-size="16" font-weight="700" fill="#E845E8">—</text>
+    <text x="614" y="512" font-size="12" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">ALERTS</text>
+    <g id="alerts"></g>
+
+    <!-- ================= BOTTOM LEFT: WIND ================= -->
+    <rect x="162" y="440" width="430" height="212" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <g id="botLeft"></g>
+
+  </svg>
+</div>
+
+<div class="bar">
+  <button class="primary" id="btnSensors">Enable phone sensors</button>
+  <button id="btnDemo" aria-pressed="true">Demo flight</button>
+  <button id="btnCage">Level / cage</button>
+  <button id="btnFull">Fullscreen</button>
+  <button id="btnWake" aria-pressed="false">Keep screen awake</button>
+  <button id="btnHot" aria-pressed="false">CHT over limit</button>
+  <button id="btnLink" aria-pressed="false">Drop node link</button>
+</div>
+
+<div class="diag">
+  <h4>Attitude source diagnostics</h4>
+  <div class="row"><span>Mode</span><span id="d-mode">demo flight</span></div>
+  <div class="row"><span>Secure context</span><span id="d-secure">—</span></div>
+  <div class="row"><span>Running in iframe</span><span id="d-frame">—</span></div>
+  <div class="row"><span>DeviceOrientationEvent</span><span id="d-doe">—</span></div>
+  <div class="row"><span>Permission request</span><span id="d-perm">—</span></div>
+  <div class="row"><span>Orientation events seen</span><span id="d-count">0</span></div>
+  <div class="row"><span>Generic Sensor API</span><span id="d-gsa">—</span></div>
+  <div class="row"><span>Geolocation</span><span id="d-geo">—</span></div>
+  <div class="row"><span>Screen angle</span><span id="d-angle">0°</span></div>
+</div>
+
+<div class="notes">
+  <p><strong>It flies itself out of the box.</strong> A scripted circuit drives the attitude so the whole
+  layout is judgeable without any sensor at all. <strong>Drag anywhere on the display</strong> to fly it
+  by hand instead. The annunciator on the attitude indicator always names which source is driving it.</p>
+
+  <h3>If &ldquo;Enable phone sensors&rdquo; does nothing</h3>
+  <p>That is expected here, and the diagnostics panel above says why. This page runs inside an iframe,
+  and <code>deviceorientation</code> is gated by Permissions Policy: in a cross-origin frame it silently
+  never fires unless the parent sets <code>allow="gyroscope; accelerometer; magnetometer"</code>, which a
+  page cannot grant itself. Desktop Chrome has no motion sensors to begin with.</p>
+  <p>Three ways to get real attitude:</p>
+  <p>&mdash; <strong>Desktop Chrome:</strong> DevTools &rarr; ⋮ &rarr; More tools &rarr; <em>Sensors</em>, then set
+  a custom orientation. It drives <code>deviceorientation</code> and this page will pick it up and flip
+  the annunciator to <em>PHONE AHRS</em>.<br>
+  &mdash; <strong>Your phone, properly:</strong> save this page as an <code>.html</code> file and serve it
+  over HTTPS or from <code>localhost</code> as a top-level page, not framed.<br>
+  &mdash; <strong>Or just don't.</strong> For judging layout, the demo flight is better than real sensors
+  anyway, because it exercises bank angles and climb rates you would not get waving a phone around.</p>
+
+  <h3>What is real when sensors do work</h3>
+  <p>Attitude, heading, track, ground speed, GPS altitude and position come from the device.
+  The attitude is low-pass filtered, because raw phone fusion is too jittery to look at even sitting
+  still on a desk &mdash; which is an early and not especially encouraging data point for a question the
+  PRD lists as open.</p>
+
+  <h3>What's simulated</h3>
+  <p>Everything on the engine strip, plus indicated airspeed, pressure altitude and vertical speed.
+  Those are node channels and no node exists yet. Values are plausible PM-2 cruise numbers.</p>
+
+  <h3>Where design rule 8 went</h3>
+  <p>Not twenty small tags. Real avionics annunciate a degraded or alternate source on the instrument
+  itself, so that's what this does: <span class="key" style="background:#E8A33D"></span><strong>PHONE
+  AHRS &middot; ADVISORY</strong> sits on the attitude indicator,
+  <span class="key" style="background:#35D6E8"></span>cyan labels mark node-plumbed channels, and
+  <span class="key" style="background:#E845E8"></span>magenta marks GPS-derived data, which is already
+  the convention every pilot reads without thinking. Same rule, native idiom.</p>
+
+  <h3>Worth saying plainly</h3>
+  <p>A full PFD makes phone attitude look authoritative, and it isn't. PRD section 19 rejects phone
+  attitude for a control loop because OS fusion is tuned for handheld use and drifts in sustained turns,
+  and section 15 still lists <em>&ldquo;phone attitude is stable enough on a vibrating airframe to be
+  worth showing&rdquo;</em> as an open question. That question is exactly what this layout is for &mdash;
+  put it on the aircraft, run the engine, and see whether the horizon is steady enough to keep.
+  Design rule 2 stands either way: the mechanical gauges stay installed.</p>
+
+  <p>Layout mockup only. Not an instrument, not airworthy, not the Android client.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function el(name, attrs, text) {
+    var n = document.createElementNS(SVGNS, name);
+    for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) { n.setAttribute(k, attrs[k]); } }
+    if (text !== undefined) { n.textContent = text; }
+    return n;
+  }
+
+  // ---------- geometry ----------
+  var AI = { cx: 484, cy: 226, x: 262, y: 24, w: 444, h: 404 };
+  var PX_PER_DEG = 7.2;          // attitude pitch scale
+  var ASI = { cx: 208, cy: 226, pxPerUnit: 7.0 };   // mph
+  var ALT = { cx: 763, cy: 226, pxPerUnit: 0.62 };  // ft
+  var VSI = { cy: 226, pxPer1000: 170, max: 1000 };
+
+  // ---------- build static ladder ----------
+  (function buildLadder() {
+    var g = $("ladder");
+    for (var d = -30; d <= 30; d += 5) {
+      if (d === 0) { continue; }
+      var y = 226 - d * PX_PER_DEG;
+      var major = (d % 10 === 0);
+      var half = major ? 66 : 34;
+      g.appendChild(el("line", { x1: 484 - half, y1: y, x2: 484 + half, y2: y }));
+      if (major) {
+        g.appendChild(el("text", { x: 484 - half - 10, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
+        g.appendChild(el("text", { x: 484 + half + 10, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
+      }
+    }
+  })();
+
+  // ---------- bank scale ----------
+  (function buildBank() {
+    var g = $("bankScale");
+    var marks = [-60, -45, -30, -20, -10, 10, 20, 30, 45, 60];
+    marks.forEach(function (a) {
+      var r1 = 156, r2 = (Math.abs(a) === 30 || Math.abs(a) === 60) ? 138 : 145;
+      var rad = (a - 90) * Math.PI / 180;
+      g.appendChild(el("line", {
+        x1: 484 + Math.cos(rad) * r1, y1: 226 + Math.sin(rad) * r1,
+        x2: 484 + Math.cos(rad) * r2, y2: 226 + Math.sin(rad) * r2,
+        "stroke-width": (Math.abs(a) === 30 || Math.abs(a) === 60) ? 3 : 2
+      }));
+    });
+    // zero index triangle
+    g.appendChild(el("polygon", { points: "484,58 476,44 492,44", fill: "#FFFFFF" }));
+  })();
+
+  // ---------- VSI scale ----------
+  (function buildVsi() {
+    var g = $("vsiScale");
+    for (var v = -1000; v <= 1000; v += 250) {
+      var y = VSI.cy - (v / 1000) * VSI.pxPer1000;
+      var major = (v % 500 === 0);
+      g.appendChild(el("line", { x1: 836, y1: y, x2: major ? 852 : 846, y2: y }));
+      if (major && v !== 0) {
+        g.appendChild(el("text", { x: 856, y: y + 4, "text-anchor": "start" }, String(Math.abs(v / 100))));
+      }
+    }
+  })();
+
+  // ---------- airspeed colour bands, from the aircraft profile ----------
+  (function buildBands() {
+    var g = $("asiBands");
+    // PM-2: stall ~22, cruise ~28, never-exceed ~38 mph
+    function band(lo, hi, colour) {
+      var yTop = ASI.cy - (hi - 28) * ASI.pxPerUnit;
+      var yBot = ASI.cy - (lo - 28) * ASI.pxPerUnit;
+      g.appendChild(el("rect", { x: 240, y: yTop, width: 14, height: Math.max(0, yBot - yTop), fill: colour }));
+    }
+    band(22, 38, "#3FCF6A");   // normal operating
+    band(14, 22, "#E8483D");   // below stall
+    band(38, 50, "#E8483D");   // above Vne
+  })();
+
+  // ---------- engine strip ----------
+  var eisRows = [
+    { key: "rpmL",  label: "RPM L",  unit: "",    min: 0,    max: 7000, redline: 6800 },
+    { key: "rpmR",  label: "RPM R",  unit: "",    min: 0,    max: 7000, redline: 6800 },
+    { key: "chtL",  label: "CHT L",  unit: "°F",  min: 100,  max: 480,  redline: 435 },
+    { key: "chtR",  label: "CHT R",  unit: "°F",  min: 100,  max: 480,  redline: 435 },
+    { key: "egtL",  label: "EGT L",  unit: "°F",  min: 700,  max: 1350, redline: 1250 },
+    { key: "egtR",  label: "EGT R",  unit: "°F",  min: 700,  max: 1350, redline: 1250 },
+    { key: "fuel",  label: "FUEL",   unit: "gal", min: 0,    max: 10,   redline: null, low: 1.5 }
+  ];
+
+  (function buildEis() {
+    var g = $("eis"), y = 74;
+    eisRows.forEach(function (r) {
+      g.appendChild(el("text", { x: 18, y: y, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 0.8 }, r.label));
+      var v = el("text", { x: 146, y: y, "font-size": 16, "font-weight": 700, fill: "#FFFFFF", "text-anchor": "end", id: "eis-" + r.key }, "—");
+      g.appendChild(v);
+      g.appendChild(el("rect", { x: 18, y: y + 6, width: 128, height: 7, fill: "#000000", stroke: "#2A3238", "stroke-width": 1 }));
+      g.appendChild(el("rect", { x: 19, y: y + 7, width: 0, height: 5, fill: "#3FCF6A", id: "bar-" + r.key }));
+      if (r.redline !== null) {
+        var rx = 19 + 126 * (r.redline - r.min) / (r.max - r.min);
+        g.appendChild(el("line", { x1: rx, y1: y + 4, x2: rx, y2: y + 15, stroke: "#E8483D", "stroke-width": 2 }));
+      }
+      y += 40;
+    });
+    // twin sync
+    g.appendChild(el("text", { x: 18, y: y + 8, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 0.8 }, "SYNC"));
+    g.appendChild(el("text", { x: 146, y: y + 8, "font-size": 14, "font-weight": 700, fill: "#FFFFFF", "text-anchor": "end", id: "syncTxt" }, "Δ 0"));
+    g.appendChild(el("rect", { x: 18, y: y + 14, width: 128, height: 9, fill: "#000000", stroke: "#2A3238", "stroke-width": 1 }));
+    g.appendChild(el("line", { x1: 82, y1: y + 14, x2: 82, y2: y + 23, stroke: "#9AA6AE", "stroke-width": 1.5 }));
+    g.appendChild(el("rect", { x: 82, y: y + 15, width: 0, height: 7, fill: "#3FCF6A", id: "syncBar" }));
+    g.appendChild(el("text", { x: 81, y: y + 42, "font-size": 10, "font-weight": 700, fill: "#35D6E8", "text-anchor": "middle", "letter-spacing": 0.8 }, "NODE · WIRED"));
+  })();
+
+  // ---------- right data column ----------
+  (function buildRight() {
+    var g = $("rightCol");
+    var rows = [
+      { id: "oat",   label: "OAT",     unit: "°F",  colour: "#35D6E8" },
+      { id: "dalt",  label: "DENS ALT",unit: "ft",  colour: "#FFFFFF" },
+      { id: "gs",    label: "GND SPD", unit: "mph", colour: "#E845E8" },
+      { id: "gpsalt",label: "GPS ALT", unit: "ft",  colour: "#E845E8" },
+      { id: "endur", label: "ENDUR",   unit: "",    colour: "#FFFFFF" },
+      { id: "baro",  label: "BARO",    unit: "inHg",colour: "#35D6E8" }
+    ];
+    var y = 50;
+    rows.forEach(function (r) {
+      g.appendChild(el("text", { x: 888, y: y, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1 }, r.label));
+      g.appendChild(el("text", { x: 980, y: y + 24, "font-size": 22, "font-weight": 700, fill: r.colour, "text-anchor": "end", id: "rc-" + r.id }, "—"));
+      g.appendChild(el("text", { x: 980, y: y + 38, "font-size": 10, "font-weight": 700, fill: "#9AA6AE", "text-anchor": "end" }, r.unit));
+      y += 64;
+    });
+  })();
+
+  // ---------- bottom left: wind + attitude digits ----------
+  (function buildBotLeft() {
+    var g = $("botLeft");
+    g.appendChild(el("text", { x: 176, y: 462, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "WIND ALOFT"));
+    g.appendChild(el("text", { x: 176, y: 496, "font-size": 26, "font-weight": 700, fill: "#E8A33D", id: "windVal" }, "245° / 9"));
+    g.appendChild(el("text", { x: 176, y: 514, "font-size": 10, "font-weight": 700, fill: "#E8A33D", "letter-spacing": 0.8 }, "MIXED SOURCE · NODE + PHONE"));
+
+    g.appendChild(el("text", { x: 396, y: 462, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "PITCH / ROLL"));
+    g.appendChild(el("text", { x: 396, y: 496, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "prVal" }, "—"));
+    g.appendChild(el("text", { x: 396, y: 514, "font-size": 10, "font-weight": 700, fill: "#E8A33D", "letter-spacing": 0.8 }, "PHONE FUSION · ADVISORY"));
+
+    g.appendChild(el("text", { x: 176, y: 556, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "ENGINE HOURS"));
+    g.appendChild(el("text", { x: 176, y: 590, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "hrsVal" }, "12.4"));
+
+    g.appendChild(el("text", { x: 396, y: 556, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "EGT SPLIT"));
+    g.appendChild(el("text", { x: 396, y: 590, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "splitVal" }, "14°F"));
+  })();
+
+  // ---------- state ----------
+  var sim = {
+    rpmL: 5840, rpmR: 5795, chtL: 381, chtR: 376,
+    egtL: 1118, egtR: 1104, fuel: 6.2, oat: 79,
+    alt: 1180, vsi: 0, ias: 28, t: 0
+  };
+  var att = { pitch: 0, roll: 0, hdg: 0 };      // filtered
+  var raw = { pitch: 0, roll: 0, hdg: 0, has: false };
+  var cage = { pitch: 0, roll: 0 };
+  var gps = { trk: null, gs: null, alt: null, lat: null, lon: null, acc: null };
+  var driveHot = false, linkDown = false;
+
+  // mode: "demo" scripted flight, "phone" real sensors, "manual" drag to fly
+  var mode = "demo";
+  var manual = { pitch: 0, roll: 0, hdg: 0 };
+
+  // ---------- scripted demo flight ----------
+  // A repeating circuit so every part of the layout gets exercised:
+  // climbing right turn, level cruise, descending left turn, level.
+  function demoFlight(t) {
+    var T = t * 0.35;
+    var roll  = 18 * Math.sin(T * 0.28) + 6 * Math.sin(T * 0.11);
+    var pitch = 5.5 * Math.sin(T * 0.19) + 1.6 * Math.sin(T * 0.63);
+    // heading integrates from bank, the way an aircraft actually turns
+    demoFlight.hdg = (demoFlight.hdg + roll * 0.055 + 360) % 360;
+    return { pitch: pitch, roll: roll, hdg: demoFlight.hdg };
+  }
+  demoFlight.hdg = 247;
+
+  function wob(b, a) { return b + Math.sin(sim.t * a) * a * 2 + (Math.random() - 0.5) * a; }
+
+  // ---------- tape renderers ----------
+  function renderAsi(v) {
+    var g = $("asiTape");
+    while (g.firstChild) { g.removeChild(g.firstChild); }
+    var lo = Math.floor((v - 30) / 2) * 2, hi = v + 30;
+    for (var s = lo; s <= hi; s += 2) {
+      if (s < 0) { continue; }
+      var y = ASI.cy - (s - v) * ASI.pxPerUnit;
+      if (y < 18 || y > 434) { continue; }
+      var major = (s % 10 === 0);
+      g.appendChild(el("line", { x1: major ? 214 : 228, y1: y, x2: 240, y2: y }));
+      if (major) { g.appendChild(el("text", { x: 210, y: y + 7 }, String(s))); }
+    }
+  }
+
+  function renderAlt(v) {
+    var g = $("altTape");
+    while (g.firstChild) { g.removeChild(g.firstChild); }
+    var lo = Math.floor((v - 340) / 20) * 20, hi = v + 340;
+    for (var s = lo; s <= hi; s += 20) {
+      var y = ALT.cy - (s - v) * ALT.pxPerUnit;
+      if (y < 18 || y > 434) { continue; }
+      var major = (s % 100 === 0);
+      g.appendChild(el("line", { x1: 716, y1: y, x2: major ? 742 : 730, y2: y }));
+      if (major) { g.appendChild(el("text", { x: 746, y: y + 7 }, String(s))); }
+    }
+  }
+
+  function renderRose(hdg) {
+    var g = $("rose");
+    while (g.firstChild) { g.removeChild(g.firstChild); }
+    var cx = 484, cy = 546;
+    var cards = { 0: "N", 90: "E", 180: "S", 270: "W" };
+    for (var a = 0; a < 360; a += 10) {
+      var rel = (a - hdg) * Math.PI / 180;
+      var sin = Math.sin(rel), cos = Math.cos(rel);
+      var major = (a % 30 === 0);
+      var r1 = 99, r2 = major ? 84 : 91;
+      g.appendChild(el("line", {
+        x1: cx + sin * r1, y1: cy - cos * r1,
+        x2: cx + sin * r2, y2: cy - cos * r2,
+        "stroke-width": major ? 2.5 : 1.5
+      }));
+      if (major) {
+        var lbl = cards[a] !== undefined ? cards[a] : String(a / 10);
+        var tr = 70;
+        g.appendChild(el("text", {
+          x: cx + sin * tr, y: cy - cos * tr + 6,
+          "font-size": cards[a] !== undefined ? 18 : 14,
+          fill: cards[a] !== undefined ? "#FFFFFF" : "#C8D0D6"
+        }, lbl));
+      }
+    }
+  }
+
+  // ---------- main loop ----------
+  function frame() {
+    sim.t += 0.05;
+
+    // pick the attitude source
+    if (mode === "demo") {
+      var d = demoFlight(sim.t);
+      raw.pitch = d.pitch; raw.roll = d.roll; raw.hdg = d.hdg; raw.has = true;
+      cage.pitch = 0; cage.roll = 0;
+      if (gps.trk === null) { gps.trk = d.hdg; }
+      if (gps.gs === null) { gps.gs = 27; }
+    } else if (mode === "manual") {
+      raw.pitch = manual.pitch; raw.roll = manual.roll; raw.hdg = manual.hdg; raw.has = true;
+      cage.pitch = 0; cage.roll = 0;
+    }
+
+    // low-pass the attitude: raw phone fusion is unusable unfiltered
+    var k = (mode === "phone") ? 0.12 : 0.22;
+    att.pitch += (raw.pitch - cage.pitch - att.pitch) * k;
+    att.roll  += (raw.roll  - cage.roll  - att.roll)  * k;
+
+    var hd = raw.hdg - att.hdg;
+    while (hd > 180) { hd -= 360; }
+    while (hd < -180) { hd += 360; }
+    att.hdg = (att.hdg + hd * 0.1 + 360) % 360;
+
+    // attitude indicator transform
+    var p = Math.max(-32, Math.min(32, att.pitch));
+    var r = Math.max(-75, Math.min(75, att.roll));
+    $("horizon").setAttribute("transform",
+      "rotate(" + (-r) + " 484 226) translate(0 " + (p * PX_PER_DEG) + ")");
+    $("rollPointer").setAttribute("transform", "rotate(" + (-r) + " 484 226)");
+
+    // slip/skid: fake coordinated flight with a little lag off roll rate
+    var slip = Math.max(-18, Math.min(18, r * 0.14));
+    $("slipSkid").setAttribute("x", 470 + slip);
+
+    $("prVal").textContent = (raw.has ? (att.pitch >= 0 ? "+" : "") + att.pitch.toFixed(0) + "° / "
+                              + (att.roll >= 0 ? "+" : "") + att.roll.toFixed(0) + "°" : "—");
+
+    // ---- simulated node channels ----
+    if (!linkDown) {
+      sim.rpmL = wob(5840, 6);
+      sim.rpmR = wob(5795, 6);
+      sim.egtL = wob(1118, 4);
+      sim.egtR = wob(1104, 4);
+      sim.chtR = wob(376, 2);
+      sim.chtL = driveHot ? Math.min(458, sim.chtL + 1.4)
+                          : (sim.chtL > 383 ? sim.chtL - 1.1 : wob(381, 2));
+      sim.fuel = Math.max(0, sim.fuel - 0.00012);
+      sim.ias = wob(28, 0.5);
+      sim.alt = wob(1180, 2);
+      sim.vsi = Math.sin(sim.t * 0.25) * 260;
+    }
+
+    // ---- tapes ----
+    renderAsi(sim.ias);
+    renderAlt(sim.alt);
+    $("asiVal").textContent = linkDown ? "– –" : sim.ias.toFixed(0);
+    $("altVal").textContent = linkDown ? "– – – –" : sim.alt.toFixed(0);
+
+    var vClamp = Math.max(-VSI.max, Math.min(VSI.max, linkDown ? 0 : sim.vsi));
+    var vy = VSI.cy - (vClamp / 1000) * VSI.pxPer1000;
+    $("vsiPtr").setAttribute("points", "818," + vy + " 834," + (vy - 8) + " 834," + (vy + 8));
+    $("vsiBar").setAttribute("y", Math.min(VSI.cy, vy));
+    $("vsiBar").setAttribute("height", Math.abs(VSI.cy - vy));
+    $("vsiVal").textContent = linkDown ? "–" : (vClamp >= 0 ? "+" : "") + vClamp.toFixed(0);
+
+    // ---- HSI ----
+    renderRose(att.hdg);
+    $("hdgVal").textContent = raw.has ? String(Math.round(att.hdg)).padStart(3, "0") : "—";
+    if (gps.trk !== null) {
+      var rel = ((gps.trk - att.hdg) * Math.PI) / 180;
+      var tx = 484 + Math.sin(rel) * 94, ty = 546 - Math.cos(rel) * 94;
+      $("trkDia").setAttribute("points",
+        tx + "," + (ty - 9) + " " + (tx - 7) + "," + ty + " " + tx + "," + (ty + 9) + " " + (tx + 7) + "," + ty);
+      $("trkDia").setAttribute("opacity", "1");
+    } else {
+      $("trkDia").setAttribute("opacity", "0.25");
+    }
+
+    // ---- engine strip ----
+    eisRows.forEach(function (row) {
+      var val = sim[row.key];
+      var t = $("eis-" + row.key), b = $("bar-" + row.key);
+      if (linkDown) { t.textContent = "– –"; t.setAttribute("fill", "#9AA6AE"); b.setAttribute("width", 0); return; }
+      var dec = (row.key === "fuel") ? 1 : 0;
+      t.textContent = val.toFixed(dec);
+      var frac = Math.max(0, Math.min(1, (val - row.min) / (row.max - row.min)));
+      b.setAttribute("width", frac * 126);
+      var over = (row.redline !== null && val >= row.redline) || (row.low !== undefined && val <= row.low);
+      var near = (row.redline !== null && val >= row.redline * 0.94);
+      var col = over ? "#E8483D" : (near ? "#E8A33D" : "#3FCF6A");
+      b.setAttribute("fill", col);
+      t.setAttribute("fill", over ? "#E8483D" : "#FFFFFF");
+    });
+
+    var dRpm = linkDown ? 0 : sim.rpmL - sim.rpmR;
+    var sw = Math.max(-60, Math.min(60, dRpm / 300 * 60));
+    $("syncBar").setAttribute("x", sw < 0 ? 82 + sw : 82);
+    $("syncBar").setAttribute("width", Math.abs(sw));
+    $("syncBar").setAttribute("fill", Math.abs(dRpm) > 100 ? "#E8A33D" : "#3FCF6A");
+    $("syncTxt").textContent = linkDown ? "– –" : "Δ " + Math.abs(dRpm).toFixed(0);
+    $("splitVal").textContent = linkDown ? "– –" : Math.abs(sim.egtL - sim.egtR).toFixed(0) + "°F";
+    $("hrsVal").textContent = (12.4 + sim.t / 3600).toFixed(1);
+
+    // ---- right column ----
+    var burn = 1.6 + (sim.rpmL + sim.rpmR) / 2 / 3000;
+    var hrs = sim.fuel / burn;
+    function rc(id, v) { $("rc-" + id).textContent = v; }
+    rc("oat",   linkDown ? "– –" : sim.oat.toFixed(0));
+    rc("dalt",  linkDown ? "– –" : (1180 + (sim.oat - 59) * 118).toFixed(0));
+    rc("gs",    gps.gs === null ? "—" : gps.gs.toFixed(0));
+    rc("gpsalt",gps.alt === null ? "—" : gps.alt.toFixed(0));
+    rc("endur", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"));
+    rc("baro",  linkDown ? "– –" : "29.92");
+
+    $("posVal").textContent = (gps.lat === null) ? "—"
+      : gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5) + "   ±" + Math.round(gps.acc) + "m";
+
+    // ---- alerts ----
+    var g = $("alerts");
+    while (g.firstChild) { g.removeChild(g.firstChild); }
+    var list = [];
+    if (linkDown) { list.push(["NODE LINK LOST — ENGINE AND AIR DATA UNAVAILABLE", "#E8483D"]); }
+    if (!linkDown && sim.chtL >= 435) { list.push(["CHT LEFT OVER LIMIT — " + sim.chtL.toFixed(0) + "°F", "#E8483D"]); }
+    if (!linkDown && hrs < 0.75) { list.push(["FUEL ENDURANCE BELOW RESERVE", "#E8A33D"]); }
+    if (!raw.has) { list.push(["ATTITUDE UNAVAILABLE — ENABLE PHONE SENSORS", "#E8A33D"]); }
+    if (!list.length) { list.push(["NO ACTIVE ALERTS", "#9AA6AE"]); }
+    var ay = 536;
+    list.slice(0, 4).forEach(function (a) {
+      g.appendChild(el("rect", { x: 614, y: ay - 14, width: 364, height: 22, fill: a[1], "fill-opacity": 0.16, stroke: a[1], "stroke-width": 1 }));
+      g.appendChild(el("text", { x: 622, y: ay + 2, "font-size": 12, "font-weight": 700, fill: a[1] }, a[0]));
+      ay += 28;
+    });
+
+    // the annunciator always names the attitude source, whatever it is
+    var annTxt = mode === "phone" ? "PHONE AHRS · ADVISORY"
+               : mode === "manual" ? "MANUAL · DRAG TO FLY"
+               : "DEMO · SIMULATED ATTITUDE";
+    var annCol = mode === "phone" ? "#E8A33D" : "#35D6E8";
+    if ($("ahrsTxt").textContent !== annTxt) {
+      $("ahrsTxt").textContent = annTxt;
+      $("ahrsTxt").setAttribute("fill", annCol);
+      $("ahrsBox").setAttribute("stroke", annCol);
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- sensors ----------
+  function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === "number") { return screen.orientation.angle; }
+    if (typeof window.orientation === "number") { return window.orientation; }
+    return 0;
+  }
+
+  // ---------- diagnostics ----------
+  var diag = { perm: "not requested", count: 0, gsa: "not tried", geo: "not requested" };
+
+  function tag(txt, cls) { return '<span class="' + cls + '">' + txt + "</span>"; }
+
+  function setDiag() {
+    function set(id, html) { $(id).innerHTML = html; }
+    set("d-mode", mode === "phone" ? tag("phone sensors", "ok")
+                : mode === "manual" ? tag("manual — drag the horizon", "warn")
+                : tag("demo flight", "warn"));
+    set("d-secure", window.isSecureContext ? tag("yes", "ok") : tag("no — sensors blocked", "bad"));
+    var framed = window.self !== window.top;
+    set("d-frame", framed
+      ? tag("yes — needs allow=\"gyroscope; accelerometer\"", "warn")
+      : tag("no", "ok"));
+    set("d-doe", ("DeviceOrientationEvent" in window) ? tag("present", "ok") : tag("missing", "bad"));
+    set("d-perm", diag.perm);
+    set("d-count", diag.count > 0 ? tag(String(diag.count), "ok") : tag("0 — nothing arriving", "bad"));
+    set("d-gsa", diag.gsa);
+    set("d-geo", diag.geo);
+    set("d-angle", screenAngle() + "°");
+  }
+
+  function onOrient(e) {
+    if (e.beta === null && e.gamma === null && e.alpha === null) { return; }
+    diag.count++;
+    if (mode !== "phone") { mode = "phone"; setDiag(); }
+    raw.has = true;
+    var b = e.beta || 0, gm = e.gamma || 0;
+    var a = screenAngle();
+    var p, r;
+    if (a === 90)        { p = gm;  r = b; }
+    else if (a === -90 || a === 270) { p = -gm; r = -b; }
+    else if (a === 180)  { p = -(b - 90); r = -gm; }
+    else                 { p = b - 90;    r = gm; }
+    raw.pitch = p;
+    raw.roll = r;
+    var h = (typeof e.webkitCompassHeading === "number") ? e.webkitCompassHeading
+          : (e.alpha !== null ? (360 - e.alpha + a) % 360 : null);
+    if (h !== null && !isNaN(h)) { raw.hdg = h; }
+  }
+
+  // Second path: the Generic Sensor API. Different plumbing, same Permissions
+  // Policy gate, so if one is blocked the other usually is too — but it reports
+  // a real error instead of failing silently, which is why it is worth trying.
+  function tryGenericSensor() {
+    var Ctor = window.AbsoluteOrientationSensor || window.RelativeOrientationSensor;
+    if (!Ctor) { diag.gsa = tag("unsupported", "warn"); setDiag(); return; }
+    try {
+      var s = new Ctor({ frequency: 30, referenceFrame: "screen" });
+      s.addEventListener("reading", function () {
+        var q = s.quaternion;
+        if (!q) { return; }
+        diag.count++;
+        if (mode !== "phone") { mode = "phone"; }
+        raw.has = true;
+        var x = q[0], y = q[1], z = q[2], w = q[3];
+        raw.roll  = Math.atan2(2 * (w * y + x * z), 1 - 2 * (y * y + x * x)) * 180 / Math.PI;
+        raw.pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * x - y * z)))) * 180 / Math.PI;
+        raw.hdg   = (Math.atan2(2 * (w * z + x * y), 1 - 2 * (z * z + x * x)) * 180 / Math.PI + 360) % 360;
+        diag.gsa = tag("streaming", "ok");
+        setDiag();
+      });
+      s.addEventListener("error", function (ev) {
+        diag.gsa = tag((ev.error && ev.error.name) || "error", "bad");
+        setDiag();
+      });
+      s.start();
+      diag.gsa = "starting";
+    } catch (err) {
+      diag.gsa = tag(err.name || "blocked", "bad");
+    }
+    setDiag();
+  }
+
+  function startGeo() {
+    if (!navigator.geolocation) { diag.geo = tag("unsupported", "bad"); setDiag(); return; }
+    diag.geo = "acquiring";
+    setDiag();
+    navigator.geolocation.watchPosition(function (pos) {
+      var c = pos.coords;
+      gps.lat = c.latitude; gps.lon = c.longitude; gps.acc = c.accuracy;
+      gps.gs = (c.speed === null || isNaN(c.speed)) ? 0 : c.speed * 2.23694;
+      gps.trk = (c.heading === null || isNaN(c.heading)) ? gps.trk : c.heading;
+      gps.alt = (c.altitude === null || isNaN(c.altitude)) ? null : c.altitude * 3.28084;
+      diag.geo = tag("fix ±" + Math.round(c.accuracy) + " m", "ok");
+      setDiag();
+    }, function (err) {
+      diag.geo = tag(err.code === 1 ? "denied" : "unavailable", "bad");
+      setDiag();
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+  }
+
+  $("btnSensors").addEventListener("click", function () {
+    var btn = this;
+    startGeo();
+    tryGenericSensor();
+    var D = window.DeviceOrientationEvent;
+    if (D && typeof D.requestPermission === "function") {
+      diag.perm = "asking";
+      setDiag();
+      D.requestPermission().then(function (res) {
+        diag.perm = res === "granted" ? tag("granted", "ok") : tag(res, "bad");
+        if (res === "granted") { window.addEventListener("deviceorientation", onOrient, true); }
+        setDiag();
+      }).catch(function (e) {
+        diag.perm = tag((e && e.name) || "rejected", "bad");
+        setDiag();
+      });
+    } else {
+      diag.perm = tag("not required on this browser", "ok");
+      window.addEventListener("deviceorientation", onOrient, true);
+      setDiag();
+    }
+    btn.textContent = "Sensors requested";
+
+    // If nothing arrives, say so plainly instead of sitting there dead.
+    setTimeout(function () {
+      if (diag.count === 0) {
+        btn.textContent = "No sensor data — using demo";
+        setDiag();
+      }
+    }, 2500);
+  });
+
+  $("btnDemo").addEventListener("click", function () {
+    mode = (mode === "demo") ? "manual" : "demo";
+    this.setAttribute("aria-pressed", String(mode === "demo"));
+    this.textContent = mode === "demo" ? "Demo flight" : "Manual — drag horizon";
+    setDiag();
+  });
+
+  // ---------- drag to fly ----------
+  (function dragToFly() {
+    var svg = document.querySelector("svg.pfd");
+    var dragging = false, sx = 0, sy = 0, p0 = 0, r0 = 0;
+    svg.addEventListener("pointerdown", function (e) {
+      dragging = true;
+      mode = "manual";
+      $("btnDemo").setAttribute("aria-pressed", "false");
+      $("btnDemo").textContent = "Manual — drag horizon";
+      sx = e.clientX; sy = e.clientY;
+      p0 = manual.pitch; r0 = manual.roll;
+      manual.hdg = att.hdg;
+      svg.setPointerCapture(e.pointerId);
+      setDiag();
+    });
+    svg.addEventListener("pointermove", function (e) {
+      if (!dragging) { return; }
+      var rect = svg.getBoundingClientRect();
+      var scale = 1000 / rect.width;
+      manual.pitch = Math.max(-30, Math.min(30, p0 + (e.clientY - sy) * scale / PX_PER_DEG));
+      manual.roll  = Math.max(-60, Math.min(60, r0 + (e.clientX - sx) * scale * 0.18));
+      manual.hdg   = (manual.hdg + manual.roll * 0.02 + 360) % 360;
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
+      svg.addEventListener(t, function () { dragging = false; });
+    });
+  })();
+
+  window.addEventListener("orientationchange", setDiag);
+  setDiag();
+  setInterval(setDiag, 2000);
+
+  $("btnCage").addEventListener("click", function () {
+    cage.pitch = raw.pitch;
+    cage.roll = raw.roll;
+    att.pitch = 0; att.roll = 0;
+  });
+
+  var wakeLock = null;
+  $("btnWake").addEventListener("click", function () {
+    var b = this;
+    if (!("wakeLock" in navigator)) { b.textContent = "Wake lock unsupported"; return; }
+    if (wakeLock) {
+      wakeLock.release(); wakeLock = null;
+      b.setAttribute("aria-pressed", "false"); b.textContent = "Keep screen awake";
+    } else {
+      navigator.wakeLock.request("screen").then(function (w) {
+        wakeLock = w;
+        b.setAttribute("aria-pressed", "true"); b.textContent = "Screen stays awake";
+      }).catch(function () { b.textContent = "Wake lock refused"; });
+    }
+  });
+
+  $("btnFull").addEventListener("click", function () {
+    var s = document.querySelector(".stage");
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (s.requestFullscreen) { s.requestFullscreen().catch(function () {}); }
+  });
+
+  $("btnHot").addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", String(!on));
+    driveHot = !on;
+  });
+
+  $("btnLink").addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", String(!on));
+    linkDown = !on;
+    this.textContent = linkDown ? "Restore node link" : "Drop node link";
+  });
+})();
+</script>
+
+
+<script>
+// Progressive web app shell. Registering the worker is what makes this work
+// with no cell signal, which is the normal condition at 800 feet over a field.
+(function () {
+  "use strict";
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    });
+  }
+
+  var standalone = window.matchMedia("(display-mode: fullscreen)").matches
+                || window.matchMedia("(display-mode: standalone)").matches
+                || window.navigator.standalone === true;
+
+  if (standalone) {
+    // Installed to the home screen: behave like an instrument, not a web page.
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch(function () {});
+    }
+    if ("wakeLock" in navigator) {
+      var lock = null;
+      var take = function () {
+        navigator.wakeLock.request("screen").then(function (w) { lock = w; }).catch(function () {});
+      };
+      take();
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible" && lock === null) { take(); }
+      });
+    }
+  }
+})();
+</script>
+</body>
+</html>

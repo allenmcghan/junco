@@ -24,7 +24,9 @@ continue existing.
 ## Stewardship checklist
 
 Status of the things that make the project survivable. Unchecked items are
-open work, not aspirations.
+open work, not aspirations. `docs/open-questions.md` records the order worth
+doing them in; naming a co-maintainer comes first, because every other item
+assumes someone is there to act on it.
 
 - [ ] GitHub organization with at least two owners (not a personal account)
 - [ ] Mirror to a second forge
@@ -37,7 +39,24 @@ open work, not aspirations.
 
 ## Why the licenses differ
 
-Firmware is MIT, hardware is CERN-OHL-P-2.0, documentation is CC-BY-4.0.
-MIT is drafted for source code and does not cleanly cover hardware design
-artifacts. CERN-OHL-P is the permissive license actually written for hardware.
-Neither is a copyleft choice: anyone may build, modify, sell, or fork Junco.
+Firmware is GPL-2.0-or-later, hardware is CERN-OHL-S-2.0, documentation and
+specifications are CC-BY-4.0.
+
+The code and the hardware are copyleft because the purpose of the project is to
+put this capability into the world permanently, and a permissive license lets a
+better funded fork take the work closed and outrun the original. Anyone may
+still build, modify, sell, or fork Junco. What they may not do is stop passing
+it on.
+
+GPL v2 **or later** matches MakerPlane, so code moves in both directions between
+this project and FIX-Gateway or pyEFIS without relicensing. The "or later" also
+keeps GPLv3 reachable if ArduPilot code is ever wanted for the v2 bus stage.
+
+CERN-OHL-S is the strongly reciprocal license actually written for hardware
+design artifacts. A software license does not cleanly cover board files and
+mechanical models.
+
+The specifications are the deliberate exception and stay CC-BY, so anyone can
+implement them in anything, including a closed product. A protocol that cannot
+be adopted freely does not outlive its implementation, which is the entire
+reason `spec/` exists.
