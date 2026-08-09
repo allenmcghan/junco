@@ -58,16 +58,30 @@ This is the entire scope of this document.
 4. **Fuel endurance modeling.** Time remaining and range remaining, with the
    confidence of the estimate and which backend produced the underlying level.
 
-## Open questions
+## Resolved
+
+**Seizure precursors publish the raw rate, not a computed warning.** Design rule
+1 argues for publishing data rather than judgments, and the threshold that
+matters differs by engine, by jetting, and by ambient temperature. A node that
+publishes "warning" has embedded a policy that the consumer cannot see, cannot
+tune, and cannot disagree with. A node that publishes EGT rate of change lets
+the panel, the app, and the logbook each decide what it means.
+
+The alert in PRD section 10 is unaffected. That is the client applying policy to
+this data, which is exactly the split being described.
+
+## Blocked on the bus choice
+
+Neither of these can be answered before DroneCAN or CAN-FIX is chosen, because
+each protocol has its own conventions and answering in the wrong one is wasted
+work.
 
 - How are two engines represented? Separate node IDs, or an engine index field
-  within the message? Check what ArduPilot's consumer actually does before
-  deciding, because the wrong answer here is invisible until someone tries it.
+  within the message? If DroneCAN, check what ArduPilot's consumer actually does
+  first, because the wrong answer is invisible until someone tries it. If
+  CAN-FIX, its own multi-instance convention replaces the question entirely.
 - Does fuel endurance belong here or in a separate fuel namespace, given that
   the level source is pluggable?
-- Should seizure precursor detection be published as a computed warning, or
-  should the raw rate be published and the policy left to the consumer? Design
-  rule 1 argues for publishing data rather than judgments.
 
 ## Rules for anything added here
 

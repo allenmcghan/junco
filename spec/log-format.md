@@ -70,9 +70,48 @@ timestamps with a monotonic counter. The phone sends its wall clock on connect,
 and the node writes the offset into the file as a record, so a card recovered on
 its own can still be placed in real time.
 
+## Storage
+
+**A preallocated file on FAT32, not a raw partition.**
+
+Design rule 4 says the owner owns the data. A file on FAT means the owner pulls
+the card, puts it in any laptop, and the flight is there. A raw partition means
+the owner needs our tool to see anything at all, which is a worse position for
+them and a worse position for the project when the tool stops being maintained.
+
+The usual argument for a raw partition is surviving an interrupted write, and
+that argument does not apply here because it is already solved twice over:
+preallocation means the length is correct before the flight starts, and the
+magic header scan recovers records from a card whose filesystem is destroyed. A
+raw partition would add nothing and cost the owner a mount.
+
+## Record types
+
+**A `uint8` type identifier.**
+
+| Range | Use |
+|---|---|
+| `0x00` to `0x0F` | Structural: file header, format descriptors, clock offset |
+| `0x10` and above | Data, mirroring the rate classes in `ble-telemetry.md` |
+
+**Data record payloads are byte-identical to the corresponding BLE
+characteristic payloads.** The log wraps them in magic, type, and CRC and writes
+nothing else.
+
+This is worth more than it looks. The node serializes each sample once, not
+twice, so there is one layout to get right, one place a scaling error can hide,
+and no possibility of the log and the link disagreeing about what a flight
+contained. The channel encoding table in `ble-telemetry.md` is therefore also
+this document's channel encoding table, and it is not restated here.
+
+**Format descriptors follow ArduPilot's FMT model**, as PRD section 19 already
+resolved to do: a record giving the type identifier, a name, and a format string
+describing the field layout. It is proven, it is compact, and anyone who has
+opened a dataflash log already knows how to read it.
+
 ## Not yet specified
 
-- Record type identifiers and their allocation
-- Descriptor record encoding
-- Whether records are a raw partition or a file on FAT
-- Export mapping to CSV and GPX
+- Export mapping to CSV and GPX. Deferred deliberately: it is a `tools/` concern
+  and cannot be wrong in a way that costs field hardware
+- The CRC polynomial and width
+- Magic header value and record alignment, which the recovery scanner depends on

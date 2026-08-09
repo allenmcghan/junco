@@ -14,6 +14,8 @@ Target cost is under $180 in parts. Target build is one person with a soldering 
 
 See [docs/prd.md](docs/prd.md) section 16 for the phase plan and section 15 for the assumptions that only flight testing can resolve.
 
+[docs/open-questions.md](docs/open-questions.md) lists everything still undecided, in one place, separated into what needs a measurement and what needs a decision.
+
 ---
 
 ## Design rules
@@ -28,6 +30,7 @@ These constrain the design. They are not disclaimers.
 6. **No claim of crash survivability.** It is a flight data logger, not a black box.
 7. **A unit always declares what it is.** Firmware reports build class, hardware revision, and calibration date.
 8. **Every channel declares its source.** A value from the phone's barometer and a value from a plumbed static plenum are not interchangeable. The display, the log, and the protocol must all say which one produced a given reading.
+9. **Advisory-only data never raises an alert.** Data whose coverage or latency cannot be relied on may be displayed, marked as what it is, but may not drive audio or any advisory.
 
 ---
 

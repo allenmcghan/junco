@@ -2,7 +2,7 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 3
+Status: Draft, revision 5
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
@@ -10,7 +10,9 @@ Revision 2 moved position and attitude sensing onto the pilot's phone, moved the
 
 Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the pilot already owns, and opens the compute platform to a Linux single-board variant.
 
-Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system. Section 25 records what changed and why.
+Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system.
+
+Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`. Section 25 records what changed and why.
 
 ---
 
@@ -36,6 +38,7 @@ These constrain the design. They are not disclaimers.
 6. **No claim of crash survivability.** It is a flight data logger, not a black box.
 7. **A unit always declares what it is.** Firmware reports build class, meaning self-built, kit-built, or factory-qualified, along with hardware revision and calibration date. Assurance differs enormously across those and the name sits on all of them.
 8. **Every channel declares its source.** A value derived from the phone's barometer and a value derived from a plumbed static plenum are not interchangeable, and the display, the log, and the protocol must all say which one produced a given reading. New in revision 2, and load-bearing: the architecture now mixes two sensor platforms of very different quality.
+9. **Advisory-only data never raises an alert.** A channel whose coverage or latency cannot be relied on may be displayed, marked as what it is, but may not drive audio, the annunciator, or any advisory. Internet-sourced traffic is the case this rule was written for, and section 22 explains why that data looks authoritative and is not. New in revision 5.
 
 ---
 
@@ -567,7 +570,7 @@ Unlike fuel, the selection is **app-side configuration and not part of the aircr
 ### Two rules
 
 1. **Every target carries its source tag**, per design rule 8. A target decoded from a local receiver and a target pulled from an internet feed are not the same kind of object and must never render identically.
-2. **Internet-sourced traffic never generates an alert.** It is a map layer. It may not drive audio, may not drive the annunciator, and may not be the basis of any advisory.
+2. **Internet-sourced traffic never generates an alert**, per design rule 9. It is a map layer. It may not drive audio, may not drive the annunciator, and may not be the basis of any advisory. This was a local rule in revision 3 and was promoted in revision 5, because it generalises: any source whose coverage cannot be relied on is subject to it.
 
 ### What ADS-B In does not show you
 
@@ -731,6 +734,20 @@ But the boundary becomes a software boundary rather than a physical one, and sof
 ---
 
 ## 25. Revision history
+
+### Revision 5, August 2026: closing the open questions
+
+**What changed.** Fifteen specification questions that had been sitting in "not yet specified" lists were decided. Design rule 9 was added. The remaining open items were consolidated into `docs/open-questions.md` instead of being scattered across five files.
+
+**Why now.** They were blocking firmware, and none of them needed data that flying would produce. A question that can be answered at a desk and is instead left open becomes a decision someone makes accidentally while implementing.
+
+**The three that were irreversible** got decided first and deliberately: the BLE UUID base is generated and frozen, the log is a preallocated file on FAT32 rather than a raw partition, and the profile hash is taken over the stored bytes rather than a re-serialization. Each of those costs field hardware to change later.
+
+**Design rule 9, advisory-only data never raises an alert.** This was a local rule inside section 22 in revision 3. It was promoted because it generalises past traffic: any source whose coverage or latency cannot be relied on is subject to it, and a rule that only exists inside one section gets forgotten by the next section that needs it.
+
+**One decision worth calling out.** Log record payloads are now byte-identical to the BLE characteristic payloads, with the log adding only magic, type, and CRC. The node serializes each sample once rather than twice, which removes an entire category of defect where the link and the card disagree about what a flight contained.
+
+**What is deliberately still open.** The measurements in section 15, which need the aircraft. The bus choice between DroneCAN and CAN-FIX, which v1 does not have a bus for. CSV and GPX export, which is a tools concern that cannot cost hardware. And `ESP32-S31`, which appears three times in this document and refers to no Espressif part that exists.
 
 ### Revision 4, August 2026: copyleft, and a neighbour instead of a competitor
 

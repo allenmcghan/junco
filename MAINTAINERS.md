@@ -24,7 +24,9 @@ continue existing.
 ## Stewardship checklist
 
 Status of the things that make the project survivable. Unchecked items are
-open work, not aspirations.
+open work, not aspirations. `docs/open-questions.md` records the order worth
+doing them in; naming a co-maintainer comes first, because every other item
+assumes someone is there to act on it.
 
 - [ ] GitHub organization with at least two owners (not a personal account)
 - [ ] Mirror to a second forge

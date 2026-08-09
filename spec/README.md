@@ -19,3 +19,10 @@ source.
 The source tag enumeration required by design rule 8 is **defined in
 `ble-telemetry.md`** and referenced from `log-format.md`. Add a new source in one
 place only.
+
+The channel encoding table is likewise defined once, in `ble-telemetry.md`, and
+used by `log-format.md`, because log record payloads are byte-identical to the
+BLE characteristic payloads.
+
+What remains undecided across all of these is indexed in
+`../docs/open-questions.md`.
