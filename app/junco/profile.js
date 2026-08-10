@@ -280,8 +280,15 @@
     // into "Load from text" silently produced an aircraft made entirely of
     // defaults, named "Imported aircraft", with someone's idea of a stall
     // speed in it. Refusing is the only honest answer.
+    // The test is for a TABLE of that name, not any value of that name. A file
+    // with its section headers stripped leaves `fuel = "gal"` from [units] at
+    // the top level, and a bare string passed the first version of this check
+    // because Object.keys("gal") is three characters long.
     var known = ["identity", "engines", "limits", "speeds", "fuel", "units", "weight_balance"];
-    if (!known.some(function (t) { return out[t] && Object.keys(out[t]).length; })) {
+    var isTable = function (v) {
+      return v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length > 0;
+    };
+    if (!known.some(function (t) { return isTable(out[t]); })) {
       throw new Error("this does not look like a Junco aircraft profile");
     }
     var id = (out.identity || {});
