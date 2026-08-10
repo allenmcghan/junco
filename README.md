@@ -64,7 +64,7 @@ Junco is an engine and air data front end for aircraft that existing open avioni
 
 | Project | What it does | How Junco relates |
 |---|---|---|
-| [Open Checklists](https://openchecklists.net) | Aircraft profiles and checklists for Part 103 and experimental aircraft | Junco reads aircraft profiles from here. The profile format specification lives in that repository; `spec/aircraft-profile.md` redirects to it |
+| [Open Checklists](https://openchecklists.net) | Aircraft profiles, and a machine-readable checklist library with provenance and verification state, for Part 103 and experimental aircraft | Junco reads aircraft profiles from here, and consumes the checklist, preflight-log and pilot-logbook schemas defined there. Both formats and all of that tooling live in [that repository](https://github.com/allenmcghan/openchecklists); `spec/aircraft-profile.md` redirects to it |
 | [MakerPlane](https://github.com/makerplane) | FIX-Gateway data broker, pyEFIS display, CAN-FIX bus protocol for experimental aircraft | Junco publishes into FIX-Gateway through a plugin, so pyEFIS can display Junco data. CAN-FIX is the bus candidate for v2 |
 | [Stratux](https://github.com/cyoung/stratux) | Dual band ADS-B receiver on a Raspberry Pi | Junco does not receive ADS-B. Traffic comes from a receiver the pilot already owns |
 | [AP_Periph](https://dronecan.github.io/Implementations/AP_Periph/) | ArduPilot's DroneCAN peripheral node firmware | A candidate for the v2 bus stage. Not used in v1: no BLE, STM32 only, and no thermocouple or ignition-pulse tach support |
