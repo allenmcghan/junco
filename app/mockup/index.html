@@ -153,6 +153,29 @@
             background: #0B0F12; border: 1px solid var(--rule); border-radius: 3px;
             padding: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
 
+  #mapPage { position: fixed; inset: 0; background: #05070A; z-index: 29; display: none; }
+  #mapPage.open { display: block; }
+  #mapC { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #mapHud {
+    position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 5px; align-items: center;
+    padding: 6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+    background: linear-gradient(transparent, rgba(0,0,0,.75));
+  }
+  #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 10px; }
+  #mapHud .val { min-width: 62px; padding: 8px; }
+  #chkPage, #logPage {
+    position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
+    display: none; overflow-y: auto; padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
+  }
+  #chkPage.open, #logPage.open { display: block; }
+  .ck { display: flex; align-items: flex-start; gap: 9px; padding: 9px 4px; border-bottom: 1px solid #1A2025; cursor: pointer; }
+  .ck .bx { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--rule); border-radius: 3px; margin-top: 1px; }
+  .ck.on .bx { background: var(--green); border-color: var(--green); }
+  .ck.on .tx { color: var(--dim); text-decoration: line-through; }
+  .ck .tx { font-size: 14px; line-height: 1.35; }
+  .lg { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+  .lg b { color: var(--white); } .lg span { color: var(--dim); }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -240,7 +263,8 @@
   <!-- HEADING TAPE -->
   <g id="hdgGrp"><rect id="hdgBg" x="223" y="460" width="442" height="42" fill="#000" fill-opacity="0.62"/>
   <g clip-path="url(#cHDG)"><g id="hdgTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="15" font-weight="700" text-anchor="middle"></g>
-    <polygon id="trkBug" points="444,500 437,486 451,486" fill="#E845E8"/></g>
+    <polygon id="trkBug" points="444,500 437,486 451,486" fill="#E845E8"/>
+    <polygon id="navBug" points="444,462 436,476 452,476" fill="#3FCF6A" opacity="0"/></g>
   <rect x="223" y="460" width="442" height="42" fill="none" stroke="#2E363C" stroke-width="1.5"/>
   <polygon points="444,460 437,472 451,472" fill="#F2C63D"/>
   <rect x="410" y="504" width="68" height="22" fill="#000" stroke="#FFF" stroke-width="1.5" rx="2"/>
@@ -263,10 +287,70 @@
 <div id="quick">
   <button id="qCal">CAL</button>
   <button id="qMode">SIM</button>
-  <button id="qWx">WX/TFC</button>
+  <button id="qWx">WX</button>
+  <button id="qMap">MAP</button>
+  <button id="qChk">CHK</button>
+  <button id="qLog">LOG</button>
 </div>
 
 <button id="menuBtn" aria-label="Settings">☰</button>
+
+<div id="mapPage">
+  <canvas id="mapC"></canvas>
+  <div id="mapHud">
+    <button id="mapUp">TRK UP</button>
+    <button id="mapZo">&minus;</button>
+    <span class="val" id="mapRange">10 nm</span>
+    <button id="mapZi">+</button>
+    <button id="mapHome">HOME</button>
+    <button class="go" id="mapClose">CLOSE</button>
+  </div>
+</div>
+
+<div id="chkPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Checklists &mdash; <span id="chkAc"></span></h3>
+      <div class="row" id="chkTabs"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="chkReset">Clear ticks</button>
+        <button id="chkEdit">Edit</button>
+        <button id="chkDefaults">Restore defaults</button>
+      </div>
+      <div id="chkList" style="margin-top:10px"></div>
+      <textarea id="chkEditor" class="val" style="width:100%;height:210px;text-align:left;display:none;margin-top:10px"></textarea>
+      <div class="row" id="chkEditRow" style="display:none">
+        <button class="go" id="chkSave" style="flex:1">Save this phase</button>
+      </div>
+      <p class="hint">One item per line. Checklists are stored against the aircraft, so switching
+      aircraft switches lists. Ticks are deliberately not remembered between sessions &mdash; a
+      checklist that recalls being complete from last week is worse than none.</p>
+    </div>
+    <div class="row"><button class="go" id="chkClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="logPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Logbook</h3>
+      <div class="row">
+        <span class="val" id="logTot">—</span>
+        <button id="logCsv">Export CSV</button>
+        <button id="logGpx">Export track</button>
+      </div>
+      <div id="logList" style="margin-top:10px"></div>
+      <textarea id="logText" class="val" style="width:100%;height:170px;text-align:left;display:none;margin-top:8px"></textarea>
+      <div class="row" id="logTextRow" style="display:none">
+        <button id="logCopy">Copy</button><button id="logShare">Share</button><button id="logDl">Download</button>
+      </div>
+      <p class="hint"><b>Draft, never filed.</b> Takeoff and landing are detected from GNSS ground
+      speed against this aircraft's stall speed, so they are proposals. 14 CFR 61.51 puts accuracy on
+      the pilot &mdash; review every entry before it goes in a real logbook.</p>
+    </div>
+    <div class="row"><button class="go" id="logClose" style="flex:1">Close</button></div>
+  </div>
+</div>
 
 <div id="wxPage">
   <div class="wrap">
@@ -374,6 +458,27 @@
     </div>
 
     <div class="grp">
+      <h3>Navigation</h3>
+      <div class="row">
+        <input id="navName" class="val" placeholder="NAME" style="width:96px">
+        <input id="navDest" class="val" placeholder="lat, lon" style="flex:1;min-width:150px">
+      </div>
+      <div class="row">
+        <button class="go" id="navSet">Set destination</button>
+        <button id="navHere">Use current position</button>
+      </div>
+      <div class="row">
+        <button id="navToHome">Go to HOME</button>
+        <button id="navToDest">Go to DEST</button>
+      </div>
+      <p class="hint" id="navMsg"></p>
+      <p class="hint"><b>HOME is set automatically at takeoff</b>, so "how do I get back to the field
+      I just left" needs no setup at all. Distance, bearing and time to run appear on the main screen
+      and as a green pointer on the heading tape. Time to run uses closure along the course rather
+      than raw ground speed, because crabbing 40&deg; off does not get you there at ground speed.</p>
+    </div>
+
+    <div class="grp">
       <h3>Mounting calibration</h3>
       <div class="row">
         <button class="go" id="btnLevel" style="flex:1">SET LEVEL &mdash; aircraft level, phone mounted</button>
@@ -438,6 +543,7 @@
 
 <script src="./profile.js"></script>
 <script src="./net.js"></script>
+<script src="./ops.js"></script>
 <script>
 (function () {
 "use strict";
@@ -680,8 +786,8 @@ var rcRows = [
     y += 68;
   });
   var b = $("bbar");
-  [["AIRCRAFT","ac",145,"#FFF"],["POSITION","pos",380,"#E845E8"],
-   ["TRACK","trk",640,"#E845E8"],["ALERT","alert",760,"#93A0A8"]].forEach(function (c) {
+  [["AIRCRAFT","ac",145,"#FFF"],["DIRECT TO","nav",360,"#3FCF6A"],
+   ["POSITION","pos",600,"#E845E8"],["ALERT","alert",830,"#93A0A8"]].forEach(function (c) {
     b.appendChild(el("text", { x: c[2], y: 528, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, c[0]));
     b.appendChild(el("text", { x: c[2], y: 553, "font-size": 15, "font-weight": 700, fill: c[3], id: "bb-" + c[1] }, "—"));
   });
@@ -841,8 +947,29 @@ function frame() {
   rc("endu", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"), "");
 
   $("bb-ac").textContent = P.name;
-  $("bb-pos").textContent = gps.lat === null ? "—" : gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5);
-  $("bb-trk").textContent = gps.trk === null ? "—" : String(Math.round(gps.trk)).padStart(3, "0") + "°";
+  $("bb-pos").textContent = gps.lat === null ? "—" : gps.lat.toFixed(4) + ", " + gps.lon.toFixed(4);
+
+  // Direct-to solution, and the course pointer on the heading tape.
+  var sol = O.solution(gps.lat, gps.lon, gps.trk, gps.gs);
+  if (sol) {
+    $("bb-nav").textContent = sol.name + "  " + sol.dist.toFixed(1) + " nm  " +
+      String(Math.round(sol.brg)).padStart(3, "0") + "°" +
+      (sol.ete === null ? "" : "  " + Math.floor(sol.ete / 60) + ":" + String(Math.round(sol.ete % 60)).padStart(2, "0"));
+    var nx = Math.max(228, Math.min(660, 444 + (((sol.brg - att.hdg + 540) % 360) - 180) * 3.4));
+    $("navBug").setAttribute("points", nx + ",462 " + (nx-8) + ",476 " + (nx+8) + ",476");
+    $("navBug").setAttribute("opacity", 1);
+  } else {
+    $("bb-nav").textContent = "— set a destination";
+    $("navBug").setAttribute("opacity", 0);
+  }
+
+  // Logbook detection and breadcrumb, live data only.
+  if (dataMode === "live" && gps.lat !== null) {
+    O.addTrail(gps.lat, gps.lon, gps.alt);
+    O.update(gps.lat, gps.lon, gps.alt);
+    var ev = O.detect(P, gps.lat, gps.lon, gps.gs, gps.alt, Date.now());
+    if (ev) { flash($("qLog"), ev.event === "takeoff" ? "OFF" : "ON", "live"); }
+  }
   var chtOver = false;
   rows.forEach(function (r) { if (r.k.indexOf("cht") === 0 && r.red !== null && sim[r.k] >= r.red) { chtOver = true; } });
   var al = linkDown ? ["NODE LINK LOST", "#E8483D"]
@@ -1093,7 +1220,7 @@ function flash(b, txt, cls) {
 function refreshCal() { $("qCal").className = cal ? "" : "warn"; }
 
 /* ---- weather and traffic ---- */
-var N = window.JuncoNet;
+var N = window.JuncoNet, O = window.JuncoOps;
 function wxRender() {
   var m = N.wx.metar;
   $("wxAge").textContent = N.wx.at ? N.fmtAge(N.wx.at) : "—";
@@ -1146,6 +1273,216 @@ window.addEventListener("resize", layout);
 layout();
 rebuild(); fillList(); fillForm(); stats(); refreshCal();
 requestAnimationFrame(frame);
+
+/* ================= map ================= */
+var mapUp = true, mapRange = 10;
+function drawMap() {
+  var c = $("mapC"), dpr = window.devicePixelRatio || 1;
+  var W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) { return; }
+  c.width = W * dpr; c.height = H * dpr;
+  var g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#05070A"; g.fillRect(0, 0, W, H);
+  var cx = W / 2, cy = H * 0.60, R = Math.min(W, H) * 0.42;
+  var ppn = R / mapRange;                        // pixels per nautical mile
+  var rot = mapUp && gps.trk !== null ? gps.trk : 0;
+
+  function project(lat, lon) {
+    if (gps.lat === null) { return null; }
+    var d = N.distNM(gps.lat, gps.lon, lat, lon);
+    var b = (N.bearing(gps.lat, gps.lon, lat, lon) - rot) * Math.PI / 180;
+    return [cx + Math.sin(b) * d * ppn, cy - Math.cos(b) * d * ppn];
+  }
+
+  // range rings
+  g.strokeStyle = "#243038"; g.lineWidth = 1; g.font = "11px ui-monospace, monospace";
+  g.fillStyle = "#5C6970";
+  [0.25, 0.5, 1].forEach(function (f) {
+    g.beginPath(); g.arc(cx, cy, R * f, 0, Math.PI * 2); g.stroke();
+    g.fillText((mapRange * f).toFixed(mapRange * f < 1 ? 1 : 0) + " nm", cx + 4, cy - R * f + 13);
+  });
+
+  // north pointer
+  var na = (-rot) * Math.PI / 180;
+  g.strokeStyle = "#5C6970"; g.beginPath();
+  g.moveTo(cx + Math.sin(na) * (R + 16), cy - Math.cos(na) * (R + 16));
+  g.lineTo(cx + Math.sin(na) * (R + 4), cy - Math.cos(na) * (R + 4)); g.stroke();
+  g.fillStyle = "#93A0A8"; g.fillText("N", cx + Math.sin(na) * (R + 26) - 4, cy - Math.cos(na) * (R + 26) + 4);
+
+  // breadcrumb
+  if (O.trail.length > 1 && gps.lat !== null) {
+    g.strokeStyle = "#35D6E8"; g.lineWidth = 2; g.beginPath();
+    var started = false;
+    O.trail.forEach(function (p) {
+      var q = project(p.lat, p.lon); if (!q) { return; }
+      if (!started) { g.moveTo(q[0], q[1]); started = true; } else { g.lineTo(q[0], q[1]); }
+    });
+    g.stroke();
+  }
+
+  // traffic, advisory only and drawn quietly on purpose
+  g.font = "10px ui-monospace, monospace";
+  N.traffic.list.forEach(function (a) {
+    var q = project(a.lat, a.lon); if (!q) { return; }
+    if (q[0] < -40 || q[0] > W + 40 || q[1] < -40 || q[1] > H + 40) { return; }
+    g.fillStyle = a.onGround ? "#4A555C" : "#E8A33D";
+    g.beginPath(); g.moveTo(q[0], q[1] - 5); g.lineTo(q[0] - 4, q[1] + 4); g.lineTo(q[0] + 4, q[1] + 4); g.closePath(); g.fill();
+    g.fillStyle = "#93A0A8";
+    g.fillText(a.id + (a.rel === null ? "" : " " + (a.rel > 0 ? "+" : "") + Math.round(a.rel / 100)), q[0] + 7, q[1] + 3);
+  });
+
+  // home and destination
+  function mark(pt, col, label) {
+    if (!pt) { return; }
+    var q = project(pt.lat, pt.lon); if (!q) { return; }
+    var x = Math.max(10, Math.min(W - 10, q[0])), y = Math.max(10, Math.min(H - 10, q[1]));
+    g.strokeStyle = col; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(x - 11, y); g.lineTo(x + 11, y); g.moveTo(x, y - 11); g.lineTo(x, y + 11); g.stroke();
+    g.fillStyle = col; g.font = "11px ui-monospace, monospace"; g.fillText(label, x + 13, y + 4);
+  }
+  mark(O.nav.home, "#3FCF6A", "HOME");
+  mark(O.nav.dest, "#E845E8", O.nav.dest && O.nav.dest.name || "DEST");
+
+  // own ship
+  g.save(); g.translate(cx, cy);
+  if (!mapUp && gps.trk !== null) { g.rotate(gps.trk * Math.PI / 180); }
+  g.fillStyle = "#F2C63D"; g.beginPath();
+  g.moveTo(0, -12); g.lineTo(-9, 10); g.lineTo(0, 5); g.lineTo(9, 10); g.closePath(); g.fill();
+  g.restore();
+
+  // readout
+  var sol = O.solution(gps.lat, gps.lon, gps.trk, gps.gs);
+  g.fillStyle = "#FFF"; g.font = "600 14px ui-monospace, monospace";
+  g.fillText(gps.lat === null ? "NO POSITION — SWITCH TO LIVE" :
+    (sol ? sol.name + "  " + sol.dist.toFixed(1) + " nm  " + String(Math.round(sol.brg)).padStart(3,"0") + "°"
+         : "No destination set"), 12, 24);
+  g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
+  g.fillText(mapUp ? "TRACK UP" : "NORTH UP", 12, 42);
+  g.fillText("No basemap by design — tiles need a network you will not have at 800 ft.", 12, H - 58);
+}
+function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
+$("qMap").onclick = function () { $("mapPage").classList.add("open"); if (dataMode === "live") { pullOutside(); } mapLoop(); };
+$("mapClose").onclick = function () { $("mapPage").classList.remove("open"); };
+$("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
+$("mapZi").onclick = function () { mapRange = Math.max(0.5, mapRange / 2); $("mapRange").textContent = mapRange + " nm"; };
+$("mapZo").onclick = function () { mapRange = Math.min(200, mapRange * 2); $("mapRange").textContent = mapRange + " nm"; };
+$("mapHome").onclick = function () {
+  if (gps.lat === null) { return; }
+  O.setHome(gps.lat, gps.lon); O.setActive("home"); flash($("qMap"), "HOME", "live");
+};
+
+/* ================= checklists ================= */
+var chkPhase = "preflight", chkEditing = false;
+function chkRender() {
+  $("chkAc").textContent = P.name;
+  var tabs = $("chkTabs"); tabs.innerHTML = "";
+  O.PHASES.forEach(function (p) {
+    var b = document.createElement("button");
+    b.textContent = p.name; b.className = p.id === chkPhase ? "go" : "";
+    b.onclick = function () { chkPhase = p.id; chkEditing = false; chkRender(); };
+    tabs.appendChild(b);
+  });
+  var list = O.getChecklist(P.id)[chkPhase] || [];
+  var box = $("chkList"); box.innerHTML = "";
+  $("chkEditor").style.display = chkEditing ? "block" : "none";
+  $("chkEditRow").style.display = chkEditing ? "flex" : "none";
+  box.style.display = chkEditing ? "none" : "block";
+  if (chkEditing) { $("chkEditor").value = list.join("\n"); return; }
+  if (!list.length) { box.innerHTML = '<p class="hint">Nothing in this phase yet. Press Edit.</p>'; return; }
+  list.forEach(function (item, i) {
+    var d = document.createElement("div");
+    d.className = "ck" + (O.ticked(chkPhase, i) ? " on" : "");
+    d.innerHTML = '<div class="bx"></div><div class="tx"></div>';
+    d.querySelector(".tx").textContent = item;
+    d.onclick = function () { O.tick(chkPhase, i, !O.ticked(chkPhase, i)); chkRender(); };
+    box.appendChild(d);
+  });
+}
+$("qChk").onclick = function () { $("chkPage").classList.add("open"); chkRender(); };
+$("chkClose").onclick = function () { $("chkPage").classList.remove("open"); };
+$("chkReset").onclick = function () { O.clearTicks(chkPhase); chkRender(); };
+$("chkEdit").onclick = function () { chkEditing = !chkEditing; chkRender(); };
+$("chkDefaults").onclick = function () { O.resetChecklist(P.id); chkEditing = false; chkRender(); };
+$("chkSave").onclick = function () {
+  var c = O.getChecklist(P.id);
+  c[chkPhase] = $("chkEditor").value.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+  O.saveChecklist(P.id, c); chkEditing = false; O.clearTicks(chkPhase); chkRender();
+};
+
+/* ================= logbook ================= */
+function logRender() {
+  var t = O.totals();
+  $("logTot").textContent = t.hours.toFixed(1) + " h · " + t.flights + " flights · " + t.landings + " ldg";
+  var box = $("logList"); box.innerHTML = "";
+  var cur = O.current();
+  if (cur) {
+    var d0 = document.createElement("div"); d0.className = "lg";
+    d0.innerHTML = "<b>IN PROGRESS</b> <span>" + O.dateOnly(cur.offAt) + " off " + O.hhmm(cur.offAt) + "</span>";
+    box.appendChild(d0);
+  }
+  var fs = O.flights();
+  if (!fs.length && !cur) { box.innerHTML = '<p class="hint">No flights recorded. Takeoff is detected automatically in LIVE mode.</p>'; return; }
+  fs.slice(0, 40).forEach(function (f, i) {
+    var d = document.createElement("div"); d.className = "lg";
+    d.innerHTML = "<b>" + O.dateOnly(f.offAt) + "</b> <span>" + (f.reg || f.id) + " · " + f.aircraft + "</span><br>" +
+      "<b>" + (f.minutes / 60).toFixed(1) + " h</b> <span>· " + f.landings + " ldg · " +
+      f.distNM.toFixed(1) + " nm · max " + Math.round((f.maxAltM || 0) * 3.28084) + " ft</span><br>" +
+      "<span>" + O.hhmm(f.offAt) + " → " + (f.onAt ? O.hhmm(f.onAt) : "—") + "</span>";
+    var del = document.createElement("button");
+    del.textContent = "Delete"; del.style.marginTop = "7px";
+    del.onclick = function () { O.removeFlight(i); logRender(); };
+    d.appendChild(del);
+    box.appendChild(d);
+  });
+}
+function logShow(txt, name) {
+  $("logText").value = txt; $("logText").style.display = "block"; $("logTextRow").style.display = "flex";
+  $("logText").dataset.name = name;
+}
+$("qLog").onclick = function () { $("logPage").classList.add("open"); logRender(); };
+$("logClose").onclick = function () { $("logPage").classList.remove("open"); };
+$("logCsv").onclick = function () { logShow(O.toCSV(), "junco-logbook.csv"); };
+$("logGpx").onclick = function () {
+  var g = O.toGPX(0);
+  logShow(g || "No track recorded yet.", "junco-track.gpx");
+};
+$("logCopy").onclick = function () {
+  var ta = $("logText"); ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); } else { document.execCommand("copy"); }
+  flash(this, "Copied", "live");
+};
+$("logShare").onclick = function () {
+  var txt = $("logText").value, name = $("logText").dataset.name || "junco.txt";
+  if (navigator.share) {
+    var data = { title: name, text: txt };
+    try { var f = new File([txt], name, { type: "text/plain" });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { data = { files: [f], title: name }; } } catch (e) {}
+    navigator.share(data).catch(function () {});
+  } else { this.textContent = "Use Copy"; }
+};
+$("logDl").onclick = function () {
+  var b = new Blob([$("logText").value], { type: "text/plain" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(b);
+  a.download = $("logText").dataset.name || "junco.txt";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+};
+
+/* destination entry lives with the aircraft panel */
+$("navSet").onclick = function () {
+  var p = O.parseLatLon($("navDest").value);
+  if (!p) { $("navMsg").innerHTML = '<b style="color:#E8483D">enter as  lat, lon  e.g. 42.1234, -85.6789</b>'; return; }
+  O.setDest(p.lat, p.lon, ($("navName").value || "DEST").toUpperCase().slice(0, 8));
+  O.setActive("dest");
+  $("navMsg").innerHTML = '<b style="color:#3FCF6A">destination set</b>';
+};
+$("navHere").onclick = function () {
+  if (gps.lat === null) { $("navMsg").innerHTML = '<b style="color:#E8A33D">no position yet</b>'; return; }
+  $("navDest").value = gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5);
+};
+$("navToHome").onclick = function () { O.setActive("home"); $("navMsg").innerHTML = '<b style="color:#3FCF6A">pointing at takeoff point</b>'; };
+$("navToDest").onclick = function () { O.setActive("dest"); $("navMsg").innerHTML = '<b style="color:#3FCF6A">pointing at destination</b>'; };
 
 /* Sensors start themselves. Making the pilot hunt through a menu for the one
    thing the app is for was the wrong default. Permission is still asked; on
