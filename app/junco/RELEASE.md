@@ -50,7 +50,7 @@ Output: `android/build/outputs/bundle/release/android-release.aab`.
 - No ads, no analytics, no tracking, no network beyond charts, weather, and traffic
 - Location used in the foreground only, never in the background, which avoids the
   most onerous Play location review
-- First-run safety acknowledgement shown before use
+- Safety acknowledgement shown at every launch, as every marine and aviation GPS does
 - No account, no login, nothing uploaded
 - Offline by design; the airport database and cached charts work with no signal
 
@@ -101,18 +101,26 @@ someone will eventually rely on it more than they should. A disclaimer helps and
 does not make the question disappear. Worth an hour with someone who knows
 aviation product liability before it is public, not after.
 
-**GPL and Play.** The code is GPL-2.0-or-later, and Play's terms grant Google
-distribution rights that sit awkwardly with GPL redistribution terms. As sole
-copyright holder you can distribute your own work under any terms you like, so
-this is fine today. It stops being simple the moment you merge someone else's
-contribution — at that point you need either a contributor licence agreement or
-a decision to distribute only through F-Droid, which is built for GPL apps and
-where much of this audience already looks.
+**GPL and Play — I overstated this earlier and want to correct it.** The famous
+GPL-versus-app-store problem is Apple's, not Google's: the App Store imposes
+usage restrictions that conflict with GPL section 6. Google Play does not impose
+equivalent restrictions, GPL apps are distributed there routinely, and the
+obligation is simply that source stays available — which it is, in this
+repository.
+
+That holds for outside contributions too. A contributor licensing their work
+under GPL-2.0-or-later has already granted everything redistribution through Play
+needs. **No contributor licence agreement is required.** A Developer Certificate
+of Origin is still worth adopting, not for Play but so every contribution carries
+a record that the contributor had the right to submit it. `CONTRIBUTING.md` now
+asks for a `Signed-off-by` line.
+
+The license already does what you asked for: free, and anyone may build on it.
+The one thing it adds is that a fork stays open too, which is what you chose in
+revision 4 and there is no reason to revisit.
 
 ## Also worth doing before real users arrive
 
-- Rework the `mockup` framing out of `docs/prd.md`; the PRD still calls this a
-  layout study that is not the client, and it is now neither
 - A crash reporter that does not phone home, or a plain "copy diagnostics" button
 - Test on a genuinely small screen; the layout is built for landscape tablets and
   large phones

@@ -2,7 +2,7 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 5
+Status: Draft, revision 6
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
@@ -12,17 +12,23 @@ Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the
 
 Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system.
 
-Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`. Section 25 records what changed and why.
+Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`.
+
+Revision 6 recognises that the app became a product before the node did. Junco is now two things that ship on different schedules: an Android electronic flight bag that is useful today with no hardware at all, and the sensor node that was the original project. Section 26 records what changed and why.
 
 ---
 
 ## 1. Summary
 
-Junco is a low cost sensor node that instruments the parts of an ultralight or experimental aircraft a phone cannot reach, and streams that data over Bluetooth Low Energy to an app on the pilot's phone or tablet. The phone supplies position, attitude, and time. The node supplies engine, fuel, and pitot-static air data. Between them they produce a full instrument picture, an SD card flight log, and draft logbook entries.
+Junco is **two products** that share a data model and ship on different schedules.
 
-v1 is a single breadboard-built node for the PM-2, documented well enough that another builder can reproduce it.
+**The app** is an Android electronic flight bag for ultralight and experimental aircraft, and it is useful today with no hardware at all. It gives an aircraft with no panel a primary flight display driven by the phone's own sensors, FAA sectional and terminal charts, direct-to navigation and a get-me-home function, 25,000 bundled US airports with their frequencies, editable per-aircraft checklists, an automatic logbook, weather, and advisory traffic. It works offline by design, because at 800 feet over a field there is no signal.
 
-**v1 is a stage, not the end state.** The destination is a small calibrated box that bolts to the frame, environmentally qualified and commercially manufactured by a production partner, with the open-source self-build path preserved alongside it. Sections 20 and 21 describe that path. Every architectural decision here is made so the later stages do not require a redesign.
+**The node** is the original project: a low cost sensor node that instruments what a phone physically cannot reach, and streams engine, fuel, and pitot-static air data over Bluetooth Low Energy to that app. Nothing has been built yet.
+
+**The order inverted, and the document should say so.** The app began as a layout study for hardware that did not exist. It turned out that the half of the instrument picture a phone can supply on its own is worth shipping by itself, to a pilot flying an aircraft with no panel and no budget for one. So the app goes to Google Play as a free application, and the node follows when it is built and adds the channels only it can measure.
+
+**What that does not change.** Every design rule in section 2 applies to both. The app is advisory, the mechanical gauges stay installed, the logbook drafts and never files, and every channel still declares its source. The node, when it arrives, is still publish-only.
 
 ---
 
@@ -56,9 +62,9 @@ These constrain the design. They are not disclaimers.
 - Distributed multi-node CAN network
 - **A Junco-built ADS-B receiver.** Junco does not demodulate ADS-B and is not planned to. Displaying traffic from a receiver the pilot already owns is in scope as an optional channel. See section 22
 - GDL90 output. Demoted to phase 2, see section 14
-- iOS native application. The protocol supports it, the app does not exist yet
-- Angle of attack
-- Anything sold to anyone
+- iOS. Web Bluetooth does not exist there, so an iOS client is a separate native project
+- Angle of attack from a vane or probe. The app estimates it from attitude minus flight path angle and labels it an estimate
+- **Anything sold to anyone.** The app is free on Google Play with no advertising, no analytics, no accounts, and no in-app purchases
 - **Autopilot, servos, or any actuation.** Deferred, not abandoned. See section 20. When it arrives it is a separate node subscribing to Junco, not a mode of the sensor node
 
 ---
@@ -493,16 +499,30 @@ Successors break what they do not understand the reason for. Every rejection bel
 
 ---
 
-## 20. Roadmap beyond v1
+## 20. Roadmap
 
 **This project is not building a product line.** Its goal is to put a working, documented, reproducible engine and air data node into the world under a license that keeps it there. Revenue is not an objective and no stage below is a business plan.
 
-| Stage | Form | Who |
+**The app ships first and on its own schedule.**
+
+| App stage | Form | State |
+|---|---|---|
+| a1 | PFD, charts, navigation, airports and frequencies, checklists, logbook, weather, traffic | **Built.** Preparing for Google Play |
+| a2 | BLE client for the node, engine strip driven by real data | Blocked on the node existing |
+| a3 | Track log export, weight and balance, chart tile management | Wanted, not started |
+
+**The node follows.**
+
+| Node stage | Form | Who |
 |---|---|---|
 | v1 | Breadboard node, phone as hub over BLE, published files, kits at cost | This project |
 | v2 | Custom carrier board, CAN bus, FIX-Gateway plugin upstreamed, separate annunciator node | This project. The intended end point |
 | v3 | Boxed product. Assembled, calibrated, warrantied, harness included | Anyone who wants it. Not pursued here |
 | v4 | Autopilot node subscribing to the Junco bus | Anyone with a test program. Not pursued here |
+
+**Publishing an app is not the same as selling one.** The app is free, has no advertising, no analytics, no account, and collects nothing: position, logs, profiles and checklists never leave the device. Distribution through Play is a way to reach pilots who will not sideload an APK, not a business. Section 4's "anything sold to anyone" non-goal is intact.
+
+**What publishing does change** is that strangers will fly with it. That is the reason for the acknowledgement shown at every launch, for annunciating the age of a cached chart, and for design rule 9. A layout study can be wrong quietly; a published instrument cannot.
 
 **Why the project stops at v2.** A boxed product depends on manufacturing and support capacity. An actuating product depends on a test program and product liability insurance. Neither is something this project intends to acquire, and pretending otherwise is how a volunteer project takes on obligations it cannot meet.
 
@@ -736,7 +756,62 @@ But the boundary becomes a software boundary rather than a physical one, and sof
 
 ---
 
-## 25. Revision history
+## 25. The app as a product
+
+The app is the part of Junco that reaches a pilot this year. It runs on Android, is free, and is published on Google Play as `com.keylinkit.junco`.
+
+### What it does with no hardware at all
+
+| Capability | Source |
+|---|---|
+| Primary flight display, attitude and heading | Phone sensors, with a full three-axis mounting calibration |
+| Altitude, ground speed, track, position | Phone GNSS |
+| FAA VFR Sectional and Terminal charts, OpenStreetMap | Cached tiles, pulled before flight |
+| Direct-to navigation, and HOME captured at takeoff | Computed |
+| 25,101 US airports and 13,012 frequencies | Bundled, works with no signal |
+| Per-aircraft checklists, editable, custom phases | Local |
+| Logbook with takeoff and landing detected from GNSS | Local, exports CSV and GPX |
+| METAR and TAF, density altitude | aviationweather.gov |
+| Advisory traffic | airplanes.live |
+| Aircraft profiles, shared as TOML files | Local, per section 11 |
+
+### Rules the app inherits and how they show up
+
+**Design rule 2, mechanical gauges stay installed.** Stated in the acknowledgement at every launch.
+
+**Design rule 3, draft never file.** Logbook entries are proposals and the export file says so in its own header.
+
+**Design rule 4, the owner owns the data.** Nothing leaves the device. No account, no analytics, no advertising, no telemetry. Profiles and logbooks are exported as files the owner controls, which is also the entire sync story.
+
+**Design rule 8, every channel declares its source.** Not twenty small tags, which read as noise on an instrument. Real avionics annunciate the source, so the app does too: `PHONE AHRS · ADVISORY` on the attitude indicator, cyan for node-plumbed channels, magenta for GNSS-derived, and a red annunciation when the mounting calibration has not been done.
+
+**Design rule 9, advisory-only data never alerts.** Internet traffic is a map layer and nothing else.
+
+### Two limits that must never be quietly designed away
+
+**Phone attitude is not an AHRS.** Section 15 asks whether it is stable enough on a vibrating airframe, and the answer so far is discouraging: it needed low-pass filtering to be watchable on a desk. It is displayed with a permanent advisory annunciation. If that annunciation ever gets removed for looking untidy, the display starts lying.
+
+**A cached chart carries no expiry the app can see.** Sectionals run a 56-day cycle. The map shows when the layer was last pulled and warns past 27 days, which is the most an offline app can honestly do.
+
+### The acknowledgement at every launch
+
+Every marine and aviation GPS does this, and the reason is that an acknowledgement is only worth something at the start of the flight it applies to. A box ticked eight months ago says nothing about whether this pilot, today, understands what they are looking at.
+
+---
+
+## 26. Revision history
+
+### Revision 6, August 2026: the app became the product
+
+**What changed.** Junco is now described as two products on two schedules rather than one product with a display attached. The app ships first, free, on Google Play, and is useful with no hardware at all. The node is still the original project and still unbuilt.
+
+**Why.** The app began as a layout study for hardware that did not exist. It turned out the half of the instrument picture a phone can supply on its own is worth shipping by itself to a pilot flying with no panel. Charts, navigation, airports and frequencies, checklists and a logbook need no node. Continuing to call it a mockup was becoming false, and a document that describes something other than what exists is worse than no document.
+
+**New section 25** describes the app as a product, including how each design rule shows up in it and the two limits that must never be quietly designed away: phone attitude is not an AHRS, and a cached chart carries no expiry the app can see.
+
+**Section 4's "anything sold to anyone" is intact.** Free, no advertising, no analytics, no accounts, nothing collected. Publishing is a way to reach pilots who will not sideload an APK, not a business.
+
+**What publishing changes** is that strangers will fly with it, which is why the acknowledgement now appears at every launch rather than once, matching the convention on every marine and aviation GPS. A layout study can be wrong quietly. A published instrument cannot.
 
 ### Revision 5, August 2026: closing the open questions
 

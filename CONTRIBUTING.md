@@ -38,6 +38,16 @@ Code is GPL-2.0-or-later, hardware is CERN-OHL-S-2.0, documentation and
 specifications are CC-BY-4.0. By opening a pull request you agree your
 contribution ships under the license covering that artifact.
 
+Sign your commits off with `git commit -s`, which appends:
+
+    Signed-off-by: Your Name <you@example.com>
+
+That is the Developer Certificate of Origin, the same one the Linux kernel uses.
+It is not a copyright assignment and it does not ask you to give anything up. It
+is a statement that you wrote the contribution or otherwise have the right to
+submit it under this license, which is what makes the project safe to
+redistribute, including through an app store.
+
 Every source file starts with:
 
     SPDX-License-Identifier: GPL-2.0-or-later

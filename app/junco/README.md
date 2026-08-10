@@ -1,19 +1,19 @@
-# PFD layout mockup
+# Junco — Android electronic flight bag
 
-A primary flight display laid out the way pilots already read one: attitude in
-the centre, airspeed tape left, altitude tape right, VSI, HSI below, engine
-strip down the edge.
+An electronic flight bag for ultralight and experimental aircraft, useful today
+with no hardware at all. Primary flight display from the phone's own sensors,
+FAA sectional and terminal charts, direct-to navigation, 25,000 bundled US
+airports with frequencies, per-aircraft checklists, an automatic logbook,
+weather, and advisory traffic. Offline by design.
 
-**This is not the client and is not on the path to being it.** It exists to
-answer layout questions before anyone writes an APK, because a tape range or a
-band order is cheap to change here and expensive once there is an app.
+**It started as a layout study for hardware that did not exist**, and outgrew
+that. See `RELEASE.md` for the path to Google Play and PRD section 25 for how
+each design rule shows up in it.
 
-## What it is for
-
-Three questions it was built to answer:
+## Questions it was built to answer, and did
 
 1. **Does design rule 8 survive a real layout?** Twenty small source tags read as
-   noise. The answer this mockup proposes is the one real avionics already use:
+   noise. The answer this app proposes is the one real avionics already use:
    annunciate the source on the instrument. `PHONE AHRS · ADVISORY` on the
    attitude indicator, cyan for node-plumbed channels, magenta for GPS-derived.
 2. **Is phone attitude worth showing at all?** PRD section 15 lists this as open.
@@ -47,7 +47,7 @@ signal.
 
 ## As an Android app
 
-`android/` wraps the same files in an APK. It exists for one reason: device
+`android/` wraps these files in an APK. It exists for one reason: device
 orientation and geolocation are only available to a **secure context**, so a
 WebView loading `file://` would silently kill exactly the sensors the app is
 for. The wrapper serves the bundled assets over an `https://` origin and
@@ -59,11 +59,11 @@ or newer. It uses the raw SDK tools rather than Gradle, because one activity
 with no dependencies does not need a plugin and a version matrix.
 
 **The APK is not committed.** `.gitignore` excludes `*.apk` deliberately, so the
-`Mockup APK` workflow builds it instead: every run uploads it as an artifact,
-and pushing a `mockup-v*` tag attaches it to a release.
+`App APK` workflow builds it instead: every run uploads it as an artifact,
+and pushing a `v*` tag attaches it to a release.
 
 It is debug-signed, so installing it means allowing unknown sources. That is
-appropriate for a mockup and would not be appropriate for anything else.
+appropriate for a app and would not be appropriate for anything else.
 
 ## What is real and what is invented
 
@@ -79,16 +79,17 @@ phone, because there is no web API for ambient pressure. PRD section 6 reaches
 the same conclusion from a different direction, and this is one more reason the
 plumbed plenum is not optional.
 
-## Why this is a web page when the client will be native
+## Why a WebView, and where that stops working
 
-A PWA is the right shape for a prototype and the wrong shape for the instrument.
-It installs in seconds, needs no store account, no signing key, and no build
-toolchain, so a layout question gets answered the same afternoon it is asked.
+A web payload in a thin native wrapper builds in seconds, runs identically in a
+browser for development, and needs no toolchain to change a tape range. For
+everything the app does today, that is the right trade.
 
-What it cannot do is hold a BLE link for a two hour flight. Web Bluetooth exists
-on Android and would genuinely reach the node, but it needs a user gesture per
-connection, has no background operation, and drops when the page is suspended.
-It does not exist on iOS at all. See PRD section 19.
+It stops working at the node. Web Bluetooth reaches a peripheral on Android, but
+it needs a user gesture per connection, has no background operation, and drops
+when the page is suspended, so it cannot hold a link for a two hour flight. When
+the node exists, the BLE client belongs in the native layer and the WebView keeps
+the display. See PRD section 19.
 
-Nothing in this directory should end up in the shipping client. Only the layout
-decisions should.
+`build.sh` is the ten-second debug loop. `android/build.gradle` produces the
+signed App Bundle that Google Play requires. Both build the same web payload.

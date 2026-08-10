@@ -327,7 +327,7 @@
 <div id="firstRun">
   <div class="wrap">
     <div class="grp">
-      <h3>Before you use this in an aircraft</h3>
+      <h3>Junco &mdash; advisory only</h3>
       <p class="hint" style="font-size:13.5px;color:#E8EAE6">
       <b>Junco is not a certified aviation product</b> and is not tested to any aviation standard.
       It is advisory only.</p>
@@ -347,7 +347,7 @@
       <p class="hint">Position and flight data stay on this device. Nothing is uploaded, and there is
       no account.</p>
       <div class="row" style="margin-top:10px">
-        <button class="go" id="frAccept" style="flex:1">I understand &mdash; continue</button>
+        <button class="go" id="frAccept" style="flex:1">I agree &mdash; continue</button>
       </div>
     </div>
   </div>
@@ -1318,15 +1318,13 @@ $("btnWake").onclick = function () {
 /* Shown once, acknowledged once. Not a modal that nags, and not a line of grey
    text nobody reads: this is a flight instrument in an aircraft with no panel,
    and the limits belong in front of the pilot before the first flight. */
-(function firstRun() {
-  var KEY = "junco.ack.v1";
-  var seen = null;
-  try { seen = localStorage.getItem(KEY); } catch (e) {}
-  if (!seen) { $("firstRun").classList.add("open"); }
-  $("frAccept").onclick = function () {
-    try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
-    $("firstRun").classList.remove("open");
-  };
+(function startupAck() {
+  // Every launch, not once. This is the convention on every marine and aviation
+  // GPS for a reason: the acknowledgement is only worth anything if it happens
+  // at the start of the flight it applies to. A box ticked eight months ago says
+  // nothing about whether this pilot, today, knows what they are looking at.
+  $("firstRun").classList.add("open");
+  $("frAccept").onclick = function () { $("firstRun").classList.remove("open"); };
 })();
 
 window.addEventListener("orientationchange", stats);
