@@ -226,6 +226,39 @@
   function stamp() { fetchedAt[layer] = Date.now(); }
   function age() { return fetchedAt[layer] || 0; }
 
+  /* ---------------- cache accounting ----------------
+     Pulling an area is the feature that makes the map work with no signal, and
+     it is also the feature that quietly eats a phone. A pilot who pulled twelve
+     areas over a summer has no way to find that out and no way to undo it
+     without clearing the app's data, which would also take their aircraft
+     profiles and their logbook. So: show the number, and give them a button
+     that removes only the tiles. */
+  var TILE_CACHE = "junco-osm-tiles-v1";
+
+  function cacheStats() {
+    var out = { tiles: null, bytes: null, quota: null };
+    var jobs = [];
+    if (global.caches && global.caches.open) {
+      jobs.push(global.caches.open(TILE_CACHE)
+        .then(function (c) { return c.keys(); })
+        .then(function (k) { out.tiles = k.length; })
+        .catch(function () {}));
+    }
+    if (global.navigator && navigator.storage && navigator.storage.estimate) {
+      jobs.push(navigator.storage.estimate().then(function (e) {
+        out.bytes = e.usage === undefined ? null : e.usage;
+        out.quota = e.quota === undefined ? null : e.quota;
+      }).catch(function () {}));
+    }
+    return Promise.all(jobs).then(function () { return out; });
+  }
+
+  function purge() {
+    mem.clear();
+    if (!(global.caches && global.caches.delete)) { return Promise.resolve(false); }
+    return global.caches.delete(TILE_CACHE).catch(function () { return false; });
+  }
+
   global.JuncoTiles = {
     draw: draw, attribution: attribution, precache: precache, zoomFor: zoomFor,
     layers: ORDER, layerName: function () { return L().name; },
@@ -239,6 +272,7 @@
     setRedraw: function (f) { onArrive = f; },
     setEnabled: function (v) { enabled = !!v; },
     isEnabled: function () { return enabled; },
-    cached: function () { return mem.size; }
+    cached: function () { return mem.size; },
+    cacheStats: cacheStats, purge: purge
   };
 })(this);

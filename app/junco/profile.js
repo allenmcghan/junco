@@ -20,7 +20,7 @@
 (function (global) {
   "use strict";
 
-  var SCHEMA = 1;
+  var SCHEMA = 2;   // 2 added [weight_balance] and [station.N]
 
   /* ---------------- unit conversion ---------------- */
   // Base units are SI: m/s, m, degC, litres.
@@ -45,10 +45,97 @@
     vs: {
       fpm: { to: function (v) { return v * 196.85039; }, from: function (v) { return v / 196.85039; }, label: "FPM" },
       ms:  { to: function (v) { return v; },             from: function (v) { return v; },             label: "M/S" }
+    },
+    weight: {
+      lb: { to: function (v) { return v * 2.2046226; }, from: function (v) { return v / 2.2046226; }, label: "LB" },
+      kg: { to: function (v) { return v; },             from: function (v) { return v; },             label: "KG" }
+    },
+    // Arm is not chosen separately. Anyone weighing in pounds measures arms in
+    // inches and anyone weighing in kilograms measures them in centimetres;
+    // offering the four combinations would only create ways to mix them up.
+    arm: {
+      lb: { to: function (v) { return v * 39.370079; }, from: function (v) { return v / 39.370079; }, label: "IN" },
+      kg: { to: function (v) { return v * 100; },       from: function (v) { return v / 100; },       label: "CM" }
     }
   };
 
   function conv(kind, unit) { return U[kind][unit] || U[kind][Object.keys(U[kind])[0]]; }
+
+  /* ---------------- weight and balance ----------------
+     Presets ship this OFF and empty on purpose. Every other field in a preset
+     is a plausible starting point a builder can correct later; a weight and
+     balance number is not. There is no plausible empty weight for an aircraft
+     nobody has weighed, and a made-up one that happens to close the envelope is
+     more dangerous than a blank page. The page refuses to compute until the
+     numbers come off a real weighing. */
+  function emptyWB() {
+    return {
+      enabled: false,
+      emptyWeight: 0,      // kg
+      emptyArm: 0,         // m aft of datum
+      maxGross: 0,         // kg
+      cgFwd: 0,            // m aft of datum
+      cgAft: 0,            // m aft of datum
+      fuelArm: 0,          // m aft of datum
+      fuelDensity: 0.72,   // kg per litre; 0.72 mogas, 0.72 100LL, 0.80 Jet A
+      datumNote: ""
+    };
+  }
+
+  /* Solve one loading. Everything in and out is SI.
+     loads is { stationIndex: kg, ... } plus fuelLitres. */
+  function wbSolve(p, loads, fuelLitres) {
+    var wb = p.wb || emptyWB();
+    var rows = [], wTot = 0, mTot = 0;
+    function add(name, w, arm) {
+      if (!w) { return; }
+      rows.push({ name: name, weight: w, arm: arm, moment: w * arm });
+      wTot += w; mTot += w * arm;
+    }
+    add("Empty", wb.emptyWeight, wb.emptyArm);
+    (p.stations || []).forEach(function (s, i) {
+      add(s.name || ("Station " + (i + 1)), (loads && loads[i]) || 0, s.arm);
+    });
+    var fuelKg = (fuelLitres || 0) * (wb.fuelDensity || 0.72);
+    add("Fuel", fuelKg, wb.fuelArm);
+
+    var cg = wTot > 0 ? mTot / wTot : null;
+    var errs = [];
+    if (wb.maxGross > 0 && wTot > wb.maxGross) {
+      errs.push("Over gross by " + (wTot - wb.maxGross).toFixed(1) + " kg");
+    }
+    if (cg !== null && wb.cgFwd > 0 && cg < wb.cgFwd) { errs.push("CG forward of limit"); }
+    if (cg !== null && wb.cgAft > 0 && cg > wb.cgAft) { errs.push("CG aft of limit"); }
+    // An envelope of zero width is not "in limits", it is unset.
+    var envelope = wb.cgFwd > 0 && wb.cgAft > wb.cgFwd;
+    return {
+      rows: rows, weight: wTot, moment: mTot, cg: cg, fuelKg: fuelKg,
+      envelope: envelope, grossSet: wb.maxGross > 0,
+      errors: errs, ok: errs.length === 0
+    };
+  }
+
+  /* 14 CFR 103.1, checked against what the profile already knows.
+     Deliberately reports what it cannot check rather than passing it silently. */
+  function part103(p) {
+    var out = [];
+    var lb = function (kg) { return kg * 2.2046226; };
+    var gal = function (l) { return l * 0.26417205; };
+    var kt = function (ms) { return ms * 1.9438445; };
+    var ew = p.wb ? p.wb.emptyWeight : 0;
+    if (!ew) {
+      out.push({ ok: null, text: "Empty weight under 254 lb — no weighing entered" });
+    } else {
+      out.push({ ok: lb(ew) < 254, text: "Empty weight " + lb(ew).toFixed(1) + " lb, limit 254 lb" });
+    }
+    out.push({ ok: gal(p.fuel.capacity) <= 5.0,
+               text: "Fuel capacity " + gal(p.fuel.capacity).toFixed(1) + " US gal, limit 5.0" });
+    out.push({ ok: kt(p.speeds.vs1) <= 24.0,
+               text: "Power-off stall " + kt(p.speeds.vs1).toFixed(1) + " kt CAS, limit 24" });
+    out.push({ ok: null, text: "Full-power level flight under 55 kt CAS — not measured by this app" });
+    out.push({ ok: null, text: "Single occupant, no airworthiness certificate, day VFR only" });
+    return out;
+  }
 
   /* ---------------- presets ---------------- */
   // Stored in SI. Written this way so the conversion path is exercised even
@@ -62,7 +149,8 @@
         limits: { rpmMax: 6800, chtMax: 224, egtMax: 677, densAltAdvisory: 2438 },
         speeds: { vs0: 9.8, vs1: 10.7, vno: 15.2, vne: 17.0, cruise: 12.5 },
         fuel: { capacity: 37.9, usable: 36.0, burnCruise: 13.6, reserveHr: 0.75 },
-        units: { speed: "mph", alt: "ft", temp: "F", fuel: "gal", vs: "fpm" }
+        wb: emptyWB(), stations: [],
+        units: { speed: "mph", alt: "ft", temp: "F", fuel: "gal", vs: "fpm", weight: "lb" }
       },
       "single": {
         id: "single", name: "Single, two-stroke", registration: "Part 103",
@@ -71,7 +159,8 @@
         limits: { rpmMax: 6500, chtMax: 232, egtMax: 649, densAltAdvisory: 2438 },
         speeds: { vs0: 11.2, vs1: 12.1, vno: 22.4, vne: 26.8, cruise: 19.7 },
         fuel: { capacity: 18.9, usable: 18.0, burnCruise: 9.5, reserveHr: 0.5 },
-        units: { speed: "mph", alt: "ft", temp: "F", fuel: "gal", vs: "fpm" }
+        wb: emptyWB(), stations: [],
+        units: { speed: "mph", alt: "ft", temp: "F", fuel: "gal", vs: "fpm", weight: "lb" }
       },
       "fourcyl": {
         id: "fourcyl", name: "Four-cylinder experimental", registration: "N-number",
@@ -80,7 +169,8 @@
         limits: { rpmMax: 2700, chtMax: 260, egtMax: 816, densAltAdvisory: 2438 },
         speeds: { vs0: 22.4, vs1: 24.6, vno: 55.9, vne: 71.5, cruise: 49.2 },
         fuel: { capacity: 136, usable: 132, burnCruise: 30.3, reserveHr: 0.75 },
-        units: { speed: "kt", alt: "ft", temp: "F", fuel: "gal", vs: "fpm" }
+        wb: emptyWB(), stations: [],
+        units: { speed: "kt", alt: "ft", temp: "F", fuel: "gal", vs: "fpm", weight: "lb" }
       }
     }[id];
     return p ? JSON.parse(JSON.stringify(p)) : null;
@@ -132,12 +222,35 @@
     L.push("burn_cruise = " + num(p.fuel.burnCruise));
     L.push("reserve_hr = " + num(p.fuel.reserveHr));
     L.push("");
+    var wb = p.wb || emptyWB();
+    L.push("[weight_balance]  # kilograms, metres aft of datum");
+    L.push("# Enter these from an actual weighing. Junco ships them blank because");
+    L.push("# a guessed empty weight that happens to close the envelope is worse");
+    L.push("# than no envelope at all.");
+    L.push("enabled = " + (wb.enabled ? "true" : "false"));
+    L.push("empty_weight = " + num(wb.emptyWeight));
+    L.push("empty_arm = " + num(wb.emptyArm));
+    L.push("max_gross = " + num(wb.maxGross));
+    L.push("cg_fwd = " + num(wb.cgFwd));
+    L.push("cg_aft = " + num(wb.cgAft));
+    L.push("fuel_arm = " + num(wb.fuelArm));
+    L.push("fuel_density = " + num(wb.fuelDensity));
+    L.push('datum_note = "' + esc(wb.datumNote || "") + '"');
+    L.push("");
+    (p.stations || []).forEach(function (s, i) {
+      L.push("[station." + (i + 1) + "]");
+      L.push('name = "' + esc(s.name || "") + '"');
+      L.push("arm = " + num(s.arm || 0));
+      L.push("max = " + num(s.max || 0));
+      L.push("");
+    });
     L.push("[units]  # display only");
     L.push('speed = "' + p.units.speed + '"');
     L.push('alt = "' + p.units.alt + '"');
     L.push('temp = "' + p.units.temp + '"');
     L.push('fuel = "' + p.units.fuel + '"');
     L.push('vertical_speed = "' + p.units.vs + '"');
+    L.push('weight = "' + (p.units.weight || "lb") + '"  # arm follows: in with lb, cm with kg');
     L.push("");
     return L.join("\n");
   }
@@ -168,6 +281,15 @@
     var sp = (out.speeds || {});
     var fu = (out.fuel || {});
     var un = (out.units || {});
+    var wbT = (out.weight_balance || {});
+    var stations = [];
+    Object.keys(out).forEach(function (k) {
+      var m = k.match(/^station\.(\d+)$/);
+      if (m) { stations[parseInt(m[1], 10) - 1] = out[k]; }
+    });
+    stations = stations.filter(Boolean).map(function (s) {
+      return { name: String(s.name || ""), arm: numOr(s.arm, 0), max: numOr(s.max, 0) };
+    });
     var p = {
       id: id.id || ("imported-" + Math.abs(hash(text)).toString(36).slice(0, 6)),
       name: id.name || "Imported aircraft",
@@ -192,12 +314,22 @@
         capacity: numOr(fu.capacity, 37.9), usable: numOr(fu.usable, 36),
         burnCruise: numOr(fu.burn_cruise, 13.6), reserveHr: numOr(fu.reserve_hr, 0.75)
       },
+      wb: {
+        enabled: wbT.enabled === true,
+        emptyWeight: numOr(wbT.empty_weight, 0), emptyArm: numOr(wbT.empty_arm, 0),
+        maxGross: numOr(wbT.max_gross, 0),
+        cgFwd: numOr(wbT.cg_fwd, 0), cgAft: numOr(wbT.cg_aft, 0),
+        fuelArm: numOr(wbT.fuel_arm, 0), fuelDensity: numOr(wbT.fuel_density, 0.72),
+        datumNote: String(wbT.datum_note || "")
+      },
+      stations: stations,
       units: {
         speed: pick(un.speed, ["mph", "kt", "kmh"], "mph"),
         alt: pick(un.alt, ["ft", "m"], "ft"),
         temp: pick(un.temp, ["F", "C"], "F"),
         fuel: pick(un.fuel, ["gal", "L"], "gal"),
-        vs: pick(un.vertical_speed, ["fpm", "ms"], "fpm")
+        vs: pick(un.vertical_speed, ["fpm", "ms"], "fpm"),
+        weight: pick(un.weight, ["lb", "kg"], "lb")
       }
     };
     var bad = validate(p);
@@ -223,6 +355,13 @@
     if (p.speeds.vs0 >= p.speeds.vne) { e.push("stall speed is at or above never-exceed"); }
     if (p.limits.chtMax <= 0) { e.push("CHT limit must be positive"); }
     if (p.fuel.burnCruise <= 0) { e.push("cruise burn must be positive"); }
+    var wb = p.wb;
+    if (wb && wb.enabled) {
+      if (wb.emptyWeight <= 0) { e.push("weight and balance is on but empty weight is not set"); }
+      if (wb.maxGross > 0 && wb.emptyWeight >= wb.maxGross) { e.push("empty weight is at or above max gross"); }
+      if (wb.cgAft > 0 && wb.cgFwd > 0 && wb.cgAft <= wb.cgFwd) { e.push("aft CG limit must be behind the forward limit"); }
+      if (wb.fuelDensity <= 0) { e.push("fuel density must be positive"); }
+    }
     return e;
   }
 
@@ -236,7 +375,17 @@
     if (!lib || !lib.length) {
       lib = [preset("pm2"), preset("single"), preset("fourcyl")];
       save(lib);
+      return lib;
     }
+    // Forward-migrate profiles saved by an older build. A missing block is
+    // filled with a blank one, never a guess, for the reason emptyWB explains.
+    var changed = false;
+    lib.forEach(function (p) {
+      if (!p.wb) { p.wb = emptyWB(); changed = true; }
+      if (!p.stations) { p.stations = []; changed = true; }
+      if (p.units && !p.units.weight) { p.units.weight = "lb"; changed = true; }
+    });
+    if (changed) { save(lib); }
     return lib;
   }
   function save(lib) { try { localStorage.setItem(KEY, JSON.stringify(lib)); } catch (err) {} }
@@ -273,6 +422,7 @@
     conv: conv, units: U,
     preset: preset, presets: ["pm2", "single", "fourcyl"],
     toTOML: toTOML, fromTOML: fromTOML, validate: validate,
+    emptyWB: emptyWB, wbSolve: wbSolve, part103: part103,
     all: all, save: save, active: active, setActive: setActive,
     put: put, remove: remove, uniqueId: uniqueId
   };

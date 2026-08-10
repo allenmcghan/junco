@@ -74,7 +74,10 @@
     border-radius: 3px;
     color: var(--dim);
     font-size: 17px; line-height: 1;
-    cursor: pointer; z-index: 20;
+    /* Above the overlay pages, not below them. At z-20 the settings button
+       vanished under every page including the map, so the only way to reach
+       settings was to go back to the PFD first. */
+    cursor: pointer; z-index: 41;
   }
   #menuBtn:focus-visible { outline: 2px solid var(--cyan); }
 
@@ -149,7 +152,9 @@
     color: var(--dim); border-radius: 3px;
   }
   #quick button.tab.sel { background: #171E23; border-color: var(--rule); color: var(--white); }
-  #panel, #wxPage, #chkPage, #logPage, #nrstPage { padding-bottom: 76px; }
+  /* Every scrolling page needs this. Without it the tab bar sits on top of the
+     last control on the page and the Close button cannot be tapped at all. */
+  #panel, #wxPage, #chkPage, #logPage, #nrstPage, #wbPage { padding-bottom: 76px; }
 
   #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
   #quick button.live { color: var(--green); border-color: var(--green); }
@@ -159,7 +164,10 @@
 
   #wxPage {
     position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
-    display: none; overflow-y: auto; padding: 14px;
+    display: none; overflow-y: auto;
+    /* Same trap as the pages below: a padding shorthand here silently undoes
+       both the safe-area top and the tab-bar clearance set further up. */
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(76px + env(safe-area-inset-bottom));
   }
   #wxPage.open { display: block; }
   .tfc { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
@@ -182,6 +190,16 @@
     padding: 6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
     background: linear-gradient(transparent, rgba(0,0,0,.75));
   }
+  #mapSel {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 41; display: none;
+    padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));
+    background: linear-gradient(rgba(0,0,0,.9), rgba(0,0,0,.55));
+  }
+  #mapSel.open { display: block; }
+  #mapSel .t { font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--white);
+               white-space: pre-wrap; padding-right: 44px; }
+  #mapSel .b { display: flex; gap: 5px; margin-top: 7px; }
+  #mapSel button { font-family: var(--mono); font-size: 11px; padding: 9px 10px; }
   #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 9px; }
   #mapHud button.on { background: var(--green); border-color: var(--green); color: #03210F; }
   #mapHud .val { min-width: 62px; padding: 8px; }
@@ -190,11 +208,32 @@
     padding: calc(20px + env(safe-area-inset-top)) 14px 20px; display: none;
   }
   #firstRun.open { display: block; }
-  #chkPage, #logPage, #nrstPage {
+  #chkPage, #logPage, #nrstPage, #wbPage {
     position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
-    display: none; overflow-y: auto; padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
+    display: none; overflow-y: auto;
+    /* The bottom value must clear the tab bar. This shorthand overrode the
+       padding-bottom rule above it, which left the Close button on these four
+       pages sitting underneath the tab bar, unreachable. */
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(76px + env(safe-area-inset-bottom));
   }
-  #chkPage.open, #logPage.open, #nrstPage.open { display: block; }
+  #chkPage.open, #logPage.open, #nrstPage.open, #wbPage.open { display: block; }
+  .wbrow { display: flex; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid #1A2025; }
+  .wbrow .nm2 { flex: 1; min-width: 0; font-size: 13px; color: var(--white);
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wbrow input { width: 74px; }
+  .wbrow .mom { width: 78px; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .verdict { border-radius: 3px; padding: 10px; margin-top: 10px; font-family: var(--mono);
+             font-size: 13px; line-height: 1.6; border: 1px solid var(--rule); }
+  .verdict.ok { border-color: var(--green); color: var(--green); }
+  .verdict.bad { border-color: var(--red); color: var(--red); }
+  .verdict.unk { border-color: var(--amber); color: var(--amber); }
+  .cgbar { position: relative; height: 30px; margin-top: 10px; border: 1px solid var(--rule);
+           border-radius: 3px; background: #0B0F12; overflow: hidden; }
+  .cgbar .env { position: absolute; top: 0; bottom: 0; background: #10301C; }
+  .cgbar .now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--white); }
+  .cgbar .now.bad { background: var(--red); width: 3px; }
+  .cgbar .tx { position: absolute; left: 6px; top: 7px; font-family: var(--mono);
+               font-size: 11px; color: var(--dim); }
   .ck { display: flex; align-items: flex-start; gap: 9px; padding: 9px 4px; border-bottom: 1px solid #1A2025; cursor: pointer; }
   .ck .bx { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--rule); border-radius: 3px; margin-top: 1px; }
   .ck.on .bx { background: var(--green); border-color: var(--green); }
@@ -330,6 +369,7 @@
   <button class="tab" id="qChk">CHK</button>
   <button class="tab" id="qLog">LOG</button>
   <button class="tab" id="qNrst">NRST</button>
+  <button class="tab" id="qWb">W&amp;B</button>
   <button class="tab" id="qWx">WX</button>
   <button id="qCal">CAL</button>
   <button id="qMode">SIM</button>
@@ -368,6 +408,14 @@
 
 <div id="mapPage">
   <canvas id="mapC"></canvas>
+  <div id="mapSel">
+    <div class="t" id="mapSelTx"></div>
+    <div class="b">
+      <button class="go" id="mapSelDct">DIRECT TO</button>
+      <button id="mapSelRte">+ ROUTE</button>
+      <button id="mapSelX">&times;</button>
+    </div>
+  </div>
   <div id="mapHud">
     <button id="mapZo">&minus;</button>
     <span class="val" id="mapRange">10 nm</span>
@@ -401,6 +449,90 @@
       field.</b></p>
     </div>
     <div class="row"><button class="go" id="nrstClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="wbPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Weight &amp; balance &mdash; <span id="wbAc"></span></h3>
+      <div id="wbOff">
+        <p class="hint" style="font-size:13.5px;color:#E8EAE6">Weight and balance is <b>off</b> for
+        this aircraft, and it stays off until you enter numbers from an actual weighing. Junco ships
+        no default empty weight on purpose: a guessed one that happens to close the envelope is worse
+        than no envelope at all.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="go" id="wbEnable" style="flex:1">Set this aircraft up</button>
+        </div>
+      </div>
+
+      <div id="wbOn" style="display:none">
+        <div id="wbLoad"></div>
+        <div class="row" style="margin-top:8px">
+          <span class="lbl">Fuel</span>
+          <input id="wbFuel" class="val" type="number" step="0.1" style="width:84px">
+          <span class="lbl" id="wbFuelU">gal</span>
+          <button id="wbFuelFull">Full</button>
+          <button id="wbFuelTabs">Half</button>
+        </div>
+        <div class="cgbar" id="wbBar"><span class="tx" id="wbBarTx"></span></div>
+        <div class="verdict" id="wbVerdict">—</div>
+        <div class="row" style="margin-top:8px">
+          <button id="wbEdit">Edit aircraft numbers</button>
+          <button id="wbAddSt">+ Station</button>
+          <button id="wbZero">Zero the loads</button>
+        </div>
+        <p class="hint">Fuel on board is <b>a number you typed, not a measurement.</b> There is no
+        fuel sender in this build. The main screen shows how long ago you entered it, because an
+        endurance figure computed from a dipstick reading you took three flights ago is a hazard
+        wearing the costume of a safety feature.</p>
+      </div>
+    </div>
+
+    <div class="grp" id="wbSetup" style="display:none">
+      <h3>Aircraft numbers</h3>
+      <p class="hint">All arms are measured <b>aft of the datum</b>, positive. Use whatever datum
+      your weighing report used and write it down below so the next person knows.</p>
+      <div class="row">
+        <span class="lbl">Empty wt</span><input id="wbEw" class="val" type="number" step="0.1" style="width:88px">
+        <span class="lbl">Empty arm</span><input id="wbEa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">Max gross</span><input id="wbMg" class="val" type="number" step="0.1" style="width:88px">
+        <span class="lbl">Fuel arm</span><input id="wbFa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">CG fwd</span><input id="wbCf" class="val" type="number" step="0.01" style="width:88px">
+        <span class="lbl">CG aft</span><input id="wbCa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">Fuel</span>
+        <select id="wbFd" class="val">
+          <option value="0.72">Mogas / 100LL 0.72 kg/L</option>
+          <option value="0.80">Jet A 0.80 kg/L</option>
+        </select>
+      </div>
+      <div class="row"><span class="lbl">Datum</span><input id="wbDatum" class="val" style="flex:1" placeholder="e.g. front face of firewall"></div>
+      <div id="wbStations" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="go" id="wbSave" style="flex:1">Save</button>
+        <button id="wbDisable">Turn off</button>
+      </div>
+      <p class="hint" id="wbErr"></p>
+    </div>
+
+    <div class="grp">
+      <h3>Part 103 check</h3>
+      <div id="wb103"></div>
+      <p class="hint">14 CFR 103.1 in the terms this app can actually see. The 254 lb empty weight
+      limit <b>excludes floats and safety devices intended for deployment in a potentially
+      catastrophic situation</b>, so a ballistic parachute does not count against it; Junco cannot
+      know what you fitted, so subtract those yourself before entering the number. Two of these
+      limits are speeds nobody can verify from a phone. <b>This is an arithmetic aid, not a finding of
+      compliance.</b></p>
+    </div>
+
+    <div class="row"><button class="go" id="wbClose" style="flex:1">Close</button></div>
   </div>
 </div>
 
@@ -534,6 +666,7 @@
         <select id="uAlt" class="val"><option value="ft">ft</option><option value="m">m</option></select>
         <select id="uTemp" class="val"><option value="F">&deg;F</option><option value="C">&deg;C</option></select>
         <select id="uFuel" class="val"><option value="gal">gal</option><option value="L">L</option></select>
+        <select id="uWeight" class="val"><option value="lb">lb / in</option><option value="kg">kg / cm</option></select>
       </div>
       <div class="row"><button class="go" id="acSave" style="flex:1">Apply to display</button></div>
       <p class="hint" id="acErr"></p>
@@ -639,6 +772,27 @@
       <p class="hint">Engine strip, indicated airspeed, pressure altitude and vertical speed are
       simulated &mdash; those are node channels and no node exists yet. Attitude, heading, track,
       ground speed, GPS altitude and position are real. <b>Not an instrument. Not airworthy.</b></p>
+    </div>
+
+    <div class="grp">
+      <h3>Storage and diagnostics</h3>
+      <div class="row">
+        <span class="val" id="stoTiles">&mdash;</span>
+        <span class="val" id="stoBytes">&mdash;</span>
+        <button id="stoRefresh">Refresh</button>
+        <button id="stoPurge">Purge charts</button>
+      </div>
+      <div class="row">
+        <button class="go" id="diagCopy" style="flex:1">Copy diagnostics</button>
+      </div>
+      <textarea id="diagText" class="val" style="width:100%;height:150px;text-align:left;margin-top:8px;display:none"></textarea>
+      <p class="hint">PULL AREA is what makes the map work with no signal, and it is also what
+      quietly fills a phone. <b>Purge charts removes cached tiles and nothing else</b> &mdash; your
+      aircraft, checklists and logbook are untouched, which is not true of clearing the app's data
+      from Android settings.</p>
+      <p class="hint">Junco has no crash reporter and sends nothing anywhere. If something breaks,
+      <b>Copy diagnostics</b> puts the state on your clipboard so you can paste it into an issue.
+      Read it before you send it: it contains your aircraft and your last known position.</p>
     </div>
 
     <div class="row"><button class="go" id="btnClose" style="flex:1">Close</button></div>
@@ -750,6 +904,8 @@ function uAlt() { return JP.conv("alt", P.units.alt); }
 function uTmp() { return JP.conv("temp", P.units.temp); }
 function uFul() { return JP.conv("fuel", P.units.fuel); }
 function uVs()  { return JP.conv("vs", P.units.vs); }
+function uWt()  { return JP.conv("weight", P.units.weight || "lb"); }
+function uArm() { return JP.conv("arm", P.units.weight || "lb"); }
 
 /* ================= profile-driven build ================= */
 function rowDefs() {
@@ -1102,6 +1258,17 @@ function frame() {
     $("bb-nav").textContent = sol.name + "  " + sol.dist.toFixed(1) + " nm  " +
       String(Math.round(sol.brg)).padStart(3, "0") + "°" +
       (sol.ete === null ? "" : "  " + Math.floor(sol.ete / 60) + ":" + String(Math.round(sol.ete % 60)).padStart(2, "0"));
+    // Fuel at the destination, from the figure the pilot typed on the W&B page.
+    // Marked "est" because it is arithmetic on a dipstick reading, not a sender,
+    // and design rule 8 says the display names its source.
+    var fp = O.fuelPlan(P, sol);
+    if (fp && fp.atDestL !== null) {
+      var F = uFul();
+      $("bb-nav").textContent += "   " +
+        (fp.atDestL <= 0 ? "DRY BEFORE ARRIVAL"
+                         : F.to(fp.atDestL).toFixed(1) + " " + F.label.toLowerCase() + " est on arrival") +
+        (fp.belowReserve ? "  ⚠ below reserve" : "");
+    }
     var nx = Math.max(228, Math.min(660, 444 + (((sol.brg - att.hdg + 540) % 360) - 180) * 3.4));
     $("navBug").setAttribute("points", nx + ",462 " + (nx-8) + ",476 " + (nx+8) + ",476");
     $("navBug").setAttribute("opacity", 1);
@@ -1174,6 +1341,16 @@ function startGeo() {
 }
 function goLive() {
   startGeo();
+  startOrient();
+  mode = "live"; stats();
+}
+/* Split out from goLive because the gesture retry needs THIS and only this.
+   It used to re-run the whole of setMode("live"), which throws away the GPS
+   fix and clears the breadcrumb — so on any device where the orientation
+   sensor is slow or absent, the pilot's first tap on the screen silently
+   erased their position and their track. Asking for a permission must not
+   have side effects on unrelated state. */
+function startOrient() {
   var D = window.DeviceOrientationEvent;
   if (D && typeof D.requestPermission === "function") {
     diag.perm = "asking"; stats();
@@ -1187,7 +1364,6 @@ function goLive() {
     window.addEventListener("deviceorientation", onOrient, true);
     stats();
   }
-  mode = "live"; stats();
 }
 function stats() {
   function s(id, v, c) { var e = $(id); if (!e) { return; } e.textContent = v; e.className = c || ""; }
@@ -1224,12 +1400,16 @@ function fillForm() {
   $("acBurn").value = Math.round(uFul().to(P.fuel.burnCruise) * 10) / 10;
   $("uSpeed").value = P.units.speed; $("uAlt").value = P.units.alt;
   $("uTemp").value = P.units.temp; $("uFuel").value = P.units.fuel;
+  $("uWeight").value = P.units.weight || "lb";
   $("acErr").textContent = "";
 }
 function readForm() {
   var q = JSON.parse(JSON.stringify(P));
   q.units.speed = $("uSpeed").value; q.units.alt = $("uAlt").value;
   q.units.temp = $("uTemp").value; q.units.fuel = $("uFuel").value;
+  q.units.weight = $("uWeight").value;
+  if (!q.wb) { q.wb = JP.emptyWB(); }
+  if (!q.stations) { q.stations = []; }
   var sp = JP.conv("speed", q.units.speed), tp = JP.conv("temp", q.units.temp), fl = JP.conv("fuel", q.units.fuel);
   q.name = $("acName").value.trim() || "Unnamed";
   q.registration = $("acReg").value.trim();
@@ -1252,6 +1432,11 @@ function readForm() {
 function applyProfile(p) {
   P = p; JP.put(P); JP.setActive(P.id);
   sim = {}; rebuild(); fillList(); fillForm();
+  // The W&B boxes hold numbers in the display unit. Switching lb to kg without
+  // redrawing them leaves 240 lb sitting in a box now labelled kg, and the next
+  // thing that reads the form would store it as 240 kg. Redraw immediately.
+  if ($("wbSetup").style.display === "block") { wbFillSetup(); }
+  if ($("wbPage").classList.contains("open")) { wbRender(); }
 }
 
 $("acSel").onchange = function () {
@@ -1321,7 +1506,7 @@ $("acFile").onchange = function () {
 };
 
 /* ================= controls ================= */
-$("menuBtn").onclick = function () { $("panel").classList.add("open"); stats(); };
+$("menuBtn").onclick = function () { $("panel").classList.add("open"); stats(); stoRefresh(); };
 $("btnClose").onclick = function () { $("panel").classList.remove("open"); };
 $("btnLevel").onclick = function () {
   if (!raw.R) { diag.perm = "no sensor data yet"; stats(); return; }
@@ -1353,9 +1538,54 @@ $("btnWake").onclick = function () {
   else { navigator.wakeLock.request("screen").then(function (w) { wl = w; b.className = "on"; b.textContent = "Screen awake"; })
     .catch(function () { b.textContent = "Wake lock refused"; }); }
 };
-/* Shown once, acknowledged once. Not a modal that nags, and not a line of grey
+/* ================= storage and diagnostics ================= */
+function stoRefresh() {
+  $("stoTiles").textContent = "…";
+  T.cacheStats().then(function (s) {
+    $("stoTiles").textContent = s.tiles === null ? "tiles n/a" : s.tiles.toLocaleString() + " tiles";
+    $("stoBytes").textContent = s.bytes === null ? "size n/a"
+      : (s.bytes / 1048576).toFixed(1) + " MB" + (s.quota ? " of " + Math.round(s.quota / 1048576) + " MB" : "");
+  });
+}
+$("stoRefresh").onclick = stoRefresh;
+$("stoPurge").onclick = function () {
+  var b = this;
+  if (b.dataset.armed !== "1") {
+    b.dataset.armed = "1"; b.textContent = "Purge — tap again";
+    setTimeout(function () { b.dataset.armed = "0"; b.textContent = "Purge charts"; }, 4000);
+    return;
+  }
+  b.dataset.armed = "0"; b.textContent = "Purging…";
+  T.purge().then(function () { b.textContent = "Purge charts"; stoRefresh(); });
+};
+$("diagCopy").onclick = function () {
+  var L = [];
+  L.push("Junco diagnostics");
+  L.push("time        " + new Date().toISOString());
+  L.push("build       " + (navigator.userAgent.indexOf("JuncoPFD") >= 0 ? "native APK" : "browser"));
+  L.push("agent       " + navigator.userAgent);
+  L.push("viewport    " + innerWidth + "x" + innerHeight + " dpr " + (devicePixelRatio || 1));
+  L.push("secure      " + window.isSecureContext + "   iframe " + (window.self !== window.top));
+  L.push("native br.  " + (N.hasNative() ? "yes" : "no"));
+  L.push("mode        " + dataMode);
+  L.push("orient ev.  " + diag.count + "   perm " + diag.perm + "   gnss " + diag.geo);
+  L.push("calibrated  " + (cal ? "yes" : "no") + "   rotation " + rotDeg + "°");
+  L.push("position    " + (gps.lat === null ? "none" : gps.lat.toFixed(4) + ", " + gps.lon.toFixed(4)));
+  L.push("aircraft    " + P.name + "  (" + P.id + ")  " + P.registration);
+  L.push("profiles    " + JP.all().length + "   flights " + O.flights().length);
+  L.push("airports    " + (AP.isReady() ? AP.count() : "not loaded"));
+  L.push("chart layer " + T.layerName() + "   mem tiles " + T.cached());
+  var ta = $("diagText");
+  ta.value = L.join("\n"); ta.style.display = "block"; ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); }
+  else { try { document.execCommand("copy"); } catch (e) {} }
+  var b = this; b.textContent = "Copied — read it before sending";
+  setTimeout(function () { b.textContent = "Copy diagnostics"; }, 3000);
+};
+
+/* Acknowledged at every launch. Not a modal that nags, and not a line of grey
    text nobody reads: this is a flight instrument in an aircraft with no panel,
-   and the limits belong in front of the pilot before the first flight. */
+   and the limits belong in front of the pilot before every flight. */
 (function startupAck() {
   // Every launch, not once. This is the convention on every marine and aviation
   // GPS for a reason: the acknowledgement is only worth anything if it happens
@@ -1434,6 +1664,7 @@ function pullOutside() {
 }
 $("qWx").onclick = function () { showPage("wx"); };
 $("qNrst").onclick = function () { showPage("nrst"); };
+$("qWb").onclick = function () { showPage("wb"); };
 $("nrstClose").onclick = function () { showPage("pfd"); };
 $("nrstRefresh").onclick = function () { nrstRender(); };
 
@@ -1471,6 +1702,223 @@ function nrstRender() {
     box.appendChild(d);
   });
 }
+/* ================= weight and balance =================
+   The one electronic-flight-bag feature that matters MORE here than it does in
+   a certified aircraft, because Part 103's 254 lb empty weight is not advice,
+   it is the boundary of the whole category: over it you are flying an
+   unregistered aircraft without a certificate or a licence. Everything on this
+   page is arithmetic the pilot could do on paper, done in front of them with
+   their own numbers, and it computes nothing until those numbers exist. */
+function durHM(hours) {
+  if (!isFinite(hours) || hours < 0) { return "—"; }
+  var m = Math.round(hours * 60);
+  return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+}
+function wbKey() { return "junco.wbload." + P.id; }
+function wbGetLoads() {
+  try { return JSON.parse(localStorage.getItem(wbKey()) || "{}") || {}; } catch (e) { return {}; }
+}
+function wbPutLoads(o) { try { localStorage.setItem(wbKey(), JSON.stringify(o)); } catch (e) {} }
+
+function wbRender() {
+  $("wbAc").textContent = P.name;
+  var wb = P.wb || (P.wb = JP.emptyWB());
+  var on = !!wb.enabled;
+  $("wbOff").style.display = on ? "none" : "block";
+  $("wbOn").style.display = on ? "block" : "none";
+  wb103Render();
+  if (!on) { $("wbSetup").style.display = "none"; return; }
+
+  var W = uWt(), A = uArm(), F = uFul();
+  var loads = wbGetLoads();
+  var box = $("wbLoad"); box.innerHTML = "";
+
+  function row(name, arm, editable, idx) {
+    var d = document.createElement("div"); d.className = "wbrow";
+    var n = document.createElement("span"); n.className = "nm2";
+    n.textContent = name + "  " + A.to(arm).toFixed(1) + " " + A.label.toLowerCase();
+    d.appendChild(n);
+    if (editable) {
+      var i = document.createElement("input");
+      i.className = "val"; i.type = "number"; i.step = "0.1";
+      i.value = Math.round(W.to(loads[idx] || 0) * 10) / 10;
+      i.oninput = function () {
+        var v = parseFloat(i.value);
+        loads[idx] = isNaN(v) ? 0 : W.from(v);
+        wbPutLoads(loads); wbSolveRender();
+      };
+      d.appendChild(i);
+    } else {
+      var f = document.createElement("span"); f.className = "mom";
+      f.textContent = W.to(wb.emptyWeight).toFixed(1) + " " + W.label.toLowerCase();
+      d.appendChild(f);
+    }
+    box.appendChild(d);
+  }
+  row("Empty", wb.emptyArm, false, -1);
+  (P.stations || []).forEach(function (s, i) { row(s.name || ("Station " + (i + 1)), s.arm, true, i); });
+
+  $("wbFuelU").textContent = F.label.toLowerCase();
+  var fu = O.getFuel();
+  $("wbFuel").value = fu ? Math.round(F.to(fu.litres) * 10) / 10 : "";
+  $("wbFuel").oninput = function () {
+    var v = parseFloat(this.value);
+    if (isNaN(v)) { O.clearFuel(); } else { O.setFuel(F.from(v)); }
+    wbSolveRender();
+  };
+  wbSolveRender();
+}
+
+function wbSolveRender() {
+  var wb = P.wb, W = uWt(), A = uArm();
+  var fu = O.getFuel();
+  var r = JP.wbSolve(P, wbGetLoads(), fu ? fu.litres : 0);
+
+  var bar = $("wbBar");
+  Array.prototype.slice.call(bar.querySelectorAll(".env,.now")).forEach(function (n) { bar.removeChild(n); });
+  if (r.envelope && r.cg !== null) {
+    // Draw the envelope with a margin either side so an out-of-limits CG is
+    // still visible on the bar rather than clipped off the end of it.
+    var pad = (wb.cgAft - wb.cgFwd) * 0.6;
+    var lo = wb.cgFwd - pad, hi = wb.cgAft + pad, span = hi - lo;
+    var e = document.createElement("div"); e.className = "env";
+    e.style.left = ((wb.cgFwd - lo) / span * 100) + "%";
+    e.style.width = ((wb.cgAft - wb.cgFwd) / span * 100) + "%";
+    bar.appendChild(e);
+    var pos = Math.max(0, Math.min(1, (r.cg - lo) / span));
+    var m = document.createElement("div");
+    m.className = "now" + (r.cg < wb.cgFwd || r.cg > wb.cgAft ? " bad" : "");
+    m.style.left = "calc(" + (pos * 100) + "% - 1px)";
+    bar.appendChild(m);
+    $("wbBarTx").textContent = "CG " + A.to(r.cg).toFixed(1) + " " + A.label.toLowerCase() +
+      "   envelope " + A.to(wb.cgFwd).toFixed(1) + "–" + A.to(wb.cgAft).toFixed(1);
+  } else {
+    $("wbBarTx").textContent = r.cg === null ? "No weight entered" : "No CG envelope entered";
+  }
+
+  var v = $("wbVerdict"), lines = [];
+  lines.push("Ramp weight   " + W.to(r.weight).toFixed(1) + " " + W.label.toLowerCase() +
+             (r.grossSet ? "   of " + W.to(wb.maxGross).toFixed(1) + " max" : "   (no gross limit entered)"));
+  if (r.cg !== null) { lines.push("CG            " + A.to(r.cg).toFixed(2) + " " + A.label.toLowerCase() + " aft of datum"); }
+  if (r.grossSet) {
+    var margin = wb.maxGross - r.weight;
+    lines.push((margin >= 0 ? "Room left     " : "OVER BY       ") + W.to(Math.abs(margin)).toFixed(1) + " " + W.label.toLowerCase());
+  }
+  var fp = O.fuelPlan(P, null);
+  if (fp) {
+    lines.push("Endurance     " + durHM(fp.enduranceHr) + " total, " +
+               durHM(fp.toReserveHr) + " to reserve");
+    lines.push("Fuel entered  " + (fp.ageMin < 60 ? Math.round(fp.ageMin) + " min ago"
+                                                  : durHM(fp.ageMin / 60) + " ago"));
+  }
+  v.textContent = lines.join("\n");
+  v.style.whiteSpace = "pre";
+  v.className = "verdict " + (!r.grossSet && !r.envelope ? "unk" : (r.ok ? "ok" : "bad"));
+  if (!r.ok) { v.textContent = r.errors.join("  ·  ") + "\n" + v.textContent; }
+}
+
+function wb103Render() {
+  var box = $("wb103"); box.innerHTML = "";
+  JP.part103(P).forEach(function (c) {
+    var d = document.createElement("div");
+    d.className = "wbrow";
+    var mark = c.ok === true ? "✓" : (c.ok === false ? "✗" : "?");
+    var col = c.ok === true ? "var(--green)" : (c.ok === false ? "var(--red)" : "var(--amber)");
+    d.innerHTML = '<span class="mom" style="width:20px;text-align:left;color:' + col + '">' + mark +
+                  '</span><span class="nm2" style="white-space:normal">' + c.text + "</span>";
+    box.appendChild(d);
+  });
+}
+
+$("wbEnable").onclick = function () {
+  P.wb.enabled = true; JP.put(P);
+  $("wbSetup").style.display = "block";
+  wbFillSetup(); wbRender();
+};
+$("wbEdit").onclick = function () {
+  var s = $("wbSetup");
+  if (s.style.display === "none") { s.style.display = "block"; wbFillSetup(); }
+  else { wbReadSetup(); s.style.display = "none"; }
+};
+$("wbDisable").onclick = function () {
+  P.wb.enabled = false; JP.put(P);
+  $("wbSetup").style.display = "none"; wbRender();
+};
+$("wbZero").onclick = function () { wbPutLoads({}); wbRender(); };
+$("wbFuelFull").onclick = function () { O.setFuel(P.fuel.usable); wbRender(); };
+$("wbFuelTabs").onclick = function () { O.setFuel(P.fuel.usable / 2); wbRender(); };
+$("wbAddSt").onclick = function () {
+  // Read the form back first. Adding a station redraws the whole setup block
+  // from the profile, and without this the numbers you were halfway through
+  // typing are silently wiped — which is how you end up saving an empty weight
+  // of zero and getting told it is not set.
+  wbReadSetup();
+  P.stations = P.stations || [];
+  P.stations.push({ name: "Station " + (P.stations.length + 1), arm: 0, max: 0 });
+  $("wbSetup").style.display = "block"; wbFillSetup(); wbRender();
+};
+
+function wbFillSetup() {
+  var wb = P.wb, W = uWt(), A = uArm();
+  var r1 = function (v) { return Math.round(v * 10) / 10; };
+  var r2 = function (v) { return Math.round(v * 100) / 100; };
+  $("wbEw").value = wb.emptyWeight ? r1(W.to(wb.emptyWeight)) : "";
+  $("wbEa").value = wb.emptyArm ? r2(A.to(wb.emptyArm)) : "";
+  $("wbMg").value = wb.maxGross ? r1(W.to(wb.maxGross)) : "";
+  $("wbFa").value = wb.fuelArm ? r2(A.to(wb.fuelArm)) : "";
+  $("wbCf").value = wb.cgFwd ? r2(A.to(wb.cgFwd)) : "";
+  $("wbCa").value = wb.cgAft ? r2(A.to(wb.cgAft)) : "";
+  $("wbFd").value = wb.fuelDensity >= 0.78 ? "0.80" : "0.72";
+  $("wbDatum").value = wb.datumNote || "";
+  $("wbErr").textContent = "";
+
+  var box = $("wbStations"); box.innerHTML = "";
+  (P.stations || []).forEach(function (s, i) {
+    var d = document.createElement("div"); d.className = "wbrow";
+    var n = document.createElement("input");
+    n.className = "val"; n.style.flex = "1"; n.style.minWidth = "0"; n.value = s.name || "";
+    n.oninput = function () { s.name = n.value; };
+    var a = document.createElement("input");
+    a.className = "val"; a.type = "number"; a.step = "0.01"; a.style.width = "80px";
+    a.value = s.arm ? Math.round(A.to(s.arm) * 100) / 100 : "";
+    a.oninput = function () { var v = parseFloat(a.value); s.arm = isNaN(v) ? 0 : A.from(v); };
+    var x = document.createElement("button");
+    x.textContent = "×";
+    x.onclick = function () { wbReadSetup(); P.stations.splice(i, 1); wbFillSetup(); wbRender(); };
+    d.appendChild(n); d.appendChild(a); d.appendChild(x);
+    box.appendChild(d);
+  });
+  if (!(P.stations || []).length) {
+    box.innerHTML = '<p class="hint">No stations yet. Add the pilot at minimum &mdash; ' +
+      'empty weight plus fuel is not a loading.</p>';
+  }
+}
+
+/* Form -> in-memory profile. Deliberately does not persist and does not
+   validate: stations and numbers are both half-typed while the pilot works
+   through them, and only Save commits. */
+function wbReadSetup() {
+  var W = uWt(), A = uArm(), wb = P.wb;
+  var n = function (id) { var v = parseFloat($(id).value); return isNaN(v) ? 0 : v; };
+  wb.emptyWeight = W.from(n("wbEw"));
+  wb.emptyArm = A.from(n("wbEa"));
+  wb.maxGross = W.from(n("wbMg"));
+  wb.fuelArm = A.from(n("wbFa"));
+  wb.cgFwd = A.from(n("wbCf"));
+  wb.cgAft = A.from(n("wbCa"));
+  wb.fuelDensity = parseFloat($("wbFd").value) || 0.72;
+  wb.datumNote = $("wbDatum").value.trim();
+}
+$("wbSave").onclick = function () {
+  wbReadSetup();
+  var bad = JP.validate(P);
+  if (bad.length) { $("wbErr").innerHTML = '<b style="color:#E8483D">' + bad[0] + "</b>"; return; }
+  JP.put(P);
+  $("wbErr").innerHTML = '<b style="color:#3FCF6A">saved</b>';
+  wbRender();
+};
+$("wbClose").onclick = function () { showPage("pfd"); };
+
 AP.load();
 $("wxClose").onclick = function () { showPage("pfd"); };
 $("wxRefresh").onclick = function () { N.fetchWx(gps.lat, gps.lon).then(wxRender); };
@@ -1539,6 +1987,7 @@ function drawMap() {
     return { lat: la2 * 180 / Math.PI, lon: ((lo2 * 180 / Math.PI) + 540) % 360 - 180 };
   }
   mapUnproject = unproject;
+  mapPPN = ppn;                 // pixels per nautical mile, for tap tolerance
 
   // range rings
   g.strokeStyle = "#243038"; g.lineWidth = 1; g.font = "11px ui-monospace, monospace";
@@ -1576,6 +2025,10 @@ function drawMap() {
       if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) { return; }
       g.strokeStyle = a.kind === "H" ? "#7FA8C0" : "#CFE0EA"; g.lineWidth = 1.5;
       g.beginPath(); g.arc(q[0], q[1], 4, 0, Math.PI * 2); g.stroke();
+      if (mapPick && a.ident === mapPick.ident) {
+        g.strokeStyle = "#E8A33D"; g.lineWidth = 2;
+        g.beginPath(); g.arc(q[0], q[1], 11, 0, Math.PI * 2); g.stroke();
+      }
       if (mapRange <= 15) { g.fillStyle = "#CFE0EA"; g.fillText(a.ident, q[0] + 6, q[1] + 3); }
     });
   }
@@ -1660,7 +2113,7 @@ function drawMap() {
   T.attribution(g, W, H);
 }
 function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
-var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", nrst: "nrstPage", wx: "wxPage" };
+var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", nrst: "nrstPage", wb: "wbPage", wx: "wxPage" };
 function showPage(p) {
   Object.keys(PAGES).forEach(function (k) {
     if (PAGES[k]) { $(PAGES[k]).classList.toggle("open", k === p); }
@@ -1668,17 +2121,19 @@ function showPage(p) {
     if (b) { b.classList.toggle("sel", k === p); }
   });
   $("panel").classList.remove("open");
+  if (p !== "map") { mapPick = null; $("mapSel").classList.remove("open"); }
   if (p === "map") { T.setRedraw(function () {}); if (dataMode === "live") { pullOutside(); } mapLoop(); }
   if (p === "chk") { chkRender(); }
   if (p === "log") { logRender(); }
   if (p === "wx") { pullOutside(); wxRender(); tfcRender(); }
   if (p === "nrst") { nrstRender(); }
+  if (p === "wb") { wbRender(); }
 }
 $("qPfd").onclick = function () { showPage("pfd"); };
 $("qMap").onclick = function () { showPage("map"); };
 $("mapClose").onclick = function () { showPage("pfd"); };
 
-var mapUnproject = null;
+var mapUnproject = null, mapPPN = null;
 (function gestures() {
   var c = $("mapC");
   var pts = new Map(), startDist = 0, startRange = 10, moved = 0, last = null;
@@ -1686,7 +2141,11 @@ var mapUnproject = null;
   function pos(e) { var r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 
   c.addEventListener("pointerdown", function (e) {
-    c.setPointerCapture(e.pointerId);
+    // Capture is an optimisation, not a requirement. When it throws — and it
+    // does, for pointer ids the browser no longer considers active — an
+    // unguarded call here aborts the handler before any state is recorded,
+    // and the map stops responding to touch entirely.
+    try { c.setPointerCapture(e.pointerId); } catch (err) {}
     pts.set(e.pointerId, pos(e));
     moved = 0; last = pos(e);
     if (pts.size === 2) {
@@ -1732,15 +2191,64 @@ var mapUnproject = null;
   function up(e) {
     if (pts.size < 2) { startDist = 0; }
     pts.delete(e.pointerId);
-    if (moved < 8 && routeMode && mapUnproject) {         // a tap, not a drag
+    if (moved < 8 && mapUnproject) {                      // a tap, not a drag
       var p = last || [0, 0];
       var w = mapUnproject(p[0], p[1]);
-      O.addWpt(w.lat, w.lon);
+      if (routeMode) { O.addWpt(w.lat, w.lon); }
+      else { mapIdentify(w.lat, w.lon); }
     }
     moved = 0;
   }
   ["pointerup", "pointercancel"].forEach(function (t) { c.addEventListener(t, up); });
 })();
+
+/* Tap an airport to identify it. The nearest-airports page already lists what
+   is close by; this answers the other question, "what is that field I can see
+   out the left window", which a list sorted by distance cannot. */
+var mapPick = null;
+function mapIdentify(lat, lon) {
+  if (!AP.isReady() || !mapPPN) { return; }
+  // Threshold is a fixed number of screen pixels converted to nautical miles,
+  // so the tap target stays finger-sized at every zoom instead of grabbing half
+  // the state when you are zoomed out. The scale comes from the draw itself
+  // rather than being recomputed here, because a second copy of that formula
+  // is a second thing to get wrong.
+  var tolNM = 30 / mapPPN;
+  var hit = AP.nearest(lat, lon, 1, tolNM);
+  mapPick = hit.length ? hit[0] : null;
+  mapSelRender();
+}
+function mapSelRender() {
+  var box = $("mapSel");
+  if (!mapPick) { box.classList.remove("open"); return; }
+  var a = mapPick, L = [a.ident + "   " + a.name];
+  var bits = [a.kind === "H" ? "heliport" : "airport", a.elev + " ft"];
+  if (gps.lat !== null) {
+    bits.push(N.distNM(gps.lat, gps.lon, a.lat, a.lon).toFixed(1) + " nm  " +
+              String(Math.round(N.bearing(gps.lat, gps.lon, a.lat, a.lon))).padStart(3, "0") + "°");
+  }
+  L.push(bits.join("  ·  "));
+  if (a.freqs && a.freqs.length) {
+    L.push(a.freqs.slice(0, 4).map(function (f) {
+      return AP.freqLabel(f[0]) + " " + f[1].toFixed(3);
+    }).join("   "));
+  } else {
+    L.push("No published frequency");
+  }
+  $("mapSelTx").textContent = L.join("\n");
+  box.classList.add("open");
+}
+$("mapSelX").onclick = function () { mapPick = null; mapSelRender(); };
+$("mapSelDct").onclick = function () {
+  if (!mapPick) { return; }
+  O.setDest(mapPick.lat, mapPick.lon, mapPick.ident); O.setActive("dest");
+  mapPick = null; mapSelRender();
+};
+$("mapSelRte").onclick = function () {
+  if (!mapPick) { return; }
+  O.addWpt(mapPick.lat, mapPick.lon, mapPick.ident);
+  mapPick = null; mapSelRender();
+};
 
 $("mapNorth").onclick = function () {
   mapUp = !mapUp;
@@ -1952,13 +2460,14 @@ $("navToDest").onclick = function () { O.setActive("dest"); $("navMsg").innerHTM
    thing the app is for was the wrong default. Permission is still asked; on
    iOS the gesture requirement means the first tap anywhere completes it. */
 (function autoStart() {
-  var tried = false;
-  function go() { if (tried) { return; } tried = true; setMode("live"); }
-  go();
+  setMode("live");
+  // If no orientation event has arrived by the first tap, ask again — iOS only
+  // grants the permission from inside a gesture. Retry the SENSOR, nothing
+  // else: this deliberately does not touch the mode, the fix or the trail.
   ["pointerdown", "touchstart"].forEach(function (ev) {
     window.addEventListener(ev, function once() {
-      if (diag.count === 0) { tried = false; go(); }
       window.removeEventListener(ev, once);
+      if (diag.count === 0 && dataMode === "live") { startOrient(); stats(); }
     }, { once: true });
   });
 })();

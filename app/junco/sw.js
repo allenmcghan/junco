@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-var CACHE = "junco-v8";
+var CACHE = "junco-v9";
 var TILES = "junco-osm-tiles-v1";
 
 var SHELL = [

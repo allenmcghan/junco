@@ -58,6 +58,46 @@
     return { dist: d, brg: b, rel: rel, ete: ete, name: t.name || (nav.active === "home" ? "HOME" : "DEST") };
   }
 
+  /* ================= fuel on board =================
+     A number the pilot types, not a measurement. There is no fuel sender yet
+     and this must never be mistaken for one, so it carries the time it was
+     entered and every reader is expected to show that age. Once a node exists
+     this becomes the fallback for when the sender is invalid, which is exactly
+     the arrangement design rule 8 asks for: the display says which one it got.
+
+     Fuel exhaustion is a top cause of engine-out in light aircraft and it is
+     almost always arithmetic, not a leak. Endurance from a dipstick reading
+     and a known burn is worth more than nothing, which is what we had. */
+  var fuel = LS.get("junco.fuel", null);   // {litres, at}
+  function setFuel(litres) {
+    fuel = { litres: Math.max(0, litres), at: Date.now() };
+    LS.set("junco.fuel", fuel);
+    return fuel;
+  }
+  function getFuel() { return fuel; }
+  function clearFuel() { fuel = null; LS.set("junco.fuel", null); }
+
+  /** Endurance and fuel at the destination. burnLph and usable in litres.
+      Returns null members rather than guesses when an input is missing. */
+  function fuelPlan(profile, sol) {
+    if (!fuel || !profile || profile.fuel.burnCruise <= 0) { return null; }
+    var burn = profile.fuel.burnCruise;                   // litres per hour
+    var reserveL = burn * (profile.fuel.reserveHr || 0);
+    var hours = fuel.litres / burn;
+    var toReserve = Math.max(0, fuel.litres - reserveL) / burn;
+    var atDest = null, dryBeforeDest = false;
+    if (sol && sol.ete !== null) {
+      atDest = fuel.litres - burn * (sol.ete / 3600);
+      dryBeforeDest = atDest < reserveL;
+    }
+    return {
+      litres: fuel.litres, at: fuel.at, burn: burn, reserveL: reserveL,
+      enduranceHr: hours, toReserveHr: toReserve,
+      atDestL: atDest, belowReserve: dryBeforeDest,
+      ageMin: (Date.now() - fuel.at) / 60000
+    };
+  }
+
   function setHome(lat, lon) { nav.home = { lat: lat, lon: lon, at: Date.now() }; saveNav(); }
   function setDest(lat, lon, name) { nav.dest = { lat: lat, lon: lon, name: name || "DEST" }; saveNav(); }
   function setActive(which) { nav.active = which; saveNav(); }
@@ -256,6 +296,7 @@
   global.JuncoOps = {
     nav: nav, solution: solution, setHome: setHome, setDest: setDest, setActive: setActive,
     parseLatLon: fmtLatLon,
+    setFuel: setFuel, getFuel: getFuel, clearFuel: clearFuel, fuelPlan: fuelPlan,
     trail: trail, addTrail: addTrail, clearTrail: clearTrail,
     route: route, addWpt: addWpt, delWpt: delWpt, clearRoute: clearRoute, legs: legs,
     PHASES: PHASES, getPhases: getPhases, addPhase: addPhase, removePhase: removePhase, getChecklist: getChecklist, saveChecklist: saveChecklist,

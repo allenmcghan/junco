@@ -28,6 +28,19 @@ curve.
 
 **Fuel.** Capacity, usable quantity, burn rate against RPM.
 
+**Weight and balance.** Empty weight and arm, maximum gross, forward and aft CG
+limits, fuel arm and density, and a named station list with an arm and an
+optional maximum for each. All masses in kilograms, all arms in metres aft of
+the datum, and a free-text note recording which datum was used.
+
+**This block is present but disabled until it has been filled in from a
+weighing, and a disabled block is not the same as a block full of zeros.** A
+profile that carries a fabricated empty weight is more dangerous than one that
+carries none, because a consumer cannot tell the difference between a number
+that was measured and a number that was invented. An implementation must not
+supply a default empty weight, must not compute an envelope from a disabled
+block, and must distinguish "outside the envelope" from "no envelope entered".
+
 **Units.** Every unit independently selectable. Feet or meters, knots or mph or
 km/h, Fahrenheit or Celsius, gallons or liters, inHg or hPa.
 
@@ -91,6 +104,10 @@ than substituting a default. Minimum rejections:
 - Two channels claiming the same pin or address
 - A limit outside the range its sensor can represent
 - A fuel backend named in the channel map with no corresponding calibration
+- Weight and balance enabled with no empty weight
+- An empty weight at or above maximum gross
+- An aft CG limit at or forward of the forward limit
+- A fuel density of zero or less
 
 ## Profile hash
 
@@ -114,6 +131,13 @@ app-side configuration and stays on the phone. Traffic backend selection is the
 current example: which receiver or feed a pilot uses is a property of what is in
 their flight bag, it changes without the aircraft changing, and the node is not
 in that data path at all. See PRD section 22.
+
+## Reference implementation
+
+`app/junco/profile.js` writes and reads `schema_version = 2`, which added
+`[weight_balance]` and `[station.N]`. Its key names are provisional until this
+document specifies them, but the round trip is exercised by the app's audit and
+the semantics above are already enforced there.
 
 ## Not yet specified
 

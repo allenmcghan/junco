@@ -2,7 +2,7 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 7
+Status: Draft, revision 8
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
@@ -14,9 +14,11 @@ Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions J
 
 Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`.
 
+Revision 6 recognises that the app became a product before the node did. Junco is now two things that ship on different schedules: an Android electronic flight bag that is useful today with no hardware at all, and the sensor node that was the original project.
+
 Revision 7 relicenses the code to MPL-2.0 so an iOS client stays possible.
 
-Revision 6 recognises that the app became a product before the node did. Junco is now two things that ship on different schedules: an Android electronic flight bag that is useful today with no hardware at all, and the sensor node that was the original project. Section 26 records what changed and why.
+Revision 8 adds weight and balance with a Part 103 check, fuel endurance, and the fixes an end-to-end audit of every control turned up. Section 26 records what changed and why.
 
 ---
 
@@ -776,6 +778,20 @@ The app is the part of Junco that reaches a pilot this year. It runs on Android,
 | METAR and TAF, density altitude | aviationweather.gov |
 | Advisory traffic | airplanes.live |
 | Aircraft profiles, shared as TOML files | Local, per section 11 |
+| Weight and balance, with a 14 CFR 103.1 check | Local, from the owner's weighing report |
+| Endurance and fuel remaining at the destination | Arithmetic on a figure the pilot typed |
+
+### Weight and balance
+
+Added in revision 8. It is the one electronic flight bag feature that matters **more** in this category than in a certified aircraft, because Part 103's 254 lb empty weight is not guidance. Over it, the aircraft is not an ultralight, and the pilot is flying an unregistered aircraft with no certificate and no licence. Everything else about 103 flows from that number.
+
+Three decisions inside it are load bearing.
+
+**Presets ship with weight and balance off and empty.** Every other field in a preset is a plausible starting point a builder corrects later. A weight is not. There is no plausible empty weight for an aircraft nobody has weighed, and a fabricated one that happens to close the envelope is worse than a blank page, because it looks like an answer. The page will not compute until the numbers come off a real weighing.
+
+**Fuel on board is declared as typed, not measured.** There is no fuel sender in this build, so endurance and fuel-at-arrival are arithmetic on a dipstick reading. Both readouts carry how long ago the figure was entered. When a node exists, the typed figure becomes the fallback for an invalid sender, which is exactly the arrangement design rule 8 describes.
+
+**The 103 check reports what it cannot check.** Two of the four numeric limits in 103.1 are calibrated airspeeds no phone can measure. The check lists them as unverified rather than omitting them, and it says in the page that the 254 lb limit excludes floats and safety devices intended for deployment in a potentially catastrophic situation, because a ballistic parachute changes the arithmetic and the app cannot know what was fitted. It is an arithmetic aid, not a finding of compliance.
 
 ### Rules the app inherits and how they show up
 
@@ -802,6 +818,22 @@ Every marine and aviation GPS does this, and the reason is that an acknowledgeme
 ---
 
 ## 26. Revision history
+
+### Revision 8, August 2026: weight and balance, and what an end-to-end audit found
+
+**What changed.** Weight and balance with a 14 CFR 103.1 check, fuel endurance and fuel remaining at the destination, tap an airport on the chart to identify it or go direct, chart cache accounting with a purge that leaves the owner's data alone, and a diagnostics dump that goes to the clipboard rather than to a server.
+
+**Why these five.** They came out of driving every control in the app through a browser automation harness and asking what a pilot would reach for and not find. Weight and balance was the largest gap and the only one with a legal edge to it. The rest are each a small thing the app already had the data for and did not surface.
+
+**What the audit found.** Eighty-eight scripted interactions across two passes. Five real defects, of which four were invisible from the code alone:
+
+- A dead handler bound to a removed button threw during setup and silently killed every handler defined after it, taking out the checklist page, the nearest page and destination entry. `$()` now returns an inert stub and warns, so one stale reference costs one control rather than the rest of the app.
+- **The first tap anywhere on the screen threw away the GPS fix and erased the breadcrumb trail.** The gesture that re-asks for orientation permission on iOS was re-running the whole live-mode setup, which resets position state. It only bit on devices where the orientation sensor is slow or absent, which is precisely the population that needs the GPS most. Asking for a permission must not have side effects on unrelated state.
+- A padding shorthand overrode the tab-bar clearance on four pages, leaving each one's Close button underneath the tab bar and untappable.
+- The settings button sat below the overlay pages in z-order, so settings was unreachable from the map, the charts, the checklist or the logbook.
+- `setPointerCapture` was called unguarded at the top of the map's pointerdown handler; when it throws, no gesture state is recorded and the map stops responding to touch entirely.
+
+**Why this is in the revision history at all.** Four of those five were reachable only by pretending to be a pilot with a finger, not by reading the code. That is worth recording as a method, not just as a set of fixes.
 
 ### Revision 7, August 2026: MPL-2.0, so iOS stays possible
 

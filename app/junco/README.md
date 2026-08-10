@@ -65,10 +65,39 @@ and pushing a `v*` tag attaches it to a release.
 It is debug-signed, so installing it means allowing unknown sources. That is
 appropriate for a app and would not be appropriate for anything else.
 
+## Weight and balance
+
+`W&B` on the tab bar. It ships **off**, with no numbers, and stays that way until
+you enter values from an actual weighing.
+
+That is deliberate and it is the only field in the whole app that works this way.
+Every other preset value is a plausible starting point you correct later; an
+empty weight is not. There is no plausible empty weight for an aircraft nobody
+has weighed, and a fabricated one that happens to close the envelope is worse
+than a blank page, because it looks like an answer.
+
+Enter empty weight and arm, max gross, the CG envelope, and a station for each
+seat and baggage area, all measured aft of whatever datum your weighing report
+used. Loads persist per aircraft, so the pilot's own weight is typed once.
+
+The **Part 103 check** underneath it tests 14 CFR 103.1 against what the app can
+actually see, and says so where it cannot: two of the four numeric limits are
+calibrated airspeeds no phone can measure, and the 254 lb empty weight limit
+excludes floats and safety devices intended for deployment in a potentially
+catastrophic situation, so a ballistic parachute has to come out of the number
+before you type it. **Arithmetic aid, not a finding of compliance.**
+
+Fuel on board is entered here too. It drives endurance, time to reserve, and
+fuel remaining at the destination on the main screen. It is a number you typed,
+not a measurement, and every readout of it shows how long ago you typed it.
+
 ## What is real and what is invented
 
 **Real, from the device:** attitude, heading, track, ground speed, GPS altitude,
 position.
+
+**Real, but from you:** empty weight, station arms, loads, and fuel on board.
+Marked as entered rather than measured wherever they are used.
 
 **Simulated:** the entire engine strip, indicated airspeed, pressure altitude,
 and vertical speed. Those are node channels and no node exists. Values are
