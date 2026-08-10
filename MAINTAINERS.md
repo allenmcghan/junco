@@ -39,24 +39,23 @@ assumes someone is there to act on it.
 
 ## Why the licenses differ
 
-Firmware is GPL-2.0-or-later, hardware is CERN-OHL-S-2.0, documentation and
-specifications are CC-BY-4.0.
+Code is MPL-2.0, hardware is CERN-OHL-S-2.0, documentation and specifications
+are CC-BY-4.0.
 
-The code and the hardware are copyleft because the purpose of the project is to
-put this capability into the world permanently, and a permissive license lets a
-better funded fork take the work closed and outrun the original. Anyone may
-still build, modify, sell, or fork Junco. What they may not do is stop passing
-it on.
+The code is weak copyleft rather than strong. Change a Junco file and you publish
+that file; combine it with anything you like otherwise, including closed code,
+and charge for the result. That is a deliberate loosening from the GPL chosen in
+revision 4, and the reason is distribution: GPL cannot ship on Apple's App Store,
+because Apple's DRM imposes exactly the further restrictions GPL section 6
+forbids. VLC was pulled over it. MPL-2.0 is what Firefox for iOS ships under.
 
-GPL v2 **or later** matches MakerPlane, so code moves in both directions between
-this project and FIX-Gateway or pyEFIS without relicensing. The "or later" also
-keeps GPLv3 reachable if ArduPilot code is ever wanted for the v2 bus stage.
+MPL is also explicitly GPL-compatible through its Secondary License clause, so
+the two-way flow with MakerPlane's FIX-Gateway and pyEFIS that motivated the GPL
+choice survives the change intact.
 
-CERN-OHL-S is the strongly reciprocal license actually written for hardware
-design artifacts. A software license does not cleanly cover board files and
-mechanical models.
+The hardware stays strongly reciprocal. No app store touches a board file, so
+none of the above applies to it.
 
-The specifications are the deliberate exception and stay CC-BY, so anyone can
-implement them in anything, including a closed product. A protocol that cannot
-be adopted freely does not outlive its implementation, which is the entire
-reason `spec/` exists.
+The specifications stay CC-BY so anyone can implement them in anything. A
+protocol that cannot be adopted freely does not outlive its implementation, which
+is the entire reason `spec/` exists.

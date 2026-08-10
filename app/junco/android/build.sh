@@ -8,9 +8,9 @@
 # not a real client.
 #
 # Requires: ANDROID_HOME pointing at an SDK with build-tools and platform 34,
-# and a JDK. Produces build/junco-pfd-mockup.apk, debug-signed for sideloading.
+# and a JDK. Produces build/junco.apk, debug-signed for sideloading.
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 set -euo pipefail
 
@@ -41,8 +41,13 @@ mkdir -p "$OUT/assets" "$OUT/flat" "$OUT/gen" "$OUT/classes"
 
 # The web app is the payload. Copy it in rather than symlink so the APK is
 # self-contained and the source of truth stays one directory up.
-cp "$WEB/index.html" "$WEB/manifest.webmanifest" "$WEB/sw.js" \
+cp "$WEB/index.html" "$WEB/profile.js" "$WEB/net.js" "$WEB/ops.js" "$WEB/tiles.js" "$WEB/airports.js" "$WEB/manifest.webmanifest" "$WEB/sw.js" \
    "$WEB/icon-192.png" "$WEB/icon-512.png" "$OUT/assets/"
+mkdir -p "$OUT/assets/data" && cp "$WEB/data/airports.json" "$OUT/assets/data/"
+
+# Gradle owns the package name via namespace, so the checked-in manifest has no
+# package attribute. aapt2 requires one, so inject it for the raw dev build.
+sed "s|<manifest |<manifest package=\"com.keylinkit.junco\" |" "$HERE/AndroidManifest.xml" > "$OUT/AndroidManifest.xml"
 
 echo "==> resources"
 "$BT/aapt2" compile --dir "$HERE/res" -o "$OUT/flat/res.zip"
@@ -51,7 +56,7 @@ echo "==> link"
 "$BT/aapt2" link \
   -o "$OUT/base.apk" \
   -I "$JAR" \
-  --manifest "$HERE/AndroidManifest.xml" \
+  --manifest "$OUT/AndroidManifest.xml" \
   -R "$OUT/flat/res.zip" \
   -A "$OUT/assets" \
   --java "$OUT/gen" \
@@ -87,10 +92,10 @@ if [ ! -f "$KS" ]; then
     -dname "CN=Junco Mockup Debug, OU=Junco, O=Junco, C=US" >/dev/null 2>&1
 fi
 "$BT/apksigner" sign --ks "$KS" --ks-pass pass:android --key-pass pass:android \
-  --out "$OUT/junco-pfd-mockup.apk" "$OUT/aligned.apk"
+  --out "$OUT/junco.apk" "$OUT/aligned.apk"
 
-"$BT/apksigner" verify --print-certs "$OUT/junco-pfd-mockup.apk" | head -3
+"$BT/apksigner" verify --print-certs "$OUT/junco.apk" | head -3
 
 echo
-echo "built: $OUT/junco-pfd-mockup.apk"
-ls -lh "$OUT/junco-pfd-mockup.apk" | awk '{print $5, $9}'
+echo "built: $OUT/junco.apk"
+ls -lh "$OUT/junco.apk" | awk '{print $5, $9}'

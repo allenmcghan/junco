@@ -1,0 +1,2481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Junco PFD</title>
+<!--
+  Junco PFD — primary flight display and electronic flight bag.
+  Copyright (c) Junco contributors.
+  SPDX-License-Identifier: MPL-2.0
+
+  This Source Code Form is subject to the terms of the Mozilla Public License,
+  v. 2.0. If a copy of the MPL was not distributed with this file, You can
+  obtain one at https://mozilla.org/MPL/2.0/.
+
+  NOT FOR PRIMARY NAVIGATION. Advisory use only. See the disclaimer shown at
+  every launch, which is deliberately not dismissible-once.
+-->
+
+<style>
+  /* A cockpit display is dark in every cockpit. Single theme, every colour
+     painted explicitly, no page scroll, no chrome. */
+  :root {
+    --bezel:   #000000;
+    --panel:   #14181C;
+    --rule:    #2E363C;
+    --white:   #FFFFFF;
+    --dim:     #93A0A8;
+    --magenta: #E845E8;
+    --cyan:    #35D6E8;
+    --green:   #3FCF6A;
+    --amber:   #E8A33D;
+    --red:     #E8483D;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;                 /* never scrolls */
+    background: var(--bezel);
+    color: var(--white);
+    font-family: var(--ui);
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  #pfd {
+    position: fixed;
+    inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+    background: var(--bezel);
+  }
+
+  text { font-family: var(--mono); }
+
+  /* menu button, deliberately small and out of the scan */
+  #menuBtn {
+    position: fixed; top: 6px; right: 6px;
+    width: 40px; height: 34px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    color: var(--dim);
+    font-size: 17px; line-height: 1;
+    /* Above the overlay pages, not below them. At z-20 the settings button
+       vanished under every page including the map, so the only way to reach
+       settings was to go back to the PFD first. */
+    cursor: pointer; z-index: 41;
+  }
+  #menuBtn:focus-visible { outline: 2px solid var(--cyan); }
+
+  /* overlay */
+  #panel {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.90);
+    z-index: 30;
+    display: none;
+    overflow-y: auto;
+    padding: 14px;
+  }
+  #panel.open { display: block; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  .grp {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: var(--panel);
+  }
+  .grp h3 {
+    margin: 0 0 8px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--dim);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .row + .row { margin-top: 7px; }
+
+  button {
+    font-family: var(--ui);
+    font-size: 13px; font-weight: 600;
+    color: var(--white);
+    background: #1D2429;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  button:active { background: #2A343A; }
+  button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  button.go { background: var(--cyan); border-color: var(--cyan); color: #04262B; }
+  button.on { background: var(--green); border-color: var(--green); color: #03210F; }
+  button.sm { padding: 8px 10px; min-width: 46px; font-family: var(--mono); }
+
+  .val {
+    font-family: var(--mono); font-size: 13px; color: var(--white);
+    background: #0B0F12; border: 1px solid var(--rule); border-radius: 3px;
+    padding: 8px 10px; min-width: 78px; text-align: center;
+  }
+  input.val, select.val, textarea.val { font-family: var(--mono); background:#0B0F12; color:var(--white); border:1px solid var(--rule); border-radius:3px; padding:8px; font-size:13px; }
+  .lbl { font-family: var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  .hint { font-size: 12px; line-height: 1.5; color: var(--dim); margin: 7px 0 0; }
+  .hint b { color: var(--white); }
+  .stat { font-family: var(--mono); font-size: 11.5px; line-height: 1.7; color: var(--dim); }
+  .stat span { float: right; }
+  .ok { color: var(--green); } .bad { color: var(--red); } .warn { color: var(--amber); }
+
+  /* on-screen controls: reachable in flight, out of the scan */
+  #quick {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; gap: 3px; background: rgba(0,0,0,.86);
+    border-top: 1px solid var(--rule);
+    padding: 4px calc(4px + env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
+  }
+  #quick button {
+    flex: 1 1 0; min-width: 0;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 10px 2px; background: transparent; border: 1px solid transparent;
+    color: var(--dim); border-radius: 3px;
+  }
+  #quick button.tab.sel { background: #171E23; border-color: var(--rule); color: var(--white); }
+  /* Every scrolling page needs this. Without it the tab bar sits on top of the
+     last control on the page and the Close button cannot be tapped at all. */
+  #panel, #wxPage, #chkPage, #logPage, #nrstPage, #wbPage { padding-bottom: 76px; }
+
+  #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
+  #quick button.live { color: var(--green); border-color: var(--green); }
+  #quick button.warn { color: var(--amber); border-color: var(--amber); }
+  #menuBtn { top: calc(6px + env(safe-area-inset-top)); right: calc(6px + env(safe-area-inset-right)); }
+  #panel, #wxPage { padding-top: calc(14px + env(safe-area-inset-top)); }
+
+  #wxPage {
+    position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
+    display: none; overflow-y: auto;
+    /* Same trap as the pages below: a padding shorthand here silently undoes
+       both the safe-area top and the tab-bar clearance set further up. */
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(76px + env(safe-area-inset-bottom));
+  }
+  #wxPage.open { display: block; }
+  .tfc { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  .tfc th { text-align: left; color: var(--dim); font-size: 10px; letter-spacing: .12em;
+            text-transform: uppercase; padding: 4px 6px; border-bottom: 1px solid var(--rule); }
+  .tfc td { padding: 5px 6px; border-bottom: 1px solid #1A2025; color: var(--white); }
+  .tfc td.near { color: var(--amber); }
+  pre.raw { font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--white);
+            background: #0B0F12; border: 1px solid var(--rule); border-radius: 3px;
+            padding: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 0; }
+
+  #mapPage { position: fixed; inset: 0; background: #05070A; z-index: 29; display: none; }
+  #mapPage.open { display: block; }
+  #mapPage #mapHud { display: none; }
+  #mapPage.open #mapHud { display: flex; }
+  #mapC { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #mapHud {
+    position: fixed; left: 0; right: 0; bottom: var(--tabh, 54px); z-index: 41;
+    display: flex; gap: 4px; align-items: center; flex-wrap: wrap;
+    padding: 6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+    background: linear-gradient(transparent, rgba(0,0,0,.75));
+  }
+  #mapSel {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 41; display: none;
+    padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 8px calc(8px + env(safe-area-inset-left));
+    background: linear-gradient(rgba(0,0,0,.9), rgba(0,0,0,.55));
+  }
+  #mapSel.open { display: block; }
+  #mapSel .t { font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--white);
+               white-space: pre-wrap; padding-right: 44px; }
+  #mapSel .b { display: flex; gap: 5px; margin-top: 7px; }
+  #mapSel button { font-family: var(--mono); font-size: 11px; padding: 9px 10px; }
+  #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 9px; }
+  #mapHud button.on { background: var(--green); border-color: var(--green); color: #03210F; }
+  #mapHud .val { min-width: 62px; padding: 8px; }
+  #firstRun {
+    position: fixed; inset: 0; background: #05070A; z-index: 60; overflow-y: auto;
+    padding: calc(20px + env(safe-area-inset-top)) 14px 20px; display: none;
+  }
+  #firstRun.open { display: block; }
+  #chkPage, #logPage, #nrstPage, #wbPage {
+    position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
+    display: none; overflow-y: auto;
+    /* The bottom value must clear the tab bar. This shorthand overrode the
+       padding-bottom rule above it, which left the Close button on these four
+       pages sitting underneath the tab bar, unreachable. */
+    padding: calc(14px + env(safe-area-inset-top)) 14px calc(76px + env(safe-area-inset-bottom));
+  }
+  #chkPage.open, #logPage.open, #nrstPage.open, #wbPage.open { display: block; }
+  .wbrow { display: flex; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid #1A2025; }
+  .wbrow .nm2 { flex: 1; min-width: 0; font-size: 13px; color: var(--white);
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wbrow input { width: 74px; }
+  .wbrow .mom { width: 78px; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .verdict { border-radius: 3px; padding: 10px; margin-top: 10px; font-family: var(--mono);
+             font-size: 13px; line-height: 1.6; border: 1px solid var(--rule); }
+  .verdict.ok { border-color: var(--green); color: var(--green); }
+  .verdict.bad { border-color: var(--red); color: var(--red); }
+  .verdict.unk { border-color: var(--amber); color: var(--amber); }
+  .cgbar { position: relative; height: 30px; margin-top: 10px; border: 1px solid var(--rule);
+           border-radius: 3px; background: #0B0F12; overflow: hidden; }
+  .cgbar .env { position: absolute; top: 0; bottom: 0; background: #10301C; }
+  .cgbar .now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--white); }
+  .cgbar .now.bad { background: var(--red); width: 3px; }
+  .cgbar .tx { position: absolute; left: 6px; top: 7px; font-family: var(--mono);
+               font-size: 11px; color: var(--dim); }
+  .ck { display: flex; align-items: flex-start; gap: 9px; padding: 9px 4px; border-bottom: 1px solid #1A2025; cursor: pointer; }
+  .ck .bx { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--rule); border-radius: 3px; margin-top: 1px; }
+  .ck.on .bx { background: var(--green); border-color: var(--green); }
+  .ck.on .tx { color: var(--dim); text-decoration: line-through; }
+  .ck .tx { font-size: 14px; line-height: 1.35; flex: 1; }
+  .ck input.ed { flex: 1; font-family: var(--ui); font-size: 14px; background: #0B0F12;
+    color: var(--white); border: 1px solid var(--rule); border-radius: 3px; padding: 7px 8px; }
+  .ck .mv { flex: 0 0 auto; font-family: var(--mono); font-size: 12px; padding: 6px 8px;
+    background: #1D2429; border: 1px solid var(--rule); color: var(--dim); border-radius: 3px; }
+  .lg { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
+  .lg b { color: var(--white); } .lg span { color: var(--dim); }
+  .ap { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; }
+  .ap .hd { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .ap .id { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--white); }
+  .ap .dd { font-family: var(--mono); font-size: 13px; color: var(--green); }
+  .ap .nm { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .ap .fq { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .ap .fq span { font-family: var(--mono); font-size: 12px; background: #0B0F12;
+    border: 1px solid var(--rule); border-radius: 3px; padding: 4px 7px; color: var(--white); }
+  .ap .fq span i { color: var(--dim); font-style: normal; margin-right: 5px; font-size: 10px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<svg id="pfd" viewBox="0 0 1000 580" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#39A0F0"/><stop offset="100%" stop-color="#0E4C86"/>
+    </linearGradient>
+    <linearGradient id="gnd" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9A6430"/><stop offset="100%" stop-color="#41280F"/>
+    </linearGradient>
+    <clipPath id="cAI"><rect x="223" y="22" width="442" height="432"/></clipPath>
+    <clipPath id="cASI"><rect x="133" y="22" width="82" height="432"/></clipPath>
+    <clipPath id="cALT"><rect x="673" y="22" width="84" height="432"/></clipPath>
+    <clipPath id="cHDG"><rect x="223" y="460" width="442" height="42"/></clipPath>
+  </defs>
+
+  <rect id="bgRect" x="0" y="0" width="1000" height="580" fill="#000000"/>
+
+  <!-- ATTITUDE -->
+  <g clip-path="url(#cAI)">
+    <g id="horizon">
+      <rect x="-900" y="-1600" width="2800" height="1838" fill="url(#sky)"/>
+      <rect x="-900" y="238" width="2800" height="1838" fill="url(#gnd)"/>
+      <line x1="-900" y1="238" x2="1900" y2="238" stroke="#FFFFFF" stroke-width="2.5"/>
+      <g id="ladder" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
+         font-size="14" font-weight="700" text-anchor="middle"></g>
+    </g>
+  </g>
+  <g id="bank" stroke="#FFFFFF" stroke-width="2.5" fill="#FFFFFF"></g>
+  <g id="rollPtr">
+    <polygon points="444,58 434,76 454,76" fill="#FFFFFF"/>
+    <rect id="slip" x="430" y="80" width="28" height="8" fill="#FFFFFF" rx="1.5"/>
+  </g>
+  <g id="acSym">
+    <polygon points="366,238 366,247 410,247 410,258 421,258 421,238" fill="#000" stroke="#000" stroke-width="5"/>
+    <polygon points="522,238 522,247 478,247 478,258 467,258 467,238" fill="#000" stroke="#000" stroke-width="5"/>
+    <polygon points="366,238 366,246 412,246 412,256 421,256 421,238" fill="#F2C63D"/>
+    <polygon points="522,238 522,246 476,246 476,256 467,256 467,238" fill="#F2C63D"/>
+    <rect x="438" y="234" width="12" height="9" fill="#F2C63D" stroke="#000" stroke-width="1.5"/>
+  </g>
+  <!-- flight path marker, magenta = derived from GNSS -->
+  <g id="fpm" opacity="0">
+    <circle cx="444" cy="238" r="9" fill="none" stroke="#E845E8" stroke-width="2.5"/>
+    <line x1="435" y1="238" x2="423" y2="238" stroke="#E845E8" stroke-width="2.5"/>
+    <line x1="453" y1="238" x2="465" y2="238" stroke="#E845E8" stroke-width="2.5"/>
+    <line x1="444" y1="229" x2="444" y2="219" stroke="#E845E8" stroke-width="2.5"/>
+  </g>
+  <g id="ann">
+    <rect id="annBox" x="248" y="412" width="200" height="24" fill="#000" fill-opacity="0.7" stroke="#E8A33D" stroke-width="1.5" rx="2"/>
+    <text id="annTxt" x="348" y="429" font-size="13" font-weight="700" fill="#E8A33D" text-anchor="middle" letter-spacing="1">PHONE AHRS · ADVISORY</text>
+  </g>
+  <rect id="aiFr" x="223" y="22" width="442" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+
+  <!-- AIRSPEED -->
+  <rect id="asiBg" x="133" y="22" width="82" height="432" fill="#000" fill-opacity="0.62"/>
+  <g clip-path="url(#cASI)"><g id="asiBands"></g>
+    <g id="asiTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="17" font-weight="700" text-anchor="end"></g></g>
+  <rect id="asiFr" x="133" y="22" width="82" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <g id="asiBox"><polygon points="126,238 139,221 215,221 215,255 139,255" fill="#000" stroke="#FFF" stroke-width="2"/>
+  <text id="asiVal" x="211" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="end">28</text></g>
+  <text id="asiUnit" x="174" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">MPH</text>
+  <text id="asiSrc" x="174" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
+
+  <!-- ALTITUDE -->
+  <rect id="altBg" x="673" y="22" width="84" height="432" fill="#000" fill-opacity="0.62"/>
+  <g clip-path="url(#cALT)"><g id="altTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="17" font-weight="700" text-anchor="start"></g></g>
+  <rect id="altFr" x="673" y="22" width="84" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <g id="altBox"><polygon points="765,238 752,221 673,221 673,255 752,255" fill="#000" stroke="#FFF" stroke-width="2"/>
+  <text id="altVal" x="677" y="250" font-size="27" font-weight="700" fill="#FFF" text-anchor="start">1180</text></g>
+  <text id="altUnit" x="715" y="15" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1">FT</text>
+  <text id="altSrc" x="715" y="470" font-size="10" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
+
+  <!-- VSI -->
+  <rect id="vsiBg" x="761" y="22" width="42" height="432" fill="#000" fill-opacity="0.62"/>
+  <g id="vsiGrp"><g id="vsiScale" stroke="#93A0A8" stroke-width="1.5" fill="#93A0A8" font-size="11" font-weight="700"></g>
+  <rect id="vsiBar" x="765" y="238" width="12" height="0" fill="#35D6E8"/>
+  <polygon id="vsiPtr" points="761,238 776,231 776,245" fill="#FFF"/>
+  <text id="vsiVal" x="783" y="243" font-size="12" font-weight="700" fill="#FFF" text-anchor="start">0</text></g>
+  <rect id="vsiFr" x="761" y="22" width="42" height="432" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <text id="vsiUnit" x="782" y="470" font-size="10" font-weight="700" fill="#93A0A8" text-anchor="middle">FPM</text>
+
+  <!-- HEADING TAPE -->
+  <g id="hdgGrp"><rect id="hdgBg" x="223" y="460" width="442" height="42" fill="#000" fill-opacity="0.62"/>
+  <g clip-path="url(#cHDG)"><g id="hdgTape" stroke="#FFF" stroke-width="2" fill="#FFF" font-size="15" font-weight="700" text-anchor="middle"></g>
+    <polygon id="trkBug" points="444,500 437,486 451,486" fill="#E845E8"/>
+    <polygon id="navBug" points="444,462 436,476 452,476" fill="#3FCF6A" opacity="0"/></g>
+  <rect x="223" y="460" width="442" height="42" fill="none" stroke="#2E363C" stroke-width="1.5"/>
+  <polygon points="444,460 437,472 451,472" fill="#F2C63D"/>
+  <rect x="410" y="504" width="68" height="22" fill="#000" stroke="#FFF" stroke-width="1.5" rx="2"/>
+  <text id="hdgVal" x="444" y="520" font-size="16" font-weight="700" fill="#FFF" text-anchor="middle">—</text></g>
+
+  <!-- ENGINE STRIP -->
+  <rect id="eisBg" x="4" y="22" width="123" height="554" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <text x="65" y="40" font-size="11" font-weight="700" fill="#93A0A8" text-anchor="middle" letter-spacing="1.4">ENGINE</text>
+  <g id="eis"></g>
+
+  <!-- RIGHT DATA -->
+  <rect id="rcolBg" x="809" y="22" width="187" height="432" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <g id="rcol"></g>
+
+  <!-- BOTTOM BAR -->
+  <g id="botGrp"><rect x="133" y="508" width="863" height="68" fill="#0F1418" stroke="#2E363C" stroke-width="1.5" rx="3"/>
+  <g id="bbar"></g></g>
+</svg>
+
+<div id="quick">
+  <button class="tab sel" id="qPfd">PFD</button>
+  <button class="tab" id="qMap">MAP</button>
+  <button class="tab" id="qChk">CHK</button>
+  <button class="tab" id="qLog">LOG</button>
+  <button class="tab" id="qNrst">NRST</button>
+  <button class="tab" id="qWb">W&amp;B</button>
+  <button class="tab" id="qWx">WX</button>
+  <button id="qCal">CAL</button>
+  <button id="qMode">SIM</button>
+</div>
+
+<button id="menuBtn" aria-label="Settings">☰</button>
+
+<div id="firstRun">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Junco &mdash; advisory only</h3>
+      <p class="hint" style="font-size:13.5px;color:#E8EAE6">
+      <b>Junco is not a certified aviation product</b> and is not tested to any aviation standard.
+      It is advisory only.</p>
+      <ul class="hint" style="font-size:13px;line-height:1.7;padding-left:18px">
+        <li><b>Do not use it as a primary flight instrument.</b> Attitude comes from your phone's
+          sensors, which drift and are affected by vibration and magnetic interference.</li>
+        <li><b>Do not remove working mechanical instruments</b> because this duplicates them.</li>
+        <li><b>Charts and airport data may be out of date.</b> Sectionals change every 56 days and
+          this app cannot tell how stale a cached chart is. Frequencies come from a community
+          database. Confirm both against current official sources.</li>
+        <li><b>Traffic is advisory and badly incomplete.</b> Coverage below 1,000&ndash;2,000 ft AGL
+          is often nothing at all, and Part 103 aircraft mostly carry no ADS-B Out. It is not a
+          see-and-avoid tool.</li>
+        <li><b>Logbook entries are drafts.</b> 14 CFR 61.51 places accuracy on you.</li>
+        <li><b>You are responsible for the safe conduct of the flight.</b></li>
+      </ul>
+      <p class="hint">Position and flight data stay on this device. Nothing is uploaded, and there is
+      no account.</p>
+      <div class="row" style="margin-top:10px">
+        <button class="go" id="frAccept" style="flex:1">I agree &mdash; continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="mapPage">
+  <canvas id="mapC"></canvas>
+  <div id="mapSel">
+    <div class="t" id="mapSelTx"></div>
+    <div class="b">
+      <button class="go" id="mapSelDct">DIRECT TO</button>
+      <button id="mapSelRte">+ ROUTE</button>
+      <button id="mapSelX">&times;</button>
+    </div>
+  </div>
+  <div id="mapHud">
+    <button id="mapZo">&minus;</button>
+    <span class="val" id="mapRange">10 nm</span>
+    <button id="mapZi">+</button>
+    <button id="mapHome">HOME</button>
+    <button id="mapTiles">MAP ON</button>
+    <button id="mapLayer">SECTIONAL</button>
+    <button id="mapPull">PULL AREA</button>
+    <button id="mapNorth">NORTH UP</button>
+    <button id="mapRoute">ROUTE</button>
+    <button id="mapClrRt">CLR RT</button>
+    <button id="mapMe">CENTRE</button>
+    <button class="go" id="mapClose">CLOSE</button>
+  </div>
+</div>
+
+<div id="nrstPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Nearest airports</h3>
+      <div class="row">
+        <button class="go" id="nrstRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="nrstCount">—</span>
+      </div>
+      <div id="nrstList" style="margin-top:10px"></div>
+      <p class="hint">Bundled with the app, so this works with no signal &mdash; which is the point,
+      because the moment you need a nearest field is the moment you have neither signal nor time.
+      Data from <b>OurAirports</b>, public domain and community maintained: more complete than
+      official sources for small private strips, and occasionally wrong.
+      <b>Confirm a frequency against the Chart Supplement before you key the mic at a towered
+      field.</b></p>
+    </div>
+    <div class="row"><button class="go" id="nrstClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="wbPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Weight &amp; balance &mdash; <span id="wbAc"></span></h3>
+      <div id="wbOff">
+        <p class="hint" style="font-size:13.5px;color:#E8EAE6">Weight and balance is <b>off</b> for
+        this aircraft, and it stays off until you enter numbers from an actual weighing. Junco ships
+        no default empty weight on purpose: a guessed one that happens to close the envelope is worse
+        than no envelope at all.</p>
+        <div class="row" style="margin-top:10px">
+          <button class="go" id="wbEnable" style="flex:1">Set this aircraft up</button>
+        </div>
+      </div>
+
+      <div id="wbOn" style="display:none">
+        <div id="wbLoad"></div>
+        <div class="row" style="margin-top:8px">
+          <span class="lbl">Fuel</span>
+          <input id="wbFuel" class="val" type="number" step="0.1" style="width:84px">
+          <span class="lbl" id="wbFuelU">gal</span>
+          <button id="wbFuelFull">Full</button>
+          <button id="wbFuelTabs">Half</button>
+        </div>
+        <div class="cgbar" id="wbBar"><span class="tx" id="wbBarTx"></span></div>
+        <div class="verdict" id="wbVerdict">—</div>
+        <div class="row" style="margin-top:8px">
+          <button id="wbEdit">Edit aircraft numbers</button>
+          <button id="wbAddSt">+ Station</button>
+          <button id="wbZero">Zero the loads</button>
+        </div>
+        <p class="hint">Fuel on board is <b>a number you typed, not a measurement.</b> There is no
+        fuel sender in this build. The main screen shows how long ago you entered it, because an
+        endurance figure computed from a dipstick reading you took three flights ago is a hazard
+        wearing the costume of a safety feature.</p>
+      </div>
+    </div>
+
+    <div class="grp" id="wbSetup" style="display:none">
+      <h3>Aircraft numbers</h3>
+      <p class="hint">All arms are measured <b>aft of the datum</b>, positive. Use whatever datum
+      your weighing report used and write it down below so the next person knows.</p>
+      <div class="row">
+        <span class="lbl">Empty wt</span><input id="wbEw" class="val" type="number" step="0.1" style="width:88px">
+        <span class="lbl">Empty arm</span><input id="wbEa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">Max gross</span><input id="wbMg" class="val" type="number" step="0.1" style="width:88px">
+        <span class="lbl">Fuel arm</span><input id="wbFa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">CG fwd</span><input id="wbCf" class="val" type="number" step="0.01" style="width:88px">
+        <span class="lbl">CG aft</span><input id="wbCa" class="val" type="number" step="0.01" style="width:88px">
+      </div>
+      <div class="row">
+        <span class="lbl">Fuel</span>
+        <select id="wbFd" class="val">
+          <option value="0.72">Mogas / 100LL 0.72 kg/L</option>
+          <option value="0.80">Jet A 0.80 kg/L</option>
+        </select>
+      </div>
+      <div class="row"><span class="lbl">Datum</span><input id="wbDatum" class="val" style="flex:1" placeholder="e.g. front face of firewall"></div>
+      <div id="wbStations" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="go" id="wbSave" style="flex:1">Save</button>
+        <button id="wbDisable">Turn off</button>
+      </div>
+      <p class="hint" id="wbErr"></p>
+    </div>
+
+    <div class="grp">
+      <h3>Part 103 check</h3>
+      <div id="wb103"></div>
+      <p class="hint">14 CFR 103.1 in the terms this app can actually see. The 254 lb empty weight
+      limit <b>excludes floats and safety devices intended for deployment in a potentially
+      catastrophic situation</b>, so a ballistic parachute does not count against it; Junco cannot
+      know what you fitted, so subtract those yourself before entering the number. Two of these
+      limits are speeds nobody can verify from a phone. <b>This is an arithmetic aid, not a finding of
+      compliance.</b></p>
+    </div>
+
+    <div class="row"><button class="go" id="wbClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="chkPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Checklists &mdash; <span id="chkAc"></span></h3>
+      <div class="row" id="chkTabs"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="chkReset">Clear ticks</button>
+        <button id="chkEdit">Edit</button>
+        <button id="chkDefaults">Restore defaults</button>
+        <button id="chkAddPhase">+ Phase</button>
+        <button id="chkDelPhase">Delete phase</button>
+      </div>
+      <div id="chkList" style="margin-top:10px"></div>
+      <div class="row" id="chkEditRow" style="display:none">
+        <button class="go" id="chkAdd" style="flex:1">+ Add item</button>
+        <button id="chkBulk">Paste many</button>
+      </div>
+      <textarea id="chkEditor" class="val" style="width:100%;height:150px;text-align:left;display:none;margin-top:8px" placeholder="One item per line"></textarea>
+      <div class="row" id="chkBulkRow" style="display:none">
+        <button class="go" id="chkBulkSave" style="flex:1">Append these</button>
+      </div>
+      <p class="hint">Checklists are stored against the aircraft, so switching aircraft switches
+      lists. Add your own phases for anything the five standard ones do not cover. Ticks are
+      deliberately not remembered between sessions &mdash; a checklist that recalls being complete
+      from last week is worse than none.</p>
+    </div>
+    <div class="row"><button class="go" id="chkClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="logPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Logbook</h3>
+      <div class="row">
+        <span class="val" id="logTot">—</span>
+        <button id="logCsv">Export CSV</button>
+        <button id="logGpx">Export track</button>
+      </div>
+      <div id="logList" style="margin-top:10px"></div>
+      <textarea id="logText" class="val" style="width:100%;height:170px;text-align:left;display:none;margin-top:8px"></textarea>
+      <div class="row" id="logTextRow" style="display:none">
+        <button id="logCopy">Copy</button><button id="logShare">Share</button><button id="logDl">Download</button>
+      </div>
+      <p class="hint"><b>Draft, never filed.</b> Takeoff and landing are detected from GNSS ground
+      speed against this aircraft's stall speed, so they are proposals. 14 CFR 61.51 puts accuracy on
+      the pilot &mdash; review every entry before it goes in a real logbook.</p>
+    </div>
+    <div class="row"><button class="go" id="logClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="wxPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Weather &mdash; nearest reporting station</h3>
+      <div class="row">
+        <button class="go" id="wxRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="wxAge">—</span>
+      </div>
+      <p class="hint" id="wxErr"></p>
+      <pre class="raw" id="wxRaw" style="margin-top:8px">No observation yet.</pre>
+      <div class="row" style="margin-top:8px">
+        <span class="val" id="wxDA">DA —</span>
+        <span class="val" id="wxWind">Wind —</span>
+        <span class="val" id="wxVis">Vis —</span>
+      </div>
+      <p class="hint"><b>This is METAR, not ATIS.</b> ATIS is a recorded broadcast that also gives
+      the active runway and approach in use, and there is no free feed for it. METAR carries the same
+      weather and does not carry the runway. Calling it ATIS would be a lie you might act on.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Traffic &mdash; advisory only</h3>
+      <div class="row">
+        <button class="go" id="tfcRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="tfcAge">—</span>
+        <span class="val" id="tfcCount">0</span>
+      </div>
+      <p class="hint" id="tfcErr"></p>
+      <table class="tfc" id="tfcTable" style="margin-top:8px"><tbody></tbody></table>
+      <p class="hint"><b>Do not use this to see and avoid.</b> Coverage is crowdsourced ground
+      receivers on line of sight, so below roughly 1000&ndash;2000 ft AGL there is often nothing at
+      all &mdash; which is where you fly. Latency runs 5&ndash;15 seconds. Part 103 aircraft are not
+      required to carry ADS-B Out and mostly do not, so the traffic most likely to conflict with you
+      is the traffic least likely to appear here. Per design rule 9 this never raises an alert.</p>
+    </div>
+
+    <div class="row"><button class="go" id="wxClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="wrap">
+
+
+    <div class="grp">
+      <h3>Aircraft</h3>
+      <div class="row">
+        <select id="acSel" class="val" style="flex:1;min-width:180px"></select>
+        <button id="acDup">Duplicate</button>
+        <button id="acDel">Delete</button>
+      </div>
+      <div class="row"><span class="lbl">Name</span><input id="acName" class="val" style="flex:1"></div>
+      <div class="row"><span class="lbl">Reg</span><input id="acReg" class="val" style="flex:1"></div>
+      <div class="row">
+        <span class="lbl">Engines</span><input id="acEng" class="val" type="number" min="1" max="4" style="width:64px">
+        <span class="lbl">CHT/eng</span><input id="acCht" class="val" type="number" min="0" max="6" style="width:64px">
+        <span class="lbl">EGT/eng</span><input id="acEgt" class="val" type="number" min="0" max="6" style="width:64px">
+      </div>
+      <div class="row">
+        <span class="lbl">RPM max</span><input id="acRpm" class="val" type="number" style="width:88px">
+        <span class="lbl">CHT max</span><input id="acChtMax" class="val" type="number" style="width:80px">
+        <span class="lbl">EGT max</span><input id="acEgtMax" class="val" type="number" style="width:80px">
+      </div>
+      <div class="row">
+        <span class="lbl">Vs0</span><input id="acVs0" class="val" type="number" style="width:74px">
+        <span class="lbl">Vne</span><input id="acVne" class="val" type="number" style="width:74px">
+        <span class="lbl">Cruise</span><input id="acCru" class="val" type="number" style="width:74px">
+      </div>
+      <div class="row">
+        <span class="lbl">Fuel cap</span><input id="acCap" class="val" type="number" style="width:84px">
+        <span class="lbl">Burn</span><input id="acBurn" class="val" type="number" style="width:84px">
+      </div>
+      <div class="row">
+        <span class="lbl">Units</span>
+        <select id="uSpeed" class="val"><option value="mph">mph</option><option value="kt">kt</option><option value="kmh">km/h</option></select>
+        <select id="uAlt" class="val"><option value="ft">ft</option><option value="m">m</option></select>
+        <select id="uTemp" class="val"><option value="F">&deg;F</option><option value="C">&deg;C</option></select>
+        <select id="uFuel" class="val"><option value="gal">gal</option><option value="L">L</option></select>
+        <select id="uWeight" class="val"><option value="lb">lb / in</option><option value="kg">kg / cm</option></select>
+      </div>
+      <div class="row"><button class="go" id="acSave" style="flex:1">Apply to display</button></div>
+      <p class="hint" id="acErr"></p>
+      <p class="hint">Limits and speeds are entered in the display units above. Stored in SI, because
+      units are a display concern and never travel with the data.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Share, back up, transfer</h3>
+      <div class="row">
+        <button class="go" id="acExport" style="flex:1">Export this aircraft</button>
+        <button id="acImportBtn">Import</button>
+        <input type="file" id="acFile" accept=".toml,.txt,text/plain" style="display:none">
+      </div>
+      <textarea id="acText" class="val" style="width:100%;height:150px;text-align:left;margin-top:8px;display:none"></textarea>
+      <div class="row" id="acTextRow" style="display:none">
+        <button id="acCopy">Copy</button>
+        <button id="acShare">Share</button>
+        <button id="acDownload">Download .toml</button>
+        <button id="acLoadText">Load from text</button>
+      </div>
+      <p class="hint">A profile is a small TOML file. <b>That is the whole sync story.</b> Copy it,
+      mail it, drop it in your own cloud, hand it to another builder. There is no account and no
+      server, because a service that has to be paid for is the thing that kills a project when the
+      maintainer moves on, and a profile carries your registration and home field.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Navigation</h3>
+      <div class="row">
+        <input id="navName" class="val" placeholder="NAME" style="width:96px">
+        <input id="navDest" class="val" placeholder="lat, lon" style="flex:1;min-width:150px">
+      </div>
+      <div class="row">
+        <button class="go" id="navSet">Set destination</button>
+        <button id="navHere">Use current position</button>
+      </div>
+      <div class="row">
+        <button id="navToHome">Go to HOME</button>
+        <button id="navToDest">Go to DEST</button>
+      </div>
+      <p class="hint" id="navMsg"></p>
+      <p class="hint"><b>HOME is set automatically at takeoff</b>, so "how do I get back to the field
+      I just left" needs no setup at all. Distance, bearing and time to run appear on the main screen
+      and as a green pointer on the heading tape. Time to run uses closure along the course rather
+      than raw ground speed, because crabbing 40&deg; off does not get you there at ground speed.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Mounting calibration</h3>
+      <div class="row">
+        <button class="go" id="btnLevel" style="flex:1">SET LEVEL &mdash; aircraft level, phone mounted</button>
+      </div>
+      <div class="row">
+        <button id="btnClear">Clear calibration</button>
+        <span class="val" id="calState">not set</span>
+      </div>
+      <p class="hint">Park the aircraft level, mount the phone however you like, then press
+      <b>SET LEVEL</b>. This captures the full three-axis mounting rotation from gravity, so the
+      display shows <b>aircraft</b> pitch and roll rather than the phone's. Any mount angle works:
+      vertical on the dash, flat on a kneeboard, or anything between.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Display rotation</h3>
+      <div class="row">
+        <button class="sm" id="rotM90">&minus;90&deg;</button>
+        <button class="sm" id="rotM5">&minus;5&deg;</button>
+        <span class="val" id="rotVal">0&deg;</span>
+        <button class="sm" id="rotP5">+5&deg;</button>
+        <button class="sm" id="rotP90">+90&deg;</button>
+      </div>
+      <p class="hint">Which way the aircraft's <b>right wing</b> lies across the screen. Adjust until
+      rolling the aircraft rolls the horizon the correct way. Re-run SET LEVEL after changing it.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Attitude source</h3>
+      <div class="row">
+        <button class="go" id="btnLive" style="flex:1">Use phone sensors</button>
+        <button id="btnDemo">Demo flight</button>
+      </div>
+      <div class="stat" style="margin-top:8px">
+        Mode <span id="sMode">demo</span><br>
+        Secure context <span id="sSecure">—</span><br>
+        In iframe <span id="sFrame">—</span><br>
+        Orientation events <span id="sCount">0</span><br>
+        Permission <span id="sPerm">—</span><br>
+        GNSS <span id="sGeo">—</span>
+      </div>
+      <p class="hint">Device orientation needs a secure top-level context. Inside an iframe it never
+      fires and the page falls back to the demo circuit.</p>
+    </div>
+
+    <div class="grp">
+      <h3>Display</h3>
+      <div class="row">
+        <button id="btnFull">Fullscreen</button>
+        <button id="btnWake">Keep screen awake</button>
+        <button id="btnHot">CHT over limit</button>
+        <button id="btnLink">Drop node link</button>
+      </div>
+      <p class="hint">Engine strip, indicated airspeed, pressure altitude and vertical speed are
+      simulated &mdash; those are node channels and no node exists yet. Attitude, heading, track,
+      ground speed, GPS altitude and position are real. <b>Not an instrument. Not airworthy.</b></p>
+    </div>
+
+    <div class="grp">
+      <h3>Storage and diagnostics</h3>
+      <div class="row">
+        <span class="val" id="stoTiles">&mdash;</span>
+        <span class="val" id="stoBytes">&mdash;</span>
+        <button id="stoRefresh">Refresh</button>
+        <button id="stoPurge">Purge charts</button>
+      </div>
+      <div class="row">
+        <button class="go" id="diagCopy" style="flex:1">Copy diagnostics</button>
+      </div>
+      <textarea id="diagText" class="val" style="width:100%;height:150px;text-align:left;margin-top:8px;display:none"></textarea>
+      <p class="hint">PULL AREA is what makes the map work with no signal, and it is also what
+      quietly fills a phone. <b>Purge charts removes cached tiles and nothing else</b> &mdash; your
+      aircraft, checklists and logbook are untouched, which is not true of clearing the app's data
+      from Android settings.</p>
+      <p class="hint">Junco has no crash reporter and sends nothing anywhere. If something breaks,
+      <b>Copy diagnostics</b> puts the state on your clipboard so you can paste it into an issue.
+      Read it before you send it: it contains your aircraft and your last known position.</p>
+    </div>
+
+    <div class="row"><button class="go" id="btnClose" style="flex:1">Close</button></div>
+  </div>
+</div>
+
+<script src="./profile.js"></script>
+<script src="./net.js"></script>
+<script src="./ops.js"></script>
+<script src="./tiles.js"></script>
+<script src="./airports.js"></script>
+<script>
+(function () {
+"use strict";
+var NS = "http://www.w3.org/2000/svg";
+var $ = function (id) {
+  var e = document.getElementById(id);
+  if (!e) {
+    // A handler bound to a control that no longer exists used to throw here and
+    // silently kill every handler defined after it. One dead line took out the
+    // checklist page, the nearest page and destination entry. Never again.
+    console.warn("Junco: missing element #" + id);
+    return { style: {}, classList: { add: function () {}, remove: function () {}, toggle: function () {}, contains: function () { return false; } },
+             addEventListener: function () {}, setAttribute: function () {}, removeAttribute: function () {},
+             appendChild: function () {}, removeChild: function () {}, querySelector: function () { return null; },
+             querySelectorAll: function () { return []; }, focus: function () {}, select: function () {},
+             getBoundingClientRect: function () { return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }; },
+             dataset: {}, files: null, value: "", textContent: "", innerHTML: "", className: "", checked: false };
+  }
+  return e;
+};
+function el(n, a, t) { var e = document.createElementNS(NS, n);
+  for (var k in a) { if (Object.prototype.hasOwnProperty.call(a, k)) { e.setAttribute(k, a[k]); } }
+  if (t !== undefined) { e.textContent = t; } return e; }
+function clear(g) { while (g.firstChild) { g.removeChild(g.firstChild); } }
+var D2R = Math.PI / 180, R2D = 180 / Math.PI;
+var JP = window.JuncoProfile;
+
+/* =====================================================================
+   Orientation. The phone may be mounted at any angle; we want the
+   AIRCRAFT's attitude. Two offsets cannot do that, so SET LEVEL captures
+   the whole mounting rotation: gravity gives the true down axis through
+   the airframe, the nominated screen direction gives the right wing, and
+   their cross product gives forward. Everything after is a basis change.
+   ===================================================================== */
+function devToEarth(al, be, ga) {           // W3C: Rz(a)Rx(b)Ry(g), device -> ENU
+  var cA = Math.cos(al), sA = Math.sin(al), cB = Math.cos(be), sB = Math.sin(be),
+      cG = Math.cos(ga), sG = Math.sin(ga);
+  return [[cA*cG - sA*sB*sG, -cB*sA, cG*sA*sB + cA*sG],
+          [cG*sA + cA*sB*sG,  cA*cB, sA*sG - cA*cG*sB],
+          [-cB*sG,            sB,    cB*cG]];
+}
+function mulTv(m, v) { return [m[0][0]*v[0]+m[1][0]*v[1]+m[2][0]*v[2],
+                               m[0][1]*v[0]+m[1][1]*v[1]+m[2][1]*v[2],
+                               m[0][2]*v[0]+m[1][2]*v[1]+m[2][2]*v[2]]; }
+function mulv(m, v)  { return [m[0][0]*v[0]+m[0][1]*v[1]+m[0][2]*v[2],
+                               m[1][0]*v[0]+m[1][1]*v[1]+m[1][2]*v[2],
+                               m[2][0]*v[0]+m[2][1]*v[1]+m[2][2]*v[2]]; }
+function nrm(v) { var n = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0]/n, v[1]/n, v[2]/n]; }
+function crs(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function dt(a, b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+
+var cal = null, rotDeg = 0;
+function calibrate(R) {
+  var down = nrm(mulTv(R, [0, 0, -1]));
+  var right = [Math.cos(rotDeg*D2R), Math.sin(rotDeg*D2R), 0];
+  right = nrm([right[0]-down[0]*dt(right,down), right[1]-down[1]*dt(right,down), right[2]-down[2]*dt(right,down)]);
+  cal = { fwd: nrm(crs(right, down)), right: right, down: down };
+  try { localStorage.setItem("junco.cal", JSON.stringify({ cal: cal, rot: rotDeg })); } catch (e) {}
+}
+function attitude(R) {
+  if (!cal) { return null; }
+  var f = mulv(R, cal.fwd), r = mulv(R, cal.right), d = mulv(R, cal.down);
+  return { pitch: Math.asin(Math.max(-1, Math.min(1, f[2])))*R2D,
+           roll: Math.atan2(-r[2], -d[2])*R2D,
+           hdg: (Math.atan2(f[0], f[1])*R2D + 360) % 360 };
+}
+(function () { try { var s = JSON.parse(localStorage.getItem("junco.cal") || "null");
+  if (s && s.cal) { cal = s.cal; rotDeg = s.rot || 0; } } catch (e) {} })();
+
+/* ================= state ================= */
+var P = JP.active();
+var mode = "demo", raw = { R: null, has: false };
+var att = { pitch: 0, roll: 0, hdg: 0 };
+var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, vs: 0, tA: 0, tM: 0 };
+var hot = false, linkDown = false, t = 0;
+var dataMode = "live";     // live | sim — real data unless the pilot asks otherwise
+
+/* The map drew nothing because SIM never produced a position, so the tile layer
+   bailed before requesting anything. Simulating attitude but not position made
+   half the app untestable from an armchair, which is the opposite of the point.
+   SIM now flies the demo circuit over real ground. */
+var SIM_ORIGIN = { lat: 43.9844, lon: -88.5570, name: "KOSH" };   // obvious placeholder
+var simPos = null;
+function simOrigin() {
+  var last = null;
+  try { last = JSON.parse(localStorage.getItem("junco.lastpos") || "null"); } catch (e) {}
+  if (last) { return { lat: last.lat, lon: last.lon, name: "LAST" }; }
+  if (O.nav.home) { return { lat: O.nav.home.lat, lon: O.nav.home.lon, name: "HOME" }; }
+  return SIM_ORIGIN;
+}
+var diag = { count: 0, perm: "—", geo: "—" };
+var firstFix = true;
+var sim = {};            // SI throughout: m/s, m, degC, litres
+var rows = [];           // engine strip, generated from the profile
+
+function uSpd() { return JP.conv("speed", P.units.speed); }
+function uAlt() { return JP.conv("alt", P.units.alt); }
+function uTmp() { return JP.conv("temp", P.units.temp); }
+function uFul() { return JP.conv("fuel", P.units.fuel); }
+function uVs()  { return JP.conv("vs", P.units.vs); }
+function uWt()  { return JP.conv("weight", P.units.weight || "lb"); }
+function uArm() { return JP.conv("arm", P.units.weight || "lb"); }
+
+/* ================= profile-driven build ================= */
+function rowDefs() {
+  var out = [], e, c, tag;
+  for (e = 0; e < P.engines.count; e++) {
+    tag = P.engines.count > 1 ? (e === 0 ? " L" : e === 1 ? " R" : " " + (e + 1)) : "";
+    out.push({ k: "rpm" + e, l: "RPM" + tag, min: 0, max: P.limits.rpmMax * 1.06,
+               red: P.limits.rpmMax, kind: "rpm" });
+    for (c = 0; c < P.engines.cht; c++) {
+      out.push({ k: "cht" + e + "_" + c, l: "CHT" + tag + (P.engines.cht > 1 ? " " + (c + 1) : ""),
+                 min: 40, max: P.limits.chtMax * 1.12, red: P.limits.chtMax, kind: "temp" });
+    }
+    for (c = 0; c < P.engines.egt; c++) {
+      out.push({ k: "egt" + e + "_" + c, l: "EGT" + tag + (P.engines.egt > 1 ? " " + (c + 1) : ""),
+                 min: 300, max: P.limits.egtMax * 1.12, red: P.limits.egtMax, kind: "temp" });
+    }
+  }
+  out.push({ k: "fuel", l: "FUEL", min: 0, max: P.fuel.capacity, red: null,
+             low: P.fuel.capacity * 0.12, kind: "fuel" });
+  return out;
+}
+
+function rebuild() {
+  rows = rowDefs();
+
+  // seed the simulation for whatever channels this aircraft has
+  var e, c, k;
+  sim.alt = 360; sim.vs = 0; sim.ias = P.speeds.cruise; sim.oat = 26;
+  if (sim.fuel === undefined) { sim.fuel = P.fuel.usable * 0.65; }
+  sim.fuel = Math.min(sim.fuel, P.fuel.capacity);
+  for (e = 0; e < P.engines.count; e++) {
+    k = "rpm" + e;
+    if (sim[k] === undefined) { sim[k] = P.limits.rpmMax * 0.86 - e * 45; }
+    for (c = 0; c < P.engines.cht; c++) {
+      k = "cht" + e + "_" + c;
+      if (sim[k] === undefined) { sim[k] = P.limits.chtMax * 0.86 - c * 6; }
+    }
+    for (c = 0; c < P.engines.egt; c++) {
+      k = "egt" + e + "_" + c;
+      if (sim[k] === undefined) { sim[k] = P.limits.egtMax * 0.88 - c * 9; }
+    }
+  }
+
+  // engine strip, sized to fit however many rows this aircraft needs
+  var g = $("eis"); clear(g);
+  g.appendChild(el("text", { x: 65, y: 40, "font-size": 11, "font-weight": 700, fill: "#93A0A8",
+    "text-anchor": "middle", "letter-spacing": 1.4 }, "ENGINE"));
+  var top = 58, bot = VBH - 52, twin = P.engines.count > 1;
+  var slots = rows.length + (twin ? 1 : 0);
+  var h = Math.max(24, Math.min(38, (bot - top) / slots));
+  var y = top + 12;
+  rows.forEach(function (r) {
+    var fs = h < 30 ? 9 : 10, vs = h < 30 ? 13 : 15;
+    g.appendChild(el("text", { x: 12, y: y, "font-size": fs, "font-weight": 700, fill: "#93A0A8" }, r.l));
+    g.appendChild(el("text", { x: 120, y: y, "font-size": vs, "font-weight": 700, fill: "#FFF",
+      "text-anchor": "end", id: "e-" + r.k }, "—"));
+    g.appendChild(el("rect", { x: 12, y: y + 5, width: 108, height: 5, fill: "#000",
+      stroke: "#2E363C", "stroke-width": 1 }));
+    g.appendChild(el("rect", { x: 13, y: y + 6, width: 0, height: 3, fill: "#3FCF6A", id: "b-" + r.k }));
+    if (r.red !== null) {
+      var rx = 13 + 106 * (r.red - r.min) / (r.max - r.min);
+      g.appendChild(el("line", { x1: rx, y1: y + 3, x2: rx, y2: y + 12, stroke: "#E8483D", "stroke-width": 2 }));
+    }
+    y += h;
+  });
+  if (twin) {
+    g.appendChild(el("text", { x: 12, y: y + 4, "font-size": 10, "font-weight": 700, fill: "#93A0A8" }, "SYNC"));
+    g.appendChild(el("text", { x: 120, y: y + 4, "font-size": 13, "font-weight": 700, fill: "#FFF",
+      "text-anchor": "end", id: "syncT" }, "Δ 0"));
+    g.appendChild(el("rect", { x: 12, y: y + 10, width: 108, height: 7, fill: "#000", stroke: "#2E363C", "stroke-width": 1 }));
+    g.appendChild(el("line", { x1: 66, y1: y + 10, x2: 66, y2: y + 17, stroke: "#93A0A8", "stroke-width": 1.5 }));
+    g.appendChild(el("rect", { x: 66, y: y + 11, width: 0, height: 5, fill: "#3FCF6A", id: "syncB" }));
+  }
+  g.appendChild(el("text", { x: 65, y: VBH - 34, "font-size": 8.5, "font-weight": 700, fill: "#35D6E8",
+    "text-anchor": "middle" }, "NODE · WIRED"));
+  g.appendChild(el("text", { x: 65, y: VBH - 18, "font-size": 8.5, "font-weight": 700, fill: "#93A0A8",
+    "text-anchor": "middle" }, (P.name || "").slice(0, 18).toUpperCase()));
+
+  // airspeed bands and scale, from V-speeds in this aircraft's units
+  var span = Math.max(12, uSpd().to(P.speeds.vne) - uSpd().to(P.speeds.vs0));
+  asiPx = Math.max(2.2, Math.min(9, 210 / span));
+  var bg = $("asiBands"); clear(bg);
+  function band(lo, hi, col) {
+    var yT = 238 - (uSpd().to(hi) - uSpd().to(P.speeds.cruise)) * asiPx;
+    var yB = 238 - (uSpd().to(lo) - uSpd().to(P.speeds.cruise)) * asiPx;
+    bg.appendChild(el("rect", { x: 203, y: yT, width: 12, height: Math.max(0, yB - yT), fill: col }));
+  }
+  band(P.speeds.vs1, P.speeds.vno, "#3FCF6A");
+  band(P.speeds.vs0, P.speeds.vs1, "#FFFFFF");
+  band(P.speeds.vno, P.speeds.vne, "#E8A33D");
+  band(P.speeds.vne, P.speeds.vne * 1.3, "#E8483D");
+  band(P.speeds.vs0 * 0.6, P.speeds.vs0, "#E8483D");
+
+  $("asiUnit").textContent = uSpd().label;
+  $("altUnit").textContent = uAlt().label;
+  $("vsiUnit").textContent = uVs().label;
+}
+var asiPx = 6.6;
+var DY = 0, INSTH = 432, VBH = 580;
+
+/* The Fold's inner screen is nearly square and its outer screen is very tall.
+   A fixed 1000x580 viewBox letterboxes badly on both, so the box tracks the
+   window and the instrument cluster is re-centred and stretched into it. */
+function layout() {
+  var w = window.innerWidth || 1000, h = window.innerHeight || 580;
+  VBH = Math.max(470, Math.min(1050, Math.round(1000 * h / Math.max(1, w))));
+  var hdgY = VBH - 116, botY = VBH - 68;
+  INSTH = Math.max(220, hdgY - 30);
+  DY = (22 + INSTH / 2) - 238;
+
+  $("pfd").setAttribute("viewBox", "0 0 1000 " + VBH);
+  $("bgRect").setAttribute("height", VBH);
+
+  ["asiBg","asiFr","altBg","altFr","vsiBg","vsiFr","aiFr","rcolBg"].forEach(function (id) {
+    $(id).setAttribute("height", INSTH);
+  });
+  $("eisBg").setAttribute("height", VBH - 26);
+  document.querySelector("#cAI rect").setAttribute("height", INSTH);
+  document.querySelector("#cASI rect").setAttribute("height", INSTH);
+  document.querySelector("#cALT rect").setAttribute("height", INSTH);
+
+  var sh = "translate(0," + DY + ")";
+  ["bank","acSym","fpm","ann","asiBox","altBox","vsiGrp","asiTape","altTape","asiBands","asiSrc","altSrc","asiUnit","altUnit","vsiUnit"].forEach(function (id) {
+    if ($(id)) { $(id).setAttribute("transform", sh); }
+  });
+  $("hdgGrp").setAttribute("transform", "translate(0," + (hdgY - 460) + ")");
+  document.querySelector("#cHDG rect").setAttribute("y", hdgY);
+  $("botGrp").setAttribute("transform", "translate(0," + (botY - 508) + ")");
+  if (typeof rebuild === "function" && rows.length) { rebuild(); }
+}
+
+/* ================= static chrome ================= */
+(function () {
+  var g = $("ladder");
+  for (var d = -30; d <= 30; d += 5) {
+    if (!d) { continue; }
+    var y = 238 - d * 7, maj = d % 10 === 0, w = maj ? 60 : 30;
+    g.appendChild(el("line", { x1: 444 - w, y1: y, x2: 444 + w, y2: y }));
+    if (maj) {
+      g.appendChild(el("text", { x: 444 - w - 10, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
+      g.appendChild(el("text", { x: 444 + w + 10, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
+    }
+  }
+  var b = $("bank");
+  [-60,-45,-30,-20,-10,10,20,30,45,60].forEach(function (a) {
+    var big = Math.abs(a) === 30 || Math.abs(a) === 60, r1 = 168, r2 = big ? 150 : 157, th = (a - 90) * D2R;
+    b.appendChild(el("line", { x1: 444 + Math.cos(th)*r1, y1: 238 + Math.sin(th)*r1,
+      x2: 444 + Math.cos(th)*r2, y2: 238 + Math.sin(th)*r2, "stroke-width": big ? 3 : 2 }));
+  });
+  b.appendChild(el("polygon", { points: "444,52 436,38 452,38", fill: "#FFF" }));
+  var v = $("vsiScale");
+  for (var s = -1000; s <= 1000; s += 250) {
+    var yy = 238 - (s / 1000) * 180, maj2 = s % 500 === 0;
+    v.appendChild(el("line", { x1: 777, y1: yy, x2: maj2 ? 792 : 786, y2: yy }));
+    if (maj2 && s) { v.appendChild(el("text", { x: 795, y: yy + 4 }, String(Math.abs(s / 100)))); }
+  }
+})();
+
+var rcRows = [
+  { id:"aoa",  l:"AOA EST",  c:"#E8A33D" }, { id:"oat",  l:"OAT",      c:"#35D6E8" },
+  { id:"dalt", l:"DENS ALT", c:"#FFF" },    { id:"gs",   l:"GND SPD",  c:"#E845E8" },
+  { id:"gpsa", l:"GPS ALT",  c:"#E845E8" }, { id:"endu", l:"ENDURANCE",c:"#FFF" }
+];
+(function () {
+  var g = $("rcol"), y = 46;
+  rcRows.forEach(function (r) {
+    g.appendChild(el("text", { x: 821, y: y, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, r.l));
+    g.appendChild(el("text", { x: 984, y: y + 25, "font-size": 24, "font-weight": 700, fill: r.c, "text-anchor": "end", id: "r-" + r.id }, "—"));
+    g.appendChild(el("text", { x: 984, y: y + 38, "font-size": 9, "font-weight": 700, fill: "#93A0A8", "text-anchor": "end", id: "ru-" + r.id }, ""));
+    y += 68;
+  });
+  var b = $("bbar");
+  [["AIRCRAFT","ac",145,"#FFF"],["DIRECT TO","nav",360,"#3FCF6A"],
+   ["POSITION","pos",600,"#E845E8"],["ALERT","alert",830,"#93A0A8"]].forEach(function (c) {
+    b.appendChild(el("text", { x: c[2], y: 528, "font-size": 10, "font-weight": 700, fill: "#93A0A8", "letter-spacing": 1 }, c[0]));
+    b.appendChild(el("text", { x: c[2], y: 553, "font-size": 15, "font-weight": 700, fill: c[3], id: "bb-" + c[1] }, "—"));
+  });
+})();
+
+/* ================= tapes ================= */
+function tapeASI(vDisp) {
+  var g = $("asiTape"); clear(g);
+  var step = asiPx > 5 ? 2 : asiPx > 3 ? 5 : 10, lab = step * 5;
+  for (var s = Math.floor((vDisp - 220 / asiPx) / step) * step; s <= vDisp + 220 / asiPx; s += step) {
+    if (s < 0) { continue; }
+    var y = 238 - (s - vDisp) * asiPx; if (y < 16 - DY || y > 16 + INSTH - DY) { continue; }
+    var maj = Math.abs(s % lab) < 0.001;
+    g.appendChild(el("line", { x1: maj ? 184 : 196, y1: y, x2: 203, y2: y }));
+    if (maj) { g.appendChild(el("text", { x: 180, y: y + 6 }, String(Math.round(s)))); }
+  }
+}
+function tapeALT(vDisp) {
+  var g = $("altTape"); clear(g);
+  var m = P.units.alt === "m" ? 0.3048 : 1, step = 20 * m, lab = 100 * m, px = 0.6 / m;
+  for (var s = Math.floor((vDisp - 360 * m) / step) * step; s <= vDisp + 360 * m; s += step) {
+    var y = 238 - (s - vDisp) * px; if (y < 16 - DY || y > 16 + INSTH - DY) { continue; }
+    var maj = Math.abs(s % lab) < 0.001;
+    g.appendChild(el("line", { x1: 675, y1: y, x2: maj ? 700 : 690, y2: y }));
+    if (maj) { g.appendChild(el("text", { x: 704, y: y + 6 }, String(Math.round(s)))); }
+  }
+}
+function tapeHDG(h) {
+  var g = $("hdgTape"); clear(g);
+  var card = { 0:"N", 90:"E", 180:"S", 270:"W" };
+  for (var a = -60; a <= 60; a += 5) {
+    var v = ((Math.round(h/5)*5 + a) % 360 + 360) % 360;
+    var x = 444 + (((v - h + 540) % 360) - 180) * 3.4;
+    if (x < 228 || x > 660) { continue; }
+    g.appendChild(el("line", { x1: x, y1: 462, x2: x, y2: v % 10 === 0 ? 474 : 469 }));
+    if (v % 30 === 0) {
+      g.appendChild(el("text", { x: x, y: 492, "font-size": card[v] !== undefined ? 18 : 14,
+        fill: card[v] !== undefined ? "#FFF" : "#C6D0D6" }, card[v] !== undefined ? card[v] : String(v/10)));
+    }
+  }
+}
+
+/* ================= demo ================= */
+function demo(tt) {
+  var T = tt * 0.35, roll = 18*Math.sin(T*0.28) + 6*Math.sin(T*0.11);
+  demo.h = ((demo.h || 247) + roll*0.055 + 360) % 360;
+  return { pitch: 5.5*Math.sin(T*0.19) + 1.6*Math.sin(T*0.63), roll: roll, hdg: demo.h };
+}
+
+/* ================= loop ================= */
+function frame() {
+  t += 0.05;
+  var src = (mode === "live" && raw.has && raw.R) ? attitude(raw.R) : null;
+  if (!src) { src = demo(t); }
+  var k = mode === "live" ? 0.14 : 0.22;
+  att.pitch += (src.pitch - att.pitch) * k;
+  att.roll  += (src.roll  - att.roll)  * k;
+  var dh = src.hdg - att.hdg; while (dh > 180) { dh -= 360; } while (dh < -180) { dh += 360; }
+  att.hdg = (att.hdg + dh*0.12 + 360) % 360;
+
+  var pp = Math.max(-32, Math.min(32, att.pitch)), rr = Math.max(-80, Math.min(80, att.roll));
+  $("horizon").setAttribute("transform", "translate(0," + DY + ") rotate(" + (-rr) + " 444 238) translate(0 " + (pp*7) + ")");
+  $("rollPtr").setAttribute("transform", "translate(0," + DY + ") rotate(" + (-rr) + " 444 238)");
+  $("slip").setAttribute("x", 430 + Math.max(-16, Math.min(16, rr*0.13)));
+
+  if (dataMode === "sim") {
+    if (!simPos) { var o = simOrigin(); simPos = { lat: o.lat, lon: o.lon, name: o.name, alt: 330 }; }
+    var dt = 1 / 30, gsMs = 13.9;                       // ~27 kt, a PM-2 cruise
+    var hd = att.hdg * Math.PI / 180;
+    simPos.lat += Math.cos(hd) * gsMs * dt / 111320;
+    simPos.lon += Math.sin(hd) * gsMs * dt / (111320 * Math.cos(simPos.lat * Math.PI / 180));
+    simPos.alt = 330 + Math.sin(t * 0.3) * 20;
+    gps.lat = simPos.lat; gps.lon = simPos.lon; gps.alt = simPos.alt;
+    gps.gs = gsMs; gps.trk = att.hdg; gps.vs = Math.cos(t * 0.3) * 0.6;
+  }
+
+  if (!linkDown) {
+    rows.forEach(function (r, i) {
+      if (r.kind === "fuel") { return; }
+      var base = r.kind === "rpm" ? P.limits.rpmMax * 0.86
+               : r.k.indexOf("cht") === 0 ? P.limits.chtMax * 0.86
+               : P.limits.egtMax * 0.88;
+      if (hot && r.k.indexOf("cht") === 0 && r.k.indexOf("cht0") === 0) {
+        sim[r.k] = Math.min(P.limits.chtMax * 1.06, sim[r.k] + 0.55);
+      } else {
+        var tgt = base - (i % 3) * (r.kind === "rpm" ? 45 : 6);
+        sim[r.k] += (tgt - sim[r.k]) * 0.02 + Math.sin(t * (2 + i * 0.4)) * (r.kind === "rpm" ? 1.4 : 0.25);
+      }
+    });
+    sim.fuel = Math.max(0, sim.fuel - 0.00035);
+    sim.ias  = P.speeds.cruise + Math.sin(t*0.5) * 0.5;
+    sim.alt  = 360 + Math.sin(t*0.3) * 7;
+    sim.vs   = Math.cos(t*0.3) * 2.1 * 0.3;
+  }
+
+  // In LIVE there is no node, so the tapes show what the phone actually knows:
+  // GNSS altitude and ground speed, annunciated as such. Simulated values would
+  // be worse than useless in an aircraft.
+  var srcAlt = "NODE PLENUM", srcSpd = "NODE PITOT";
+  var ias = sim.ias, alt = sim.alt, vs = sim.vs;
+  if (dataMode === "live") {
+    if (gps.alt !== null) { alt = gps.alt; srcAlt = "PHONE GNSS"; }
+    if (gps.gs !== null)  { ias = gps.gs;  srcSpd = "PHONE GNSS GS"; }
+    vs = gps.vs || 0;
+  }
+  if ($("altSrc").textContent !== srcAlt) {
+    $("altSrc").textContent = srcAlt;
+    $("altSrc").setAttribute("fill", dataMode === "live" ? "#E845E8" : "#35D6E8");
+    $("asiSrc").textContent = srcSpd;
+    $("asiSrc").setAttribute("fill", dataMode === "live" ? "#E845E8" : "#35D6E8");
+  }
+  var iasD = uSpd().to(ias), altD = uAlt().to(alt), vsD = uVs().to(vs);
+  tapeASI(iasD); tapeALT(altD); tapeHDG(att.hdg);
+  $("asiVal").textContent = (linkDown && dataMode !== "live") ? "– –" : iasD.toFixed(0);
+  $("altVal").textContent = (linkDown && dataMode !== "live") ? "– – – –" : altD.toFixed(0);
+  $("hdgVal").textContent = (mode === "live" && !cal) ? "—" : String(Math.round(att.hdg)).padStart(3, "0");
+
+  var vmax = P.units.vs === "ms" ? 5 : 1000;
+  var vc = Math.max(-vmax, Math.min(vmax, (linkDown && dataMode !== "live") ? 0 : vsD));
+  var vy = 238 - (vc / vmax) * 180;
+  $("vsiPtr").setAttribute("points", "761," + vy + " 776," + (vy-7) + " 776," + (vy+7));
+  $("vsiBar").setAttribute("y", Math.min(238, vy));
+  $("vsiBar").setAttribute("height", Math.abs(238 - vy));
+  $("vsiVal").textContent = linkDown ? "–" : (vc >= 0 ? "+" : "") + vc.toFixed(P.units.vs === "ms" ? 1 : 0);
+
+  if (gps.trk !== null) {
+    var tx = Math.max(228, Math.min(660, 444 + (((gps.trk - att.hdg + 540) % 360) - 180) * 3.4));
+    $("trkBug").setAttribute("points", tx + ",500 " + (tx-7) + ",486 " + (tx+7) + ",486");
+    $("trkBug").setAttribute("opacity", 1);
+  } else { $("trkBug").setAttribute("opacity", 0.2); }
+
+  var aoa = null;
+  if (gps.gs !== null && gps.gs > 3.5) {
+    var fpa = Math.atan2(gps.vs, gps.gs) * R2D;
+    aoa = att.pitch - fpa;
+    $("fpm").setAttribute("opacity", 1);
+    $("fpm").setAttribute("transform", "translate(0 " + Math.max(-90, Math.min(90, (att.pitch - fpa) * 7)) + ")");
+  } else { $("fpm").setAttribute("opacity", 0); }
+
+  rows.forEach(function (r) {
+    var v = sim[r.k], tn = $("e-" + r.k), bn = $("b-" + r.k);
+    if (!tn) { return; }
+    if (linkDown) { tn.textContent = "– –"; tn.setAttribute("fill", "#93A0A8"); bn.setAttribute("width", 0); return; }
+    var disp = r.kind === "temp" ? uTmp().to(v) : r.kind === "fuel" ? uFul().to(v) : v;
+    tn.textContent = disp.toFixed(r.kind === "fuel" ? 1 : 0);
+    bn.setAttribute("width", Math.max(0, Math.min(1, (v - r.min) / (r.max - r.min))) * 106);
+    var over = (r.red !== null && v >= r.red) || (r.low !== undefined && v <= r.low);
+    var near = r.red !== null && v >= r.red * 0.94;
+    bn.setAttribute("fill", over ? "#E8483D" : near ? "#E8A33D" : "#3FCF6A");
+    tn.setAttribute("fill", over ? "#E8483D" : "#FFF");
+  });
+
+  if (P.engines.count > 1 && $("syncB")) {
+    var dR = linkDown ? 0 : sim.rpm0 - sim.rpm1, sw = Math.max(-52, Math.min(52, dR/300*52));
+    $("syncB").setAttribute("x", sw < 0 ? 66 + sw : 66);
+    $("syncB").setAttribute("width", Math.abs(sw));
+    $("syncB").setAttribute("fill", Math.abs(dR) > 100 ? "#E8A33D" : "#3FCF6A");
+    $("syncT").textContent = linkDown ? "– –" : "Δ " + Math.abs(dR).toFixed(0);
+  }
+
+  var hrs = sim.fuel / P.fuel.burnCruise;
+  function rc(i, v, u) { $("r-" + i).textContent = v; $("ru-" + i).textContent = u || ""; }
+  rc("aoa",  aoa === null ? "—" : (aoa >= 0 ? "+" : "") + aoa.toFixed(1), "°");
+  rc("oat",  linkDown ? "– –" : uTmp().to(sim.oat).toFixed(0), uTmp().label);
+  rc("dalt", linkDown ? "– –" : uAlt().to(sim.alt + (sim.oat - 15) * 36).toFixed(0), uAlt().label);
+  rc("gs",   gps.gs === null ? "—" : uSpd().to(gps.gs).toFixed(0), uSpd().label);
+  rc("gpsa", gps.alt === null ? "—" : uAlt().to(gps.alt).toFixed(0), uAlt().label);
+  rc("endu", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"), "");
+
+  $("bb-ac").textContent = P.name;
+  $("bb-pos").textContent = gps.lat === null ? "—" : gps.lat.toFixed(4) + ", " + gps.lon.toFixed(4);
+
+  // Direct-to solution, and the course pointer on the heading tape.
+  var sol = O.solution(gps.lat, gps.lon, gps.trk, gps.gs);
+  if (sol) {
+    $("bb-nav").textContent = sol.name + "  " + sol.dist.toFixed(1) + " nm  " +
+      String(Math.round(sol.brg)).padStart(3, "0") + "°" +
+      (sol.ete === null ? "" : "  " + Math.floor(sol.ete / 60) + ":" + String(Math.round(sol.ete % 60)).padStart(2, "0"));
+    // Fuel at the destination, from the figure the pilot typed on the W&B page.
+    // Marked "est" because it is arithmetic on a dipstick reading, not a sender,
+    // and design rule 8 says the display names its source.
+    var fp = O.fuelPlan(P, sol);
+    if (fp && fp.atDestL !== null) {
+      var F = uFul();
+      $("bb-nav").textContent += "   " +
+        (fp.atDestL <= 0 ? "DRY BEFORE ARRIVAL"
+                         : F.to(fp.atDestL).toFixed(1) + " " + F.label.toLowerCase() + " est on arrival") +
+        (fp.belowReserve ? "  ⚠ below reserve" : "");
+    }
+    var nx = Math.max(228, Math.min(660, 444 + (((sol.brg - att.hdg + 540) % 360) - 180) * 3.4));
+    $("navBug").setAttribute("points", nx + ",462 " + (nx-8) + ",476 " + (nx+8) + ",476");
+    $("navBug").setAttribute("opacity", 1);
+  } else {
+    $("bb-nav").textContent = "— set a destination";
+    $("navBug").setAttribute("opacity", 0);
+  }
+
+  // Logbook detection and breadcrumb, live data only.
+  if (gps.lat !== null) { O.addTrail(gps.lat, gps.lon, gps.alt); }
+  if (dataMode === "live" && gps.lat !== null) {
+    O.update(gps.lat, gps.lon, gps.alt);
+    var ev = O.detect(P, gps.lat, gps.lon, gps.gs, gps.alt, Date.now());
+    if (ev) { flash($("qLog"), ev.event === "takeoff" ? "OFF" : "ON", "live"); }
+  }
+  var chtOver = false;
+  rows.forEach(function (r) { if (r.k.indexOf("cht") === 0 && r.red !== null && sim[r.k] >= r.red) { chtOver = true; } });
+  var al = linkDown ? ["NODE LINK LOST", "#E8483D"]
+         : chtOver ? ["CHT OVER LIMIT", "#E8483D"]
+         : hrs < P.fuel.reserveHr ? ["FUEL BELOW RESERVE", "#E8A33D"]
+         : (mode === "live" && !cal) ? ["NOT CALIBRATED — SET LEVEL", "#E8A33D"]
+         : ["NONE", "#93A0A8"];
+  $("bb-alert").textContent = al[0]; $("bb-alert").setAttribute("fill", al[1]);
+
+  var an = (mode === "live" && cal) ? ["PHONE AHRS · ADVISORY", "#E8A33D"]
+         : mode === "live" ? ["UNCALIBRATED · SET LEVEL", "#E8483D"]
+         : ["DEMO · SIMULATED ATTITUDE", "#35D6E8"];
+  if ($("annTxt").textContent !== an[0]) {
+    $("annTxt").textContent = an[0];
+    $("annTxt").setAttribute("fill", an[1]);
+    $("annBox").setAttribute("stroke", an[1]);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ================= sensors ================= */
+function onOrient(e) {
+  if (e.alpha === null && e.beta === null && e.gamma === null) { return; }
+  diag.count++;
+  raw.R = devToEarth((e.alpha||0)*D2R, (e.beta||0)*D2R, (e.gamma||0)*D2R);
+  raw.has = true;
+  if (mode !== "live") { mode = "live"; }
+  stats();
+}
+function startGeo() {
+  if (!navigator.geolocation) { diag.geo = "unsupported"; stats(); return; }
+  diag.geo = "acquiring"; stats();
+  navigator.geolocation.watchPosition(function (p) {
+    var c = p.coords, now = p.timestamp || 0;
+    gps.lat = c.latitude; gps.lon = c.longitude;
+    gps.gs = (c.speed === null || isNaN(c.speed)) ? 0 : c.speed;      // m/s
+    gps.trk = (c.heading === null || isNaN(c.heading)) ? gps.trk : c.heading;
+    if (c.altitude !== null && !isNaN(c.altitude)) {
+      if (gps.tM && now > gps.tM) { gps.vs = (c.altitude - gps.tA) / ((now - gps.tM) / 1000); }
+      gps.tA = c.altitude; gps.tM = now; gps.alt = c.altitude;
+    }
+    try { localStorage.setItem("junco.lastpos", JSON.stringify({ lat: gps.lat, lon: gps.lon })); } catch (e) {}
+    diag.geo = "fix ±" + Math.round(c.accuracy) + " m"; stats();
+
+    // A page opened before the first fix used to sit on "No position yet"
+    // forever, because nothing re-rendered when the fix arrived. On the ground
+    // waiting for GPS is exactly when a pilot opens the nearest page.
+    if (firstFix) {
+      firstFix = false;
+      if ($("nrstPage").classList.contains("open")) { nrstRender(); }
+      if ($("wxPage").classList.contains("open")) { pullOutside(); }
+    }
+  }, function (err) { diag.geo = err.code === 1 ? "denied" : "unavailable"; stats(); },
+     { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
+}
+function goLive() {
+  startGeo();
+  startOrient();
+  mode = "live"; stats();
+}
+/* Split out from goLive because the gesture retry needs THIS and only this.
+   It used to re-run the whole of setMode("live"), which throws away the GPS
+   fix and clears the breadcrumb — so on any device where the orientation
+   sensor is slow or absent, the pilot's first tap on the screen silently
+   erased their position and their track. Asking for a permission must not
+   have side effects on unrelated state. */
+function startOrient() {
+  var D = window.DeviceOrientationEvent;
+  if (D && typeof D.requestPermission === "function") {
+    diag.perm = "asking"; stats();
+    D.requestPermission().then(function (r) {
+      diag.perm = r;
+      if (r === "granted") { window.addEventListener("deviceorientation", onOrient, true); }
+      stats();
+    }).catch(function (e) { diag.perm = (e && e.name) || "rejected"; stats(); });
+  } else {
+    diag.perm = "not required";
+    window.addEventListener("deviceorientation", onOrient, true);
+    stats();
+  }
+}
+function stats() {
+  function s(id, v, c) { var e = $(id); if (!e) { return; } e.textContent = v; e.className = c || ""; }
+  s("sMode", mode === "live" ? (cal ? "live, calibrated" : "live, NOT calibrated") : "demo",
+    mode === "live" ? (cal ? "ok" : "warn") : "warn");
+  s("sSecure", window.isSecureContext ? "yes" : "no", window.isSecureContext ? "ok" : "bad");
+  s("sFrame", window.self !== window.top ? "yes — sensors blocked" : "no", window.self !== window.top ? "bad" : "ok");
+  s("sCount", String(diag.count), diag.count ? "ok" : "bad");
+  s("sPerm", diag.perm); s("sGeo", diag.geo);
+  $("calState").textContent = cal ? "calibrated" : "not set";
+  $("rotVal").textContent = rotDeg + "°";
+}
+
+/* ================= aircraft panel ================= */
+function fillList() {
+  var sel = $("acSel"); sel.innerHTML = "";
+  JP.all().forEach(function (p) {
+    var o = document.createElement("option");
+    o.value = p.id; o.textContent = p.name + (p.registration ? "  (" + p.registration + ")" : "");
+    if (p.id === P.id) { o.selected = true; }
+    sel.appendChild(o);
+  });
+}
+function fillForm() {
+  $("acName").value = P.name; $("acReg").value = P.registration;
+  $("acEng").value = P.engines.count; $("acCht").value = P.engines.cht; $("acEgt").value = P.engines.egt;
+  $("acRpm").value = Math.round(P.limits.rpmMax);
+  $("acChtMax").value = Math.round(uTmp().to(P.limits.chtMax));
+  $("acEgtMax").value = Math.round(uTmp().to(P.limits.egtMax));
+  $("acVs0").value = Math.round(uSpd().to(P.speeds.vs0));
+  $("acVne").value = Math.round(uSpd().to(P.speeds.vne));
+  $("acCru").value = Math.round(uSpd().to(P.speeds.cruise));
+  $("acCap").value = Math.round(uFul().to(P.fuel.capacity) * 10) / 10;
+  $("acBurn").value = Math.round(uFul().to(P.fuel.burnCruise) * 10) / 10;
+  $("uSpeed").value = P.units.speed; $("uAlt").value = P.units.alt;
+  $("uTemp").value = P.units.temp; $("uFuel").value = P.units.fuel;
+  $("uWeight").value = P.units.weight || "lb";
+  $("acErr").textContent = "";
+}
+function readForm() {
+  var q = JSON.parse(JSON.stringify(P));
+  q.units.speed = $("uSpeed").value; q.units.alt = $("uAlt").value;
+  q.units.temp = $("uTemp").value; q.units.fuel = $("uFuel").value;
+  q.units.weight = $("uWeight").value;
+  if (!q.wb) { q.wb = JP.emptyWB(); }
+  if (!q.stations) { q.stations = []; }
+  var sp = JP.conv("speed", q.units.speed), tp = JP.conv("temp", q.units.temp), fl = JP.conv("fuel", q.units.fuel);
+  q.name = $("acName").value.trim() || "Unnamed";
+  q.registration = $("acReg").value.trim();
+  q.engines.count = parseInt($("acEng").value, 10) || 1;
+  q.engines.cht = parseInt($("acCht").value, 10); if (isNaN(q.engines.cht)) { q.engines.cht = 1; }
+  q.engines.egt = parseInt($("acEgt").value, 10); if (isNaN(q.engines.egt)) { q.engines.egt = 1; }
+  q.limits.rpmMax = parseFloat($("acRpm").value) || 6800;
+  q.limits.chtMax = tp.from(parseFloat($("acChtMax").value));
+  q.limits.egtMax = tp.from(parseFloat($("acEgtMax").value));
+  q.speeds.vs0 = sp.from(parseFloat($("acVs0").value));
+  q.speeds.vs1 = q.speeds.vs0 * 1.09;
+  q.speeds.vne = sp.from(parseFloat($("acVne").value));
+  q.speeds.vno = q.speeds.vne * 0.88;
+  q.speeds.cruise = sp.from(parseFloat($("acCru").value));
+  q.fuel.capacity = fl.from(parseFloat($("acCap").value));
+  q.fuel.usable = Math.min(q.fuel.usable, q.fuel.capacity);
+  q.fuel.burnCruise = fl.from(parseFloat($("acBurn").value));
+  return q;
+}
+function applyProfile(p) {
+  P = p; JP.put(P); JP.setActive(P.id);
+  sim = {}; rebuild(); fillList(); fillForm();
+  // The W&B boxes hold numbers in the display unit. Switching lb to kg without
+  // redrawing them leaves 240 lb sitting in a box now labelled kg, and the next
+  // thing that reads the form would store it as 240 kg. Redraw immediately.
+  if ($("wbSetup").style.display === "block") { wbFillSetup(); }
+  if ($("wbPage").classList.contains("open")) { wbRender(); }
+}
+
+$("acSel").onchange = function () {
+  JP.all().forEach(function (p) { if (p.id === this.value) { applyProfile(p); } }, this);
+};
+$("acSave").onclick = function () {
+  var q = readForm(), bad = JP.validate(q);
+  if (bad.length) { $("acErr").innerHTML = '<b style="color:#E8483D">' + bad[0] + "</b>"; return; }
+  applyProfile(q);
+  $("acErr").innerHTML = '<b style="color:#3FCF6A">applied</b>';
+};
+$("acDup").onclick = function () {
+  var q = readForm();
+  q.id = JP.uniqueId(q.id + "-copy"); q.name = q.name + " copy";
+  applyProfile(q);
+};
+$("acDel").onclick = function () {
+  if (JP.all().length < 2) { $("acErr").textContent = "the last aircraft cannot be deleted"; return; }
+  var lib = JP.remove(P.id); applyProfile(lib[0]);
+};
+
+function showText(txt) {
+  $("acText").value = txt; $("acText").style.display = "block"; $("acTextRow").style.display = "flex";
+}
+$("acExport").onclick = function () { showText(JP.toTOML(readForm())); };
+$("acCopy").onclick = function () {
+  var ta = $("acText"); ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () { document.execCommand("copy"); }); }
+  else { document.execCommand("copy"); }
+  this.textContent = "Copied";
+  var b = this; setTimeout(function () { b.textContent = "Copy"; }, 1200);
+};
+$("acShare").onclick = function () {
+  var txt = $("acText").value, name = (P.id || "aircraft") + ".toml";
+  if (navigator.share) {
+    var data = { title: name, text: txt };
+    if (navigator.canShare) {
+      try {
+        var f = new File([txt], name, { type: "text/plain" });
+        if (navigator.canShare({ files: [f] })) { data = { files: [f], title: name }; }
+      } catch (e) {}
+    }
+    navigator.share(data).catch(function () {});
+  } else { this.textContent = "Not available here — use Copy"; }
+};
+$("acDownload").onclick = function () {
+  var blob = new Blob([$("acText").value], { type: "text/plain" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = (P.id || "aircraft") + ".toml";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+};
+$("acLoadText").onclick = function () {
+  try {
+    var p = JP.fromTOML($("acText").value);
+    p.id = JP.uniqueId(p.id);
+    applyProfile(p);
+    $("acErr").innerHTML = '<b style="color:#3FCF6A">imported ' + p.name + "</b>";
+  } catch (e) { $("acErr").innerHTML = '<b style="color:#E8483D">' + e.message + "</b>"; }
+};
+$("acImportBtn").onclick = function () { $("acFile").click(); };
+$("acFile").onchange = function () {
+  var f = this.files && this.files[0]; if (!f) { return; }
+  var r = new FileReader();
+  r.onload = function () { showText(String(r.result)); $("acLoadText").click(); };
+  r.readAsText(f);
+};
+
+/* ================= controls ================= */
+$("menuBtn").onclick = function () { $("panel").classList.add("open"); stats(); stoRefresh(); };
+$("btnClose").onclick = function () { $("panel").classList.remove("open"); };
+$("btnLevel").onclick = function () {
+  if (!raw.R) { diag.perm = "no sensor data yet"; stats(); return; }
+  calibrate(raw.R); mode = "live"; stats();
+};
+$("btnClear").onclick = function () { cal = null; try { localStorage.removeItem("junco.cal"); } catch (e) {} stats(); };
+function bump(d) { rotDeg = ((rotDeg + d) % 360 + 360) % 360; if (raw.R) { calibrate(raw.R); } stats(); }
+$("rotM90").onclick = function () { bump(-90); };
+$("rotP90").onclick = function () { bump(90); };
+$("rotM5").onclick  = function () { bump(-5); };
+$("rotP5").onclick  = function () { bump(5); };
+$("btnLive").onclick = goLive;
+$("btnDemo").onclick = function () { mode = "demo"; stats(); };
+$("btnHot").onclick  = function () { hot = !hot; this.className = hot ? "on" : ""; };
+$("btnLink").onclick = function () { linkDown = !linkDown; this.className = linkDown ? "on" : ""; };
+$("btnFull").onclick = function () {
+  if (document.fullscreenElement) { document.exitFullscreen(); }
+  else if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().then(function () {
+      if (screen.orientation && screen.orientation.lock) { screen.orientation.lock("landscape").catch(function () {}); }
+    }).catch(function () {});
+  }
+};
+var wl = null;
+$("btnWake").onclick = function () {
+  var b = this;
+  if (!("wakeLock" in navigator)) { b.textContent = "Wake lock unsupported"; return; }
+  if (wl) { wl.release(); wl = null; b.className = ""; b.textContent = "Keep screen awake"; }
+  else { navigator.wakeLock.request("screen").then(function (w) { wl = w; b.className = "on"; b.textContent = "Screen awake"; })
+    .catch(function () { b.textContent = "Wake lock refused"; }); }
+};
+/* ================= storage and diagnostics ================= */
+function stoRefresh() {
+  $("stoTiles").textContent = "…";
+  T.cacheStats().then(function (s) {
+    $("stoTiles").textContent = s.tiles === null ? "tiles n/a" : s.tiles.toLocaleString() + " tiles";
+    $("stoBytes").textContent = s.bytes === null ? "size n/a"
+      : (s.bytes / 1048576).toFixed(1) + " MB" + (s.quota ? " of " + Math.round(s.quota / 1048576) + " MB" : "");
+  });
+}
+$("stoRefresh").onclick = stoRefresh;
+$("stoPurge").onclick = function () {
+  var b = this;
+  if (b.dataset.armed !== "1") {
+    b.dataset.armed = "1"; b.textContent = "Purge — tap again";
+    setTimeout(function () { b.dataset.armed = "0"; b.textContent = "Purge charts"; }, 4000);
+    return;
+  }
+  b.dataset.armed = "0"; b.textContent = "Purging…";
+  T.purge().then(function () { b.textContent = "Purge charts"; stoRefresh(); });
+};
+$("diagCopy").onclick = function () {
+  var L = [];
+  L.push("Junco diagnostics");
+  L.push("time        " + new Date().toISOString());
+  L.push("build       " + (navigator.userAgent.indexOf("JuncoPFD") >= 0 ? "native APK" : "browser"));
+  L.push("agent       " + navigator.userAgent);
+  L.push("viewport    " + innerWidth + "x" + innerHeight + " dpr " + (devicePixelRatio || 1));
+  L.push("secure      " + window.isSecureContext + "   iframe " + (window.self !== window.top));
+  L.push("native br.  " + (N.hasNative() ? "yes" : "no"));
+  L.push("mode        " + dataMode);
+  L.push("orient ev.  " + diag.count + "   perm " + diag.perm + "   gnss " + diag.geo);
+  L.push("calibrated  " + (cal ? "yes" : "no") + "   rotation " + rotDeg + "°");
+  L.push("position    " + (gps.lat === null ? "none" : gps.lat.toFixed(4) + ", " + gps.lon.toFixed(4)));
+  L.push("aircraft    " + P.name + "  (" + P.id + ")  " + P.registration);
+  L.push("profiles    " + JP.all().length + "   flights " + O.flights().length);
+  L.push("airports    " + (AP.isReady() ? AP.count() : "not loaded"));
+  L.push("chart layer " + T.layerName() + "   mem tiles " + T.cached());
+  var ta = $("diagText");
+  ta.value = L.join("\n"); ta.style.display = "block"; ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); }
+  else { try { document.execCommand("copy"); } catch (e) {} }
+  var b = this; b.textContent = "Copied — read it before sending";
+  setTimeout(function () { b.textContent = "Copy diagnostics"; }, 3000);
+};
+
+/* Acknowledged at every launch. Not a modal that nags, and not a line of grey
+   text nobody reads: this is a flight instrument in an aircraft with no panel,
+   and the limits belong in front of the pilot before every flight. */
+(function startupAck() {
+  // Every launch, not once. This is the convention on every marine and aviation
+  // GPS for a reason: the acknowledgement is only worth anything if it happens
+  // at the start of the flight it applies to. A box ticked eight months ago says
+  // nothing about whether this pilot, today, knows what they are looking at.
+  $("firstRun").classList.add("open");
+  $("frAccept").onclick = function () { $("firstRun").classList.remove("open"); };
+})();
+
+window.addEventListener("orientationchange", stats);
+
+/* ================= quick controls, live data, outside data ================= */
+function setMode(m) {
+  dataMode = m;
+  if (m === "sim") { simPos = null; O.clearTrail(); }
+  var b = $("qMode");
+  b.textContent = m === "live" ? "LIVE" : "SIM";
+  b.className = m === "live" ? "live" : "";
+  if (m === "live") {
+    simPos = null;
+    gps.lat = null; gps.lon = null; gps.alt = null; gps.gs = null; gps.trk = null;
+    O.clearTrail();
+    goLive();
+  }
+  stats();
+}
+$("qMode").onclick = function () { setMode(dataMode === "live" ? "sim" : "live"); };
+$("qCal").onclick = function () {
+  if (!raw.R) { goLive(); flash($("qCal"), "WAIT", "warn"); return; }
+  calibrate(raw.R); mode = "live"; stats(); flash($("qCal"), "SET", "live");
+};
+function flash(b, txt, cls) {
+  var o = b.textContent, oc = b.className;
+  b.textContent = txt; b.className = cls;
+  setTimeout(function () { b.textContent = o; b.className = oc; }, 1400);
+}
+function refreshCal() { $("qCal").className = cal ? "" : "warn"; }
+
+/* ---- weather and traffic ---- */
+var N = window.JuncoNet, O = window.JuncoOps, T = window.JuncoTiles;
+function wxRender() {
+  var m = N.wx.metar;
+  $("wxAge").textContent = N.wx.at ? N.fmtAge(N.wx.at) : "—";
+  $("wxErr").innerHTML = N.wx.err ? '<b style="color:#E8483D">' + N.wx.err + "</b>" : "";
+  if (!m) { return; }
+  $("wxRaw").textContent = (N.wx.station || "") + "\n\n" + (m.rawOb || "") +
+    (N.wx.taf && N.wx.taf.rawTAF ? "\n\nTAF\n" + N.wx.taf.rawTAF : "");
+  var da = N.densityAltFt(m);
+  $("wxDA").textContent = da === null ? "DA —" : "DA " + Math.round(da) + " ft";
+  $("wxWind").textContent = (m.wdir === null || m.wdir === undefined) ? "Wind —"
+    : "Wind " + String(m.wdir).padStart(3, "0") + "° / " + (m.wspd || 0) + " kt";
+  $("wxVis").textContent = m.visib === undefined ? "Vis —" : "Vis " + m.visib;
+}
+function tfcRender() {
+  var t = N.traffic;
+  $("tfcAge").textContent = t.at ? N.fmtAge(t.at) : "—";
+  $("tfcCount").textContent = t.list.length + " ac";
+  $("tfcErr").innerHTML = t.err ? '<b style="color:#E8483D">' + t.err + "</b>" : "";
+  var tb = $("tfcTable").querySelector("tbody");
+  tb.innerHTML = "<tr><th>Callsign</th><th>Type</th><th>Dist</th><th>Brg</th><th>Alt</th><th>Rel</th></tr>";
+  t.list.slice(0, 14).forEach(function (a) {
+    var tr = document.createElement("tr");
+    var near = a.dist < 5 && a.rel !== null && Math.abs(a.rel) < 2000;
+    tr.innerHTML = "<td" + (near ? ' class="near"' : "") + ">" + a.id + "</td><td>" + (a.type || "—") +
+      "</td><td>" + a.dist.toFixed(1) + " nm</td><td>" + String(Math.round(a.brg)).padStart(3, "0") +
+      "°</td><td>" + (a.onGround ? "GND" : (a.alt === null ? "—" : a.alt)) + "</td><td>" +
+      (a.rel === null ? "—" : (a.rel > 0 ? "+" : "") + Math.round(a.rel)) + "</td>";
+    tb.appendChild(tr);
+  });
+}
+function pullOutside() {
+  if (gps.lat === null) { $("tfcErr").innerHTML = '<b style="color:#E8A33D">no position yet — switch to LIVE</b>'; return; }
+  var altFt = gps.alt === null ? null : gps.alt * 3.28084;
+  N.fetchTraffic(gps.lat, gps.lon, 40, altFt).then(tfcRender);
+  N.fetchWx(gps.lat, gps.lon).then(wxRender);
+}
+$("qWx").onclick = function () { showPage("wx"); };
+$("qNrst").onclick = function () { showPage("nrst"); };
+$("qWb").onclick = function () { showPage("wb"); };
+$("nrstClose").onclick = function () { showPage("pfd"); };
+$("nrstRefresh").onclick = function () { nrstRender(); };
+
+var AP = window.JuncoAirports;
+function nrstRender() {
+  var box = $("nrstList");
+  if (!AP.isReady()) {
+    box.innerHTML = '<p class="hint">Loading airport database…</p>';
+    AP.load().then(nrstRender);
+    return;
+  }
+  $("nrstCount").textContent = AP.count().toLocaleString() + " apt";
+  if (gps.lat === null) {
+    box.innerHTML = '<p class="hint">Waiting for a GPS fix. This page will fill in by itself when one arrives.' +
+      (dataMode === "sim" ? ' You are in SIM &mdash; tap LIVE for a real position.' : '') + '</p>';
+    return;
+  }
+  var list = AP.nearest(gps.lat, gps.lon, 10, 60);
+  box.innerHTML = "";
+  if (!list.length) { box.innerHTML = '<p class="hint">Nothing within 60 nm.</p>'; return; }
+  list.forEach(function (a) {
+    var d = document.createElement("div"); d.className = "ap";
+    var fq = a.freqs.map(function (f) {
+      return "<span><i>" + AP.freqLabel(f[0]) + "</i>" + f[1].toFixed(3) + "</span>";
+    }).join("");
+    d.innerHTML =
+      '<div class="hd"><span class="id">' + a.ident + '</span>' +
+      '<span class="dd">' + a.dist.toFixed(1) + " nm  " + String(Math.round(a.brg)).padStart(3, "0") + "°</span></div>" +
+      '<div class="nm">' + a.name + "  ·  " + a.kind + "  ·  " + a.elev + " ft</div>" +
+      (fq ? '<div class="fq">' + fq + "</div>" : '<div class="nm">No published frequency</div>');
+    var go = document.createElement("button");
+    go.textContent = "Direct to"; go.style.marginTop = "8px";
+    go.onclick = function () { O.setDest(a.lat, a.lon, a.ident); O.setActive("dest"); showPage("pfd"); };
+    d.appendChild(go);
+    box.appendChild(d);
+  });
+}
+/* ================= weight and balance =================
+   The one electronic-flight-bag feature that matters MORE here than it does in
+   a certified aircraft, because Part 103's 254 lb empty weight is not advice,
+   it is the boundary of the whole category: over it you are flying an
+   unregistered aircraft without a certificate or a licence. Everything on this
+   page is arithmetic the pilot could do on paper, done in front of them with
+   their own numbers, and it computes nothing until those numbers exist. */
+function durHM(hours) {
+  if (!isFinite(hours) || hours < 0) { return "—"; }
+  var m = Math.round(hours * 60);
+  return Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0");
+}
+function wbKey() { return "junco.wbload." + P.id; }
+function wbGetLoads() {
+  try { return JSON.parse(localStorage.getItem(wbKey()) || "{}") || {}; } catch (e) { return {}; }
+}
+function wbPutLoads(o) { try { localStorage.setItem(wbKey(), JSON.stringify(o)); } catch (e) {} }
+
+function wbRender() {
+  $("wbAc").textContent = P.name;
+  var wb = P.wb || (P.wb = JP.emptyWB());
+  var on = !!wb.enabled;
+  $("wbOff").style.display = on ? "none" : "block";
+  $("wbOn").style.display = on ? "block" : "none";
+  wb103Render();
+  if (!on) { $("wbSetup").style.display = "none"; return; }
+
+  var W = uWt(), A = uArm(), F = uFul();
+  var loads = wbGetLoads();
+  var box = $("wbLoad"); box.innerHTML = "";
+
+  function row(name, arm, editable, idx) {
+    var d = document.createElement("div"); d.className = "wbrow";
+    var n = document.createElement("span"); n.className = "nm2";
+    n.textContent = name + "  " + A.to(arm).toFixed(1) + " " + A.label.toLowerCase();
+    d.appendChild(n);
+    if (editable) {
+      var i = document.createElement("input");
+      i.className = "val"; i.type = "number"; i.step = "0.1";
+      i.value = Math.round(W.to(loads[idx] || 0) * 10) / 10;
+      i.oninput = function () {
+        var v = parseFloat(i.value);
+        loads[idx] = isNaN(v) ? 0 : W.from(v);
+        wbPutLoads(loads); wbSolveRender();
+      };
+      d.appendChild(i);
+    } else {
+      var f = document.createElement("span"); f.className = "mom";
+      f.textContent = W.to(wb.emptyWeight).toFixed(1) + " " + W.label.toLowerCase();
+      d.appendChild(f);
+    }
+    box.appendChild(d);
+  }
+  row("Empty", wb.emptyArm, false, -1);
+  (P.stations || []).forEach(function (s, i) { row(s.name || ("Station " + (i + 1)), s.arm, true, i); });
+
+  $("wbFuelU").textContent = F.label.toLowerCase();
+  var fu = O.getFuel();
+  $("wbFuel").value = fu ? Math.round(F.to(fu.litres) * 10) / 10 : "";
+  $("wbFuel").oninput = function () {
+    var v = parseFloat(this.value);
+    if (isNaN(v)) { O.clearFuel(); } else { O.setFuel(F.from(v)); }
+    wbSolveRender();
+  };
+  wbSolveRender();
+}
+
+function wbSolveRender() {
+  var wb = P.wb, W = uWt(), A = uArm();
+  var fu = O.getFuel();
+  var r = JP.wbSolve(P, wbGetLoads(), fu ? fu.litres : 0);
+
+  var bar = $("wbBar");
+  Array.prototype.slice.call(bar.querySelectorAll(".env,.now")).forEach(function (n) { bar.removeChild(n); });
+  if (r.envelope && r.cg !== null) {
+    // Draw the envelope with a margin either side so an out-of-limits CG is
+    // still visible on the bar rather than clipped off the end of it.
+    var pad = (wb.cgAft - wb.cgFwd) * 0.6;
+    var lo = wb.cgFwd - pad, hi = wb.cgAft + pad, span = hi - lo;
+    var e = document.createElement("div"); e.className = "env";
+    e.style.left = ((wb.cgFwd - lo) / span * 100) + "%";
+    e.style.width = ((wb.cgAft - wb.cgFwd) / span * 100) + "%";
+    bar.appendChild(e);
+    var pos = Math.max(0, Math.min(1, (r.cg - lo) / span));
+    var m = document.createElement("div");
+    m.className = "now" + (r.cg < wb.cgFwd || r.cg > wb.cgAft ? " bad" : "");
+    m.style.left = "calc(" + (pos * 100) + "% - 1px)";
+    bar.appendChild(m);
+    $("wbBarTx").textContent = "CG " + A.to(r.cg).toFixed(1) + " " + A.label.toLowerCase() +
+      "   envelope " + A.to(wb.cgFwd).toFixed(1) + "–" + A.to(wb.cgAft).toFixed(1);
+  } else {
+    $("wbBarTx").textContent = r.cg === null ? "No weight entered" : "No CG envelope entered";
+  }
+
+  var v = $("wbVerdict"), lines = [];
+  lines.push("Ramp weight   " + W.to(r.weight).toFixed(1) + " " + W.label.toLowerCase() +
+             (r.grossSet ? "   of " + W.to(wb.maxGross).toFixed(1) + " max" : "   (no gross limit entered)"));
+  if (r.cg !== null) { lines.push("CG            " + A.to(r.cg).toFixed(2) + " " + A.label.toLowerCase() + " aft of datum"); }
+  if (r.grossSet) {
+    var margin = wb.maxGross - r.weight;
+    lines.push((margin >= 0 ? "Room left     " : "OVER BY       ") + W.to(Math.abs(margin)).toFixed(1) + " " + W.label.toLowerCase());
+  }
+  var fp = O.fuelPlan(P, null);
+  if (fp) {
+    lines.push("Endurance     " + durHM(fp.enduranceHr) + " total, " +
+               durHM(fp.toReserveHr) + " to reserve");
+    lines.push("Fuel entered  " + (fp.ageMin < 60 ? Math.round(fp.ageMin) + " min ago"
+                                                  : durHM(fp.ageMin / 60) + " ago"));
+  }
+  v.textContent = lines.join("\n");
+  v.style.whiteSpace = "pre";
+  v.className = "verdict " + (!r.grossSet && !r.envelope ? "unk" : (r.ok ? "ok" : "bad"));
+  if (!r.ok) { v.textContent = r.errors.join("  ·  ") + "\n" + v.textContent; }
+}
+
+function wb103Render() {
+  var box = $("wb103"); box.innerHTML = "";
+  JP.part103(P).forEach(function (c) {
+    var d = document.createElement("div");
+    d.className = "wbrow";
+    var mark = c.ok === true ? "✓" : (c.ok === false ? "✗" : "?");
+    var col = c.ok === true ? "var(--green)" : (c.ok === false ? "var(--red)" : "var(--amber)");
+    d.innerHTML = '<span class="mom" style="width:20px;text-align:left;color:' + col + '">' + mark +
+                  '</span><span class="nm2" style="white-space:normal">' + c.text + "</span>";
+    box.appendChild(d);
+  });
+}
+
+$("wbEnable").onclick = function () {
+  P.wb.enabled = true; JP.put(P);
+  $("wbSetup").style.display = "block";
+  wbFillSetup(); wbRender();
+};
+$("wbEdit").onclick = function () {
+  var s = $("wbSetup");
+  if (s.style.display === "none") { s.style.display = "block"; wbFillSetup(); }
+  else { wbReadSetup(); s.style.display = "none"; }
+};
+$("wbDisable").onclick = function () {
+  P.wb.enabled = false; JP.put(P);
+  $("wbSetup").style.display = "none"; wbRender();
+};
+$("wbZero").onclick = function () { wbPutLoads({}); wbRender(); };
+$("wbFuelFull").onclick = function () { O.setFuel(P.fuel.usable); wbRender(); };
+$("wbFuelTabs").onclick = function () { O.setFuel(P.fuel.usable / 2); wbRender(); };
+$("wbAddSt").onclick = function () {
+  // Read the form back first. Adding a station redraws the whole setup block
+  // from the profile, and without this the numbers you were halfway through
+  // typing are silently wiped — which is how you end up saving an empty weight
+  // of zero and getting told it is not set.
+  wbReadSetup();
+  P.stations = P.stations || [];
+  P.stations.push({ name: "Station " + (P.stations.length + 1), arm: 0, max: 0 });
+  $("wbSetup").style.display = "block"; wbFillSetup(); wbRender();
+};
+
+function wbFillSetup() {
+  var wb = P.wb, W = uWt(), A = uArm();
+  var r1 = function (v) { return Math.round(v * 10) / 10; };
+  var r2 = function (v) { return Math.round(v * 100) / 100; };
+  $("wbEw").value = wb.emptyWeight ? r1(W.to(wb.emptyWeight)) : "";
+  $("wbEa").value = wb.emptyArm ? r2(A.to(wb.emptyArm)) : "";
+  $("wbMg").value = wb.maxGross ? r1(W.to(wb.maxGross)) : "";
+  $("wbFa").value = wb.fuelArm ? r2(A.to(wb.fuelArm)) : "";
+  $("wbCf").value = wb.cgFwd ? r2(A.to(wb.cgFwd)) : "";
+  $("wbCa").value = wb.cgAft ? r2(A.to(wb.cgAft)) : "";
+  $("wbFd").value = wb.fuelDensity >= 0.78 ? "0.80" : "0.72";
+  $("wbDatum").value = wb.datumNote || "";
+  $("wbErr").textContent = "";
+
+  var box = $("wbStations"); box.innerHTML = "";
+  (P.stations || []).forEach(function (s, i) {
+    var d = document.createElement("div"); d.className = "wbrow";
+    var n = document.createElement("input");
+    n.className = "val"; n.style.flex = "1"; n.style.minWidth = "0"; n.value = s.name || "";
+    n.oninput = function () { s.name = n.value; };
+    var a = document.createElement("input");
+    a.className = "val"; a.type = "number"; a.step = "0.01"; a.style.width = "80px";
+    a.value = s.arm ? Math.round(A.to(s.arm) * 100) / 100 : "";
+    a.oninput = function () { var v = parseFloat(a.value); s.arm = isNaN(v) ? 0 : A.from(v); };
+    var x = document.createElement("button");
+    x.textContent = "×";
+    x.onclick = function () { wbReadSetup(); P.stations.splice(i, 1); wbFillSetup(); wbRender(); };
+    d.appendChild(n); d.appendChild(a); d.appendChild(x);
+    box.appendChild(d);
+  });
+  if (!(P.stations || []).length) {
+    box.innerHTML = '<p class="hint">No stations yet. Add the pilot at minimum &mdash; ' +
+      'empty weight plus fuel is not a loading.</p>';
+  }
+}
+
+/* Form -> in-memory profile. Deliberately does not persist and does not
+   validate: stations and numbers are both half-typed while the pilot works
+   through them, and only Save commits. */
+function wbReadSetup() {
+  var W = uWt(), A = uArm(), wb = P.wb;
+  var n = function (id) { var v = parseFloat($(id).value); return isNaN(v) ? 0 : v; };
+  wb.emptyWeight = W.from(n("wbEw"));
+  wb.emptyArm = A.from(n("wbEa"));
+  wb.maxGross = W.from(n("wbMg"));
+  wb.fuelArm = A.from(n("wbFa"));
+  wb.cgFwd = A.from(n("wbCf"));
+  wb.cgAft = A.from(n("wbCa"));
+  wb.fuelDensity = parseFloat($("wbFd").value) || 0.72;
+  wb.datumNote = $("wbDatum").value.trim();
+}
+$("wbSave").onclick = function () {
+  wbReadSetup();
+  var bad = JP.validate(P);
+  if (bad.length) { $("wbErr").innerHTML = '<b style="color:#E8483D">' + bad[0] + "</b>"; return; }
+  JP.put(P);
+  $("wbErr").innerHTML = '<b style="color:#3FCF6A">saved</b>';
+  wbRender();
+};
+$("wbClose").onclick = function () { showPage("pfd"); };
+
+AP.load();
+$("wxClose").onclick = function () { showPage("pfd"); };
+$("wxRefresh").onclick = function () { N.fetchWx(gps.lat, gps.lon).then(wxRender); };
+$("tfcRefresh").onclick = function () {
+  var altFt = gps.alt === null ? null : gps.alt * 3.28084;
+  N.fetchTraffic(gps.lat, gps.lon, 40, altFt).then(tfcRender);
+};
+setInterval(function () {
+  if ($("wxPage").classList.contains("open") && dataMode === "live") { pullOutside(); }
+  refreshCal();
+}, 30000);
+
+function tabH() {
+  var q = $("quick");
+  document.documentElement.style.setProperty("--tabh", (q ? q.offsetHeight : 54) + "px");
+}
+window.addEventListener("resize", function () { layout(); tabH(); });
+layout(); tabH();
+rebuild(); fillList(); fillForm(); stats(); refreshCal();
+requestAnimationFrame(frame);
+
+/* ================= map ================= */
+var mapUp = false, mapRange = 10;            // charts read north-up; text is legible that way
+var mapFollow = true, mapCentre = null, routeMode = false;
+
+/* An anchor always exists, so the map always draws. Own position when there is
+   one, otherwise the last real fix, HOME, or a placeholder. The previous build
+   returned early with no position and rendered nothing at all. */
+function mapAnchor() {
+  if (mapCentre && !mapFollow) { return mapCentre; }
+  if (gps.lat !== null) { return { lat: gps.lat, lon: gps.lon }; }
+  var last = null;
+  try { last = JSON.parse(localStorage.getItem("junco.lastpos") || "null"); } catch (e) {}
+  if (last) { return last; }
+  if (O.nav.home) { return { lat: O.nav.home.lat, lon: O.nav.home.lon }; }
+  return { lat: SIM_ORIGIN.lat, lon: SIM_ORIGIN.lon };
+}
+function drawMap() {
+  var c = $("mapC"), dpr = window.devicePixelRatio || 1;
+  var W = c.clientWidth, H = c.clientHeight;
+  if (!W || !H) { return; }
+  c.width = W * dpr; c.height = H * dpr;
+  var g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = "#05070A"; g.fillRect(0, 0, W, H);
+  var cx = W / 2, cy = H * 0.60, R = Math.min(W, H) * 0.42;
+  var ppn = R / mapRange;                        // pixels per nautical mile
+  var rot = mapUp && gps.trk !== null ? gps.trk : 0;
+  var A = mapAnchor();
+  var tz = T.draw(g, W, H, A.lat, A.lon, R, mapRange, rot);
+
+  function project(lat, lon) {
+    var d = N.distNM(A.lat, A.lon, lat, lon);
+    var b = (N.bearing(A.lat, A.lon, lat, lon) - rot) * Math.PI / 180;
+    return [cx + Math.sin(b) * d * ppn, cy - Math.cos(b) * d * ppn];
+  }
+  /** Screen point back to a position, for tapping waypoints onto the chart. */
+  function unproject(px, py) {
+    var dx = px - cx, dy = py - cy;
+    var d = Math.hypot(dx, dy) / ppn;
+    var b = (Math.atan2(dx, -dy) * 180 / Math.PI + rot + 360) % 360;
+    var br = b * Math.PI / 180, dr = d / 3440.065;
+    var la1 = A.lat * Math.PI / 180, lo1 = A.lon * Math.PI / 180;
+    var la2 = Math.asin(Math.sin(la1) * Math.cos(dr) + Math.cos(la1) * Math.sin(dr) * Math.cos(br));
+    var lo2 = lo1 + Math.atan2(Math.sin(br) * Math.sin(dr) * Math.cos(la1),
+                               Math.cos(dr) - Math.sin(la1) * Math.sin(la2));
+    return { lat: la2 * 180 / Math.PI, lon: ((lo2 * 180 / Math.PI) + 540) % 360 - 180 };
+  }
+  mapUnproject = unproject;
+  mapPPN = ppn;                 // pixels per nautical mile, for tap tolerance
+
+  // range rings
+  g.strokeStyle = "#243038"; g.lineWidth = 1; g.font = "11px ui-monospace, monospace";
+  g.fillStyle = "#5C6970";
+  [0.25, 0.5, 1].forEach(function (f) {
+    g.beginPath(); g.arc(cx, cy, R * f, 0, Math.PI * 2); g.stroke();
+    g.fillText((mapRange * f).toFixed(mapRange * f < 1 ? 1 : 0) + " nm", cx + 4, cy - R * f + 13);
+  });
+
+  // north pointer
+  var na = (-rot) * Math.PI / 180;
+  g.strokeStyle = "#5C6970"; g.beginPath();
+  g.moveTo(cx + Math.sin(na) * (R + 16), cy - Math.cos(na) * (R + 16));
+  g.lineTo(cx + Math.sin(na) * (R + 4), cy - Math.cos(na) * (R + 4)); g.stroke();
+  g.fillStyle = "#93A0A8"; g.fillText("N", cx + Math.sin(na) * (R + 26) - 4, cy - Math.cos(na) * (R + 26) + 4);
+
+  // breadcrumb
+  if (O.trail.length > 1) {
+    g.strokeStyle = "#35D6E8"; g.lineWidth = 2; g.beginPath();
+    var started = false;
+    O.trail.forEach(function (p) {
+      var q = project(p.lat, p.lon); if (!q) { return; }
+      if (!started) { g.moveTo(q[0], q[1]); started = true; } else { g.lineTo(q[0], q[1]); }
+    });
+    g.stroke();
+  }
+
+  // airports, with the frequency you would actually call on
+  if (AP.isReady() && mapRange <= 40) {
+    var pad = mapRange / 60 + 0.02;
+    var aps = AP.inBox(A.lat - pad, A.lon - pad * 1.4, A.lat + pad, A.lon + pad * 1.4, 120);
+    g.font = "10px ui-monospace, monospace";
+    aps.forEach(function (a) {
+      var q = project(a.lat, a.lon);
+      if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) { return; }
+      g.strokeStyle = a.kind === "H" ? "#7FA8C0" : "#CFE0EA"; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(q[0], q[1], 4, 0, Math.PI * 2); g.stroke();
+      if (mapPick && a.ident === mapPick.ident) {
+        g.strokeStyle = "#E8A33D"; g.lineWidth = 2;
+        g.beginPath(); g.arc(q[0], q[1], 11, 0, Math.PI * 2); g.stroke();
+      }
+      if (mapRange <= 15) { g.fillStyle = "#CFE0EA"; g.fillText(a.ident, q[0] + 6, q[1] + 3); }
+    });
+  }
+
+  // planned route
+  if (O.route.length) {
+    g.strokeStyle = "#3FCF6A"; g.lineWidth = 2.5; g.setLineDash([]);
+    g.beginPath();
+    O.route.forEach(function (w, i) {
+      var q = project(w.lat, w.lon);
+      if (i === 0) { g.moveTo(q[0], q[1]); } else { g.lineTo(q[0], q[1]); }
+    });
+    g.stroke();
+    g.font = "600 11px ui-monospace, monospace";
+    O.route.forEach(function (w) {
+      var q = project(w.lat, w.lon);
+      g.fillStyle = "#3FCF6A";
+      g.beginPath(); g.arc(q[0], q[1], 5, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#CFF5DC"; g.fillText(w.name, q[0] + 8, q[1] - 6);
+    });
+  }
+
+  // traffic, advisory only and drawn quietly on purpose
+  g.font = "10px ui-monospace, monospace";
+  N.traffic.list.forEach(function (a) {
+    var q = project(a.lat, a.lon); if (!q) { return; }
+    if (q[0] < -40 || q[0] > W + 40 || q[1] < -40 || q[1] > H + 40) { return; }
+    g.fillStyle = a.onGround ? "#4A555C" : "#E8A33D";
+    g.beginPath(); g.moveTo(q[0], q[1] - 5); g.lineTo(q[0] - 4, q[1] + 4); g.lineTo(q[0] + 4, q[1] + 4); g.closePath(); g.fill();
+    g.fillStyle = "#93A0A8";
+    g.fillText(a.id + (a.rel === null ? "" : " " + (a.rel > 0 ? "+" : "") + Math.round(a.rel / 100)), q[0] + 7, q[1] + 3);
+  });
+
+  // home and destination
+  function mark(pt, col, label) {
+    if (!pt) { return; }
+    var q = project(pt.lat, pt.lon); if (!q) { return; }
+    var x = Math.max(10, Math.min(W - 10, q[0])), y = Math.max(10, Math.min(H - 10, q[1]));
+    g.strokeStyle = col; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(x - 11, y); g.lineTo(x + 11, y); g.moveTo(x, y - 11); g.lineTo(x, y + 11); g.stroke();
+    g.fillStyle = col; g.font = "11px ui-monospace, monospace"; g.fillText(label, x + 13, y + 4);
+  }
+  mark(O.nav.home, "#3FCF6A", "HOME");
+  mark(O.nav.dest, "#E845E8", O.nav.dest && O.nav.dest.name || "DEST");
+
+  // own ship, drawn where it actually is rather than at the centre when panned
+  var me = gps.lat === null ? null : project(gps.lat, gps.lon);
+  g.save(); g.translate(me ? me[0] : cx, me ? me[1] : cy);
+  if (!me) { g.globalAlpha = 0.25; }
+  if (!mapUp && gps.trk !== null) { g.rotate((gps.trk - rot) * Math.PI / 180); }
+  g.fillStyle = "#F2C63D"; g.beginPath();
+  g.moveTo(0, -12); g.lineTo(-9, 10); g.lineTo(0, 5); g.lineTo(9, 10); g.closePath(); g.fill();
+  g.restore();
+
+  // readout
+  var sol = O.solution(gps.lat, gps.lon, gps.trk, gps.gs);
+  g.fillStyle = "#FFF"; g.font = "600 14px ui-monospace, monospace";
+  g.fillText(gps.lat === null ? "NO POSITION — SWITCH TO LIVE" :
+    (sol ? sol.name + "  " + sol.dist.toFixed(1) + " nm  " + String(Math.round(sol.brg)).padStart(3,"0") + "°"
+         : "No destination set"), 12, 24);
+  if (dataMode === "sim") {
+    g.fillStyle = "#E8A33D"; g.font = "600 12px ui-monospace, monospace";
+    g.fillText("SIMULATED POSITION near " + (simPos ? simPos.name : "—") + " — switch to LIVE in the aircraft", 12, 60);
+  }
+  g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
+  var rt = O.legs();
+  g.fillText((mapUp ? "TRACK UP" : "NORTH UP") + (mapFollow ? "" : "  ·  PANNED") +
+    (rt.total ? "  ·  ROUTE " + rt.total.toFixed(1) + " nm / " + rt.legs.length + " legs" : "") +
+    (routeMode ? "  ·  TAP TO ADD WAYPOINTS" : ""), 12, 42);
+  var stale = T.age() ? Math.round((Date.now() - T.age()) / 86400000) : null;
+  g.fillText(T.isEnabled()
+    ? T.layerName() + " z" + (tz === null ? "—" : tz) + " · " + T.cached() + " tiles · " +
+      (stale === null ? "not pulled — do it on the ground" :
+       stale === 0 ? "pulled today" : "pulled " + stale + " days ago")
+    : "Basemap off", 12, H - 58);
+  if (stale !== null && stale > 27) {
+    g.fillStyle = "#E8A33D";
+    g.fillText("CHART MAY BE OUT OF CYCLE", 12, H - 42);
+    g.fillStyle = "#93A0A8";
+  }
+  T.attribution(g, W, H);
+}
+function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
+var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", nrst: "nrstPage", wb: "wbPage", wx: "wxPage" };
+function showPage(p) {
+  Object.keys(PAGES).forEach(function (k) {
+    if (PAGES[k]) { $(PAGES[k]).classList.toggle("open", k === p); }
+    var b = $("q" + k.charAt(0).toUpperCase() + k.slice(1));
+    if (b) { b.classList.toggle("sel", k === p); }
+  });
+  $("panel").classList.remove("open");
+  if (p !== "map") { mapPick = null; $("mapSel").classList.remove("open"); }
+  if (p === "map") { T.setRedraw(function () {}); if (dataMode === "live") { pullOutside(); } mapLoop(); }
+  if (p === "chk") { chkRender(); }
+  if (p === "log") { logRender(); }
+  if (p === "wx") { pullOutside(); wxRender(); tfcRender(); }
+  if (p === "nrst") { nrstRender(); }
+  if (p === "wb") { wbRender(); }
+}
+$("qPfd").onclick = function () { showPage("pfd"); };
+$("qMap").onclick = function () { showPage("map"); };
+$("mapClose").onclick = function () { showPage("pfd"); };
+
+var mapUnproject = null, mapPPN = null;
+(function gestures() {
+  var c = $("mapC");
+  var pts = new Map(), startDist = 0, startRange = 10, moved = 0, last = null;
+
+  function pos(e) { var r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+
+  c.addEventListener("pointerdown", function (e) {
+    // Capture is an optimisation, not a requirement. When it throws — and it
+    // does, for pointer ids the browser no longer considers active — an
+    // unguarded call here aborts the handler before any state is recorded,
+    // and the map stops responding to touch entirely.
+    try { c.setPointerCapture(e.pointerId); } catch (err) {}
+    pts.set(e.pointerId, pos(e));
+    moved = 0; last = pos(e);
+    if (pts.size === 2) {
+      var v = Array.from(pts.values());
+      startDist = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]);
+      startRange = mapRange;
+    }
+  });
+
+  c.addEventListener("pointermove", function (e) {
+    if (!pts.has(e.pointerId)) { return; }
+    var p = pos(e);
+    pts.set(e.pointerId, p);
+
+    if (pts.size === 2 && startDist > 0) {
+      var v = Array.from(pts.values());
+      var d = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]);
+      mapRange = Math.max(0.4, Math.min(240, startRange * startDist / Math.max(1, d)));
+      $("mapRange").textContent = (mapRange < 10 ? mapRange.toFixed(1) : Math.round(mapRange)) + " nm";
+      moved = 99;
+      return;
+    }
+
+    // single finger drags the chart
+    var dx = p[0] - last[0], dy = p[1] - last[1];
+    moved += Math.abs(dx) + Math.abs(dy);
+    last = p;
+    if (Math.abs(dx) + Math.abs(dy) < 0.5) { return; }
+    var R = Math.min(innerWidth, innerHeight) * 0.42, ppn = R / mapRange;
+    var rot = (mapUp && gps.trk !== null ? gps.trk : 0) * Math.PI / 180;
+    // screen delta -> north/east delta, undoing the map rotation
+    var east = (-dx * Math.cos(rot) - dy * Math.sin(rot)) / ppn;
+    var north = (dx * Math.sin(rot) - dy * Math.cos(rot)) / ppn * -1;
+    var A = mapAnchor();
+    mapCentre = {
+      lat: A.lat + north / 60,
+      lon: A.lon + east / (60 * Math.cos(A.lat * Math.PI / 180))
+    };
+    mapFollow = false;
+    $("mapMe").className = "";
+  });
+
+  function up(e) {
+    if (pts.size < 2) { startDist = 0; }
+    pts.delete(e.pointerId);
+    if (moved < 8 && mapUnproject) {                      // a tap, not a drag
+      var p = last || [0, 0];
+      var w = mapUnproject(p[0], p[1]);
+      if (routeMode) { O.addWpt(w.lat, w.lon); }
+      else { mapIdentify(w.lat, w.lon); }
+    }
+    moved = 0;
+  }
+  ["pointerup", "pointercancel"].forEach(function (t) { c.addEventListener(t, up); });
+})();
+
+/* Tap an airport to identify it. The nearest-airports page already lists what
+   is close by; this answers the other question, "what is that field I can see
+   out the left window", which a list sorted by distance cannot. */
+var mapPick = null;
+function mapIdentify(lat, lon) {
+  if (!AP.isReady() || !mapPPN) { return; }
+  // Threshold is a fixed number of screen pixels converted to nautical miles,
+  // so the tap target stays finger-sized at every zoom instead of grabbing half
+  // the state when you are zoomed out. The scale comes from the draw itself
+  // rather than being recomputed here, because a second copy of that formula
+  // is a second thing to get wrong.
+  var tolNM = 30 / mapPPN;
+  var hit = AP.nearest(lat, lon, 1, tolNM);
+  mapPick = hit.length ? hit[0] : null;
+  mapSelRender();
+}
+function mapSelRender() {
+  var box = $("mapSel");
+  if (!mapPick) { box.classList.remove("open"); return; }
+  var a = mapPick, L = [a.ident + "   " + a.name];
+  var bits = [a.kind === "H" ? "heliport" : "airport", a.elev + " ft"];
+  if (gps.lat !== null) {
+    bits.push(N.distNM(gps.lat, gps.lon, a.lat, a.lon).toFixed(1) + " nm  " +
+              String(Math.round(N.bearing(gps.lat, gps.lon, a.lat, a.lon))).padStart(3, "0") + "°");
+  }
+  L.push(bits.join("  ·  "));
+  if (a.freqs && a.freqs.length) {
+    L.push(a.freqs.slice(0, 4).map(function (f) {
+      return AP.freqLabel(f[0]) + " " + f[1].toFixed(3);
+    }).join("   "));
+  } else {
+    L.push("No published frequency");
+  }
+  $("mapSelTx").textContent = L.join("\n");
+  box.classList.add("open");
+}
+$("mapSelX").onclick = function () { mapPick = null; mapSelRender(); };
+$("mapSelDct").onclick = function () {
+  if (!mapPick) { return; }
+  O.setDest(mapPick.lat, mapPick.lon, mapPick.ident); O.setActive("dest");
+  mapPick = null; mapSelRender();
+};
+$("mapSelRte").onclick = function () {
+  if (!mapPick) { return; }
+  O.addWpt(mapPick.lat, mapPick.lon, mapPick.ident);
+  mapPick = null; mapSelRender();
+};
+
+$("mapNorth").onclick = function () {
+  mapUp = !mapUp;
+  this.textContent = mapUp ? "TRACK UP" : "NORTH UP";
+  this.className = mapUp ? "on" : "";
+};
+$("mapRoute").onclick = function () {
+  routeMode = !routeMode;
+  this.className = routeMode ? "on" : "";
+};
+$("mapClrRt").onclick = function () { O.clearRoute(); };
+$("mapMe").onclick = function () {
+  mapFollow = true; mapCentre = null; this.className = "on";
+};
+function setRange(r) {
+  mapRange = Math.max(0.4, Math.min(240, r));
+  $("mapRange").textContent = (mapRange < 10 ? mapRange.toFixed(1) : Math.round(mapRange)) + " nm";
+}
+$("mapZi").onclick = function () { setRange(mapRange / 2); };
+$("mapZo").onclick = function () { setRange(mapRange * 2); };
+$("mapLayer").onclick = function () {
+  this.textContent = T.nextLayer();
+};
+$("mapTiles").onclick = function () {
+  T.setEnabled(!T.isEnabled());
+  this.textContent = T.isEnabled() ? "MAP ON" : "MAP OFF";
+};
+$("mapPull").onclick = function () {
+  if (gps.lat === null) { return; }
+  var b = this; b.textContent = "0%";
+  T.precache(gps.lat, gps.lon, mapRange, Math.min(innerWidth, innerHeight) * 0.42,
+    function (d, t) { b.textContent = Math.round(d / t * 100) + "%"; }
+  ).then(function (r) {
+    b.textContent = r.ok + "/" + r.total;
+    setTimeout(function () { b.textContent = "PULL AREA"; }, 2500);
+  });
+};
+$("mapHome").onclick = function () {
+  if (gps.lat === null) { return; }
+  O.setHome(gps.lat, gps.lon); O.setActive("home"); flash($("qMap"), "HOME", "live");
+};
+
+/* ================= checklists ================= */
+var chkPhase = "preflight", chkEditing = false;
+function chkSaveList(list) {
+  var c = O.getChecklist(P.id); c[chkPhase] = list; O.saveChecklist(P.id, c);
+}
+function chkRender() {
+  $("chkAc").textContent = P.name;
+  var phases = O.getPhases(P.id);
+  if (!phases.some(function (p) { return p.id === chkPhase; })) { chkPhase = phases[0].id; }
+  var tabs = $("chkTabs"); tabs.innerHTML = "";
+  phases.forEach(function (p) {
+    var b = document.createElement("button");
+    var n = (O.getChecklist(P.id)[p.id] || []).length;
+    b.textContent = p.name + (n ? " (" + n + ")" : "");
+    b.className = p.id === chkPhase ? "go" : "";
+    b.onclick = function () { chkPhase = p.id; chkRender(); };
+    tabs.appendChild(b);
+  });
+
+  var list = O.getChecklist(P.id)[chkPhase] || [];
+  var box = $("chkList"); box.innerHTML = "";
+  $("chkEditRow").style.display = chkEditing ? "flex" : "none";
+  $("chkEdit").className = chkEditing ? "go" : "";
+  $("chkEdit").textContent = chkEditing ? "Done" : "Edit";
+  if (!chkEditing) { $("chkEditor").style.display = "none"; $("chkBulkRow").style.display = "none"; }
+
+  if (!list.length) {
+    box.innerHTML = '<p class="hint">Nothing in this phase yet. Press <b>Edit</b> then <b>Add item</b>.</p>';
+    return;
+  }
+
+  list.forEach(function (item, i) {
+    var d = document.createElement("div");
+    d.className = "ck" + (!chkEditing && O.ticked(chkPhase, i) ? " on" : "");
+
+    if (chkEditing) {
+      var inp = document.createElement("input");
+      inp.className = "ed"; inp.value = item;
+      inp.oninput = function () { list[i] = inp.value; chkSaveList(list); };
+      d.appendChild(inp);
+      [["↑", function () { if (i > 0) { list.splice(i - 1, 0, list.splice(i, 1)[0]); chkSaveList(list); chkRender(); } }],
+       ["↓", function () { if (i < list.length - 1) { list.splice(i + 1, 0, list.splice(i, 1)[0]); chkSaveList(list); chkRender(); } }],
+       ["✕", function () { list.splice(i, 1); chkSaveList(list); O.clearTicks(chkPhase); chkRender(); }]
+      ].forEach(function (b) {
+        var btn = document.createElement("button");
+        btn.className = "mv"; btn.textContent = b[0]; btn.onclick = b[1];
+        d.appendChild(btn);
+      });
+    } else {
+      d.innerHTML = '<div class="bx"></div><div class="tx"></div>';
+      d.querySelector(".tx").textContent = item;
+      d.onclick = function () { O.tick(chkPhase, i, !O.ticked(chkPhase, i)); chkRender(); };
+    }
+    box.appendChild(d);
+  });
+}
+$("qChk").onclick = function () { showPage("chk"); };
+$("chkClose").onclick = function () { showPage("pfd"); };
+$("chkReset").onclick = function () { O.clearTicks(chkPhase); chkRender(); };
+$("chkEdit").onclick = function () { chkEditing = !chkEditing; chkRender(); };
+$("chkDefaults").onclick = function () { O.resetChecklist(P.id); chkEditing = false; chkRender(); };
+$("chkAdd").onclick = function () {
+  var c = O.getChecklist(P.id); c[chkPhase] = c[chkPhase] || [];
+  c[chkPhase].push("New item"); O.saveChecklist(P.id, c); chkRender();
+  var ins = $("chkList").querySelectorAll("input.ed");
+  if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); }
+};
+$("chkBulk").onclick = function () {
+  var open = $("chkEditor").style.display === "block";
+  $("chkEditor").style.display = open ? "none" : "block";
+  $("chkBulkRow").style.display = open ? "none" : "flex";
+};
+$("chkBulkSave").onclick = function () {
+  var add = $("chkEditor").value.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+  if (!add.length) { return; }
+  var c = O.getChecklist(P.id); c[chkPhase] = (c[chkPhase] || []).concat(add);
+  O.saveChecklist(P.id, c); $("chkEditor").value = "";
+  $("chkEditor").style.display = "none"; $("chkBulkRow").style.display = "none";
+  chkRender();
+};
+$("chkAddPhase").onclick = function () {
+  var n = prompt("Name for the new phase");
+  if (!n) { return; }
+  chkPhase = O.addPhase(P.id, n.trim()); chkEditing = true; chkRender();
+};
+$("chkDelPhase").onclick = function () {
+  var ph = O.getPhases(P.id).filter(function (p) { return p.id === chkPhase; })[0];
+  if (!ph || !ph.custom) { $("chkAc").textContent = P.name + " — only custom phases can be deleted"; return; }
+  O.removePhase(P.id, chkPhase); chkPhase = "preflight"; chkRender();
+};
+
+/* ================= logbook ================= */
+function logRender() {
+  var t = O.totals();
+  $("logTot").textContent = t.hours.toFixed(1) + " h · " + t.flights + " flights · " + t.landings + " ldg";
+  var box = $("logList"); box.innerHTML = "";
+  var cur = O.current();
+  if (cur) {
+    var d0 = document.createElement("div"); d0.className = "lg";
+    d0.innerHTML = "<b>IN PROGRESS</b> <span>" + O.dateOnly(cur.offAt) + " off " + O.hhmm(cur.offAt) + "</span>";
+    box.appendChild(d0);
+  }
+  var fs = O.flights();
+  if (!fs.length && !cur) { box.innerHTML = '<p class="hint">No flights recorded. Takeoff is detected automatically in LIVE mode.</p>'; return; }
+  fs.slice(0, 40).forEach(function (f, i) {
+    var d = document.createElement("div"); d.className = "lg";
+    d.innerHTML = "<b>" + O.dateOnly(f.offAt) + "</b> <span>" + (f.reg || f.id) + " · " + f.aircraft + "</span><br>" +
+      "<b>" + (f.minutes / 60).toFixed(1) + " h</b> <span>· " + f.landings + " ldg · " +
+      f.distNM.toFixed(1) + " nm · max " + Math.round((f.maxAltM || 0) * 3.28084) + " ft</span><br>" +
+      "<span>" + O.hhmm(f.offAt) + " → " + (f.onAt ? O.hhmm(f.onAt) : "—") + "</span>";
+    var del = document.createElement("button");
+    del.textContent = "Delete"; del.style.marginTop = "7px";
+    del.onclick = function () { O.removeFlight(i); logRender(); };
+    d.appendChild(del);
+    box.appendChild(d);
+  });
+}
+function logShow(txt, name) {
+  $("logText").value = txt; $("logText").style.display = "block"; $("logTextRow").style.display = "flex";
+  $("logText").dataset.name = name;
+}
+$("qLog").onclick = function () { showPage("log"); };
+$("logClose").onclick = function () { showPage("pfd"); };
+$("logCsv").onclick = function () { logShow(O.toCSV(), "junco-logbook.csv"); };
+$("logGpx").onclick = function () {
+  var g = O.toGPX(0);
+  logShow(g || "No track recorded yet.", "junco-track.gpx");
+};
+$("logCopy").onclick = function () {
+  var ta = $("logText"); ta.select();
+  if (navigator.clipboard) { navigator.clipboard.writeText(ta.value).catch(function () {}); } else { document.execCommand("copy"); }
+  flash(this, "Copied", "live");
+};
+$("logShare").onclick = function () {
+  var txt = $("logText").value, name = $("logText").dataset.name || "junco.txt";
+  if (navigator.share) {
+    var data = { title: name, text: txt };
+    try { var f = new File([txt], name, { type: "text/plain" });
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { data = { files: [f], title: name }; } } catch (e) {}
+    navigator.share(data).catch(function () {});
+  } else { this.textContent = "Use Copy"; }
+};
+$("logDl").onclick = function () {
+  var b = new Blob([$("logText").value], { type: "text/plain" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(b);
+  a.download = $("logText").dataset.name || "junco.txt";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+};
+
+/* destination entry lives with the aircraft panel */
+$("navSet").onclick = function () {
+  var p = O.parseLatLon($("navDest").value);
+  if (!p) { $("navMsg").innerHTML = '<b style="color:#E8483D">enter as  lat, lon  e.g. 42.1234, -85.6789</b>'; return; }
+  O.setDest(p.lat, p.lon, ($("navName").value || "DEST").toUpperCase().slice(0, 8));
+  O.setActive("dest");
+  $("navMsg").innerHTML = '<b style="color:#3FCF6A">destination set</b>';
+};
+$("navHere").onclick = function () {
+  if (gps.lat === null) { $("navMsg").innerHTML = '<b style="color:#E8A33D">no position yet</b>'; return; }
+  $("navDest").value = gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5);
+};
+$("navToHome").onclick = function () { O.setActive("home"); $("navMsg").innerHTML = '<b style="color:#3FCF6A">pointing at takeoff point</b>'; };
+$("navToDest").onclick = function () { O.setActive("dest"); $("navMsg").innerHTML = '<b style="color:#3FCF6A">pointing at destination</b>'; };
+
+/* Sensors start themselves. Making the pilot hunt through a menu for the one
+   thing the app is for was the wrong default. Permission is still asked; on
+   iOS the gesture requirement means the first tap anywhere completes it. */
+(function autoStart() {
+  setMode("live");
+  // If no orientation event has arrived by the first tap, ask again — iOS only
+  // grants the permission from inside a gesture. Retry the SENSOR, nothing
+  // else: this deliberately does not touch the mode, the fix or the trail.
+  ["pointerdown", "touchstart"].forEach(function (ev) {
+    window.addEventListener(ev, function once() {
+      window.removeEventListener(ev, once);
+      if (diag.count === 0 && dataMode === "live") { startOrient(); stats(); }
+    }, { once: true });
+  });
+})();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("./sw.js").catch(function () {}); });
+}
+})();
+</script>
+</body>
+</html>

@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Junco PFD layout mockup — Android wrapper.
-  SPDX-License-Identifier: GPL-2.0-or-later
+  SPDX-License-Identifier: MPL-2.0
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.junco.mockup"
     android:versionCode="1"
-    android:versionName="0.1-mockup">
+    android:versionName="0.1.0">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <!-- Sensors are used but not required: the mockup flies a scripted circuit
          without them, and refusing to install on a tablet with no gyro would be

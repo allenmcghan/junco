@@ -34,3 +34,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Android signing — never commit an upload key
+*.jks
+upload-keystore.properties

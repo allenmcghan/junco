@@ -3,19 +3,19 @@
 # The APK is deliberately not committed to the repository: .gitignore excludes
 # *.apk on purpose, and a binary in git rots. This workflow is where the APK
 # comes from instead. Every run publishes it as a downloadable artifact, and
-# pushing a mockup-v* tag also attaches it to a GitHub release.
+# pushing a v* tag also attaches it to a GitHub release.
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
-name: Mockup APK
+name: Android
 
 on:
   push:
     branches: [main]
-    paths: ['app/mockup/**', '.github/workflows/mockup-apk.yml']
-    tags: ['mockup-v*']
+    paths: ['app/junco/**', '.github/workflows/mockup-apk.yml']
+    tags: ['v*']
   pull_request:
-    paths: ['app/mockup/**', '.github/workflows/mockup-apk.yml']
+    paths: ['app/junco/**', '.github/workflows/mockup-apk.yml']
   workflow_dispatch:
 
 permissions:
@@ -43,36 +43,48 @@ jobs:
             "platforms;android-34" "build-tools;35.0.0"
 
       - name: Build APK
-        run: ./app/mockup/android/build.sh
+        run: ./app/junco/android/build.sh
 
       - name: Check the APK is well formed
         run: |
-          APK=app/mockup/android/build/junco-pfd-mockup.apk
+          APK=app/junco/android/build/junco.apk
           BT="$ANDROID_HOME/build-tools/35.0.0"
           test -f "$APK"
           "$BT/apksigner" verify "$APK"
           # The whole point of the wrapper is that the web assets ship inside it.
-          for f in index.html manifest.webmanifest sw.js icon-192.png icon-512.png; do
+          for f in index.html profile.js net.js ops.js tiles.js airports.js manifest.webmanifest sw.js icon-192.png icon-512.png data/airports.json; do
             unzip -l "$APK" | grep -q "assets/$f" || { echo "missing assets/$f"; exit 1; }
           done
-          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='org.junco.mockup'"
+          "$BT/aapt2" dump badging "$APK" | grep -q "package: name='com.keylinkit.junco'"
           echo "APK OK: $(du -h "$APK" | cut -f1)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: junco-pfd-mockup-apk
-          path: app/mockup/android/build/junco-pfd-mockup.apk
+          name: junco-apk
+          path: app/junco/android/build/junco.apk
           if-no-files-found: error
 
+      - name: Build release bundle
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          JUNCO_VERSION_NAME: ${{ github.ref_name }}
+          JUNCO_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          # Unsigned here on purpose. The upload key never goes in CI unless you
+          # deliberately add it as a secret; an unsigned bundle is still useful
+          # for checking the release path builds.
+          cd app/junco/android && gradle bundleRelease --no-daemon
+
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/mockup-v')
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            app/mockup/android/build/junco-pfd-mockup.apk \
+            app/junco/android/build/junco.apk \
+            app/junco/android/build/outputs/bundle/release/*.aab \
             --title "PFD layout mockup ${GITHUB_REF_NAME}" \
-            --notes "Layout mockup only. Not an instrument, not airworthy, not the Junco client. Debug-signed for sideloading; enable install from unknown sources. See app/mockup/README.md." \
+            --notes "Layout mockup only. Not an instrument, not airworthy, not the Junco client. Debug-signed for sideloading; enable install from unknown sources. See app/junco/README.md." \
             || gh release upload "${GITHUB_REF_NAME}" \
-                 app/mockup/android/build/junco-pfd-mockup.apk --clobber
+                 app/junco/android/build/junco.apk --clobber

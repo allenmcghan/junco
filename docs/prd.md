@@ -2,7 +2,7 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 5
+Status: Draft, revision 8
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
@@ -12,17 +12,27 @@ Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the
 
 Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system.
 
-Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`. Section 25 records what changed and why.
+Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`.
+
+Revision 6 recognises that the app became a product before the node did. Junco is now two things that ship on different schedules: an Android electronic flight bag that is useful today with no hardware at all, and the sensor node that was the original project.
+
+Revision 7 relicenses the code to MPL-2.0 so an iOS client stays possible.
+
+Revision 8 adds weight and balance with a Part 103 check, fuel endurance, and the fixes an end-to-end audit of every control turned up. Section 26 records what changed and why.
 
 ---
 
 ## 1. Summary
 
-Junco is a low cost sensor node that instruments the parts of an ultralight or experimental aircraft a phone cannot reach, and streams that data over Bluetooth Low Energy to an app on the pilot's phone or tablet. The phone supplies position, attitude, and time. The node supplies engine, fuel, and pitot-static air data. Between them they produce a full instrument picture, an SD card flight log, and draft logbook entries.
+Junco is **two products** that share a data model and ship on different schedules.
 
-v1 is a single breadboard-built node for the PM-2, documented well enough that another builder can reproduce it.
+**The app** is an Android electronic flight bag for ultralight and experimental aircraft, and it is useful today with no hardware at all. It gives an aircraft with no panel a primary flight display driven by the phone's own sensors, FAA sectional and terminal charts, direct-to navigation and a get-me-home function, 25,000 bundled US airports with their frequencies, editable per-aircraft checklists, an automatic logbook, weather, and advisory traffic. It works offline by design, because at 800 feet over a field there is no signal.
 
-**v1 is a stage, not the end state.** The destination is a small calibrated box that bolts to the frame, environmentally qualified and commercially manufactured by a production partner, with the open-source self-build path preserved alongside it. Sections 20 and 21 describe that path. Every architectural decision here is made so the later stages do not require a redesign.
+**The node** is the original project: a low cost sensor node that instruments what a phone physically cannot reach, and streams engine, fuel, and pitot-static air data over Bluetooth Low Energy to that app. Nothing has been built yet.
+
+**The order inverted, and the document should say so.** The app began as a layout study for hardware that did not exist. It turned out that the half of the instrument picture a phone can supply on its own is worth shipping by itself, to a pilot flying an aircraft with no panel and no budget for one. So the app goes to Google Play as a free application, and the node follows when it is built and adds the channels only it can measure.
+
+**What that does not change.** Every design rule in section 2 applies to both. The app is advisory, the mechanical gauges stay installed, the logbook drafts and never files, and every channel still declares its source. The node, when it arrives, is still publish-only.
 
 ---
 
@@ -56,9 +66,9 @@ These constrain the design. They are not disclaimers.
 - Distributed multi-node CAN network
 - **A Junco-built ADS-B receiver.** Junco does not demodulate ADS-B and is not planned to. Displaying traffic from a receiver the pilot already owns is in scope as an optional channel. See section 22
 - GDL90 output. Demoted to phase 2, see section 14
-- iOS native application. The protocol supports it, the app does not exist yet
-- Angle of attack
-- Anything sold to anyone
+- iOS. Web Bluetooth does not exist there, so an iOS client is a separate native project
+- Angle of attack from a vane or probe. The app estimates it from attitude minus flight path angle and labels it an estimate
+- **Anything sold to anyone.** The app is free on Google Play with no advertising, no analytics, no accounts, and no in-app purchases
 - **Autopilot, servos, or any actuation.** Deferred, not abandoned. See section 20. When it arrives it is a separate node subscribing to Junco, not a mode of the sensor node
 
 ---
@@ -423,14 +433,14 @@ Phase 0 gains thermal instrumentation as well. If the Pi-class build is going to
 
 | Artifact | License |
 |---|---|
-| Firmware | GPL-2.0-or-later |
-| Android app | GPL-2.0-or-later |
+| Android app | MPL-2.0 |
+| Firmware | MPL-2.0 |
 | Board files, STLs | CERN-OHL-S-2.0 |
 | Documentation and specs | CC-BY-4.0 |
 
-Code and hardware are copyleft. Specifications are not, deliberately: they are meant to be implemented by anyone in anything, and a protocol that cannot be adopted freely does not outlive its implementation.
+Code is **weak copyleft per file**, hardware is strongly reciprocal, specifications are permissive.
 
-GPL v2 **or later** matches MakerPlane, so code moves in both directions between Junco and FIX-Gateway or pyEFIS without relicensing. See section 24.
+MPL-2.0 rather than GPL, decided in revision 7. GPL cannot ship on Apple's App Store: Apple's DRM imposes exactly the further restrictions GPL section 6 forbids, and VLC was pulled over it. MPL-2.0 is what Firefox for iOS ships under. It is also explicitly GPL-compatible through its Secondary License clause, so the two-way flow with FIX-Gateway and pyEFIS that motivated the GPL choice in revision 4 survives intact. See sections 24 and 25.
 
 Stewardship requirements, driven by the goal of outliving the maintainer:
 
@@ -466,9 +476,11 @@ Successors break what they do not understand the reason for. Every rejection bel
 | Build v1 on ArduPilot AP_Periph | AP_Periph defeats half of the objection above, being a genuinely publish-only DroneCAN sensor node, and it is a real candidate for the v2 bus stage. It fails v1 on four other grounds: no BLE at all, STM32 only so neither of our compute paths qualifies, no thermocouple or ignition-pulse tach support, and its EFI backends talk to an ECU over serial, which a two-stroke on CDI does not have |
 | Rebuilding what MakerPlane already has | FIX-Gateway already brokers avionics data from arbitrary sources, pyEFIS already displays it, and plugins already exist for ADS-B, recording, annunciation, and multi-source voting. Junco writes the two-stroke engine front end nobody has and plugs into the rest. See section 24 |
 | Absorbing Junco into MakerPlane entirely | The engine and air data work needs its own hardware, specs, and test program, and a Part 103 powered parachute is a narrow enough target that it would be a poor fit for a general E-AB project's roadmap. Stay separate, contribute the plugin upstream |
+| Inventing a seventh checklist format | Six exist and efis-editor already reads and writes all of them under Apache 2.0. What does not exist is a human-editable text format, a structured free repository rather than PDFs, and any coverage of Part 103 at all. `spec/checklist.md` fills those three and exports through efis-editor rather than reimplementing six parsers |
+| A checklist web service | Same answer as profile sync in section 24. A git tree gives history, attribution, diffs, review, forking, and full function with the origin gone. A web form gives none of that and needs paying for |
 | CAN-FIX as a v1 requirement | v1 has no bus and no second node. CAN-FIX becomes the leading v2 candidate over DroneCAN, because its consumers are experimental aircraft panels rather than autopilots, and its specification is Creative Commons so implementing it costs nothing legally |
 | PWA as the primary client | Narrower than it first looked, and still correct. Web Bluetooth reaches the node on Android and would genuinely work there, so the transport objection now applies to iOS only. What decides it is duration: a PWA needs a user gesture per connection, has no background operation, and drops the link when the page is suspended. Holding a link for a two hour flight is what native satisfies and a web page does not. The socket binding objection now scopes to the on-demand Wi-Fi AP alone, since revision 2 moved the in-flight link to BLE |
-| A PWA as a prototyping vehicle | **Not rejected. Adopted for exactly that**, in `app/mockup`. It installs in seconds with no store account, signing key, or toolchain, which is what makes a layout question answerable the same afternoon it is asked. Nothing in it is on the path to the shipping client except the layout decisions it settles |
+| A PWA as a prototyping vehicle | **Not rejected. Adopted for exactly that**, in `app/junco`. It installs in seconds with no store account, signing key, or toolchain, which is what makes a layout question answerable the same afternoon it is asked. Nothing in it is on the path to the shipping client except the layout decisions it settles |
 | Bluetooth Classic SPP | iOS blocks it for third-party apps without MFi. Locks the protocol to Android, not just the app |
 | Wi-Fi as the in-flight link | Joining the node's AP costs the phone its cellular data, and the node cannot usefully run AP and BLE together in flight |
 | Phone barometer as the vario source | Its port vents into the phone case in the slipstream, so vertical speed would report throttle position |
@@ -491,16 +503,30 @@ Successors break what they do not understand the reason for. Every rejection bel
 
 ---
 
-## 20. Roadmap beyond v1
+## 20. Roadmap
 
 **This project is not building a product line.** Its goal is to put a working, documented, reproducible engine and air data node into the world under a license that keeps it there. Revenue is not an objective and no stage below is a business plan.
 
-| Stage | Form | Who |
+**The app ships first and on its own schedule.**
+
+| App stage | Form | State |
+|---|---|---|
+| a1 | PFD, charts, navigation, airports and frequencies, checklists, logbook, weather, traffic | **Built.** Preparing for Google Play |
+| a2 | BLE client for the node, engine strip driven by real data | Blocked on the node existing |
+| a3 | Track log export, weight and balance, chart tile management | Wanted, not started |
+
+**The node follows.**
+
+| Node stage | Form | Who |
 |---|---|---|
 | v1 | Breadboard node, phone as hub over BLE, published files, kits at cost | This project |
 | v2 | Custom carrier board, CAN bus, FIX-Gateway plugin upstreamed, separate annunciator node | This project. The intended end point |
 | v3 | Boxed product. Assembled, calibrated, warrantied, harness included | Anyone who wants it. Not pursued here |
 | v4 | Autopilot node subscribing to the Junco bus | Anyone with a test program. Not pursued here |
+
+**Publishing an app is not the same as selling one.** The app is free, has no advertising, no analytics, no account, and collects nothing: position, logs, profiles and checklists never leave the device. Distribution through Play is a way to reach pilots who will not sideload an APK, not a business. Section 4's "anything sold to anyone" non-goal is intact.
+
+**What publishing does change** is that strangers will fly with it. That is the reason for the acknowledgement shown at every launch, for annunciating the age of a cached chart, and for design rule 9. A layout study can be wrong quietly; a published instrument cannot.
 
 **Why the project stops at v2.** A boxed product depends on manufacturing and support capacity. An actuating product depends on a test program and product liability insurance. Neither is something this project intends to acquire, and pretending otherwise is how a volunteer project takes on obligations it cannot meet.
 
@@ -734,7 +760,104 @@ But the boundary becomes a software boundary rather than a physical one, and sof
 
 ---
 
-## 25. Revision history
+## 25. The app as a product
+
+The app is the part of Junco that reaches a pilot this year. It runs on Android, is free, and is published on Google Play as `com.keylinkit.junco`.
+
+### What it does with no hardware at all
+
+| Capability | Source |
+|---|---|
+| Primary flight display, attitude and heading | Phone sensors, with a full three-axis mounting calibration |
+| Altitude, ground speed, track, position | Phone GNSS |
+| FAA VFR Sectional and Terminal charts, OpenStreetMap | Cached tiles, pulled before flight |
+| Direct-to navigation, and HOME captured at takeoff | Computed |
+| 25,101 US airports and 13,012 frequencies | Bundled, works with no signal |
+| Per-aircraft checklists, editable, custom phases | Local |
+| Logbook with takeoff and landing detected from GNSS | Local, exports CSV and GPX |
+| METAR and TAF, density altitude | aviationweather.gov |
+| Advisory traffic | airplanes.live |
+| Aircraft profiles, shared as TOML files | Local, per section 11 |
+| Weight and balance, with a 14 CFR 103.1 check | Local, from the owner's weighing report |
+| Endurance and fuel remaining at the destination | Arithmetic on a figure the pilot typed |
+
+### Weight and balance
+
+Added in revision 8. It is the one electronic flight bag feature that matters **more** in this category than in a certified aircraft, because Part 103's 254 lb empty weight is not guidance. Over it, the aircraft is not an ultralight, and the pilot is flying an unregistered aircraft with no certificate and no licence. Everything else about 103 flows from that number.
+
+Three decisions inside it are load bearing.
+
+**Presets ship with weight and balance off and empty.** Every other field in a preset is a plausible starting point a builder corrects later. A weight is not. There is no plausible empty weight for an aircraft nobody has weighed, and a fabricated one that happens to close the envelope is worse than a blank page, because it looks like an answer. The page will not compute until the numbers come off a real weighing.
+
+**Fuel on board is declared as typed, not measured.** There is no fuel sender in this build, so endurance and fuel-at-arrival are arithmetic on a dipstick reading. Both readouts carry how long ago the figure was entered. When a node exists, the typed figure becomes the fallback for an invalid sender, which is exactly the arrangement design rule 8 describes.
+
+**The 103 check reports what it cannot check.** Two of the four numeric limits in 103.1 are calibrated airspeeds no phone can measure. The check lists them as unverified rather than omitting them, and it says in the page that the 254 lb limit excludes floats and safety devices intended for deployment in a potentially catastrophic situation, because a ballistic parachute changes the arithmetic and the app cannot know what was fitted. It is an arithmetic aid, not a finding of compliance.
+
+### Rules the app inherits and how they show up
+
+**Design rule 2, mechanical gauges stay installed.** Stated in the acknowledgement at every launch.
+
+**Design rule 3, draft never file.** Logbook entries are proposals and the export file says so in its own header.
+
+**Design rule 4, the owner owns the data.** Nothing leaves the device. No account, no analytics, no advertising, no telemetry. Profiles and logbooks are exported as files the owner controls, which is also the entire sync story.
+
+**Design rule 8, every channel declares its source.** Not twenty small tags, which read as noise on an instrument. Real avionics annunciate the source, so the app does too: `PHONE AHRS · ADVISORY` on the attitude indicator, cyan for node-plumbed channels, magenta for GNSS-derived, and a red annunciation when the mounting calibration has not been done.
+
+**Design rule 9, advisory-only data never alerts.** Internet traffic is a map layer and nothing else.
+
+### Two limits that must never be quietly designed away
+
+**Phone attitude is not an AHRS.** Section 15 asks whether it is stable enough on a vibrating airframe, and the answer so far is discouraging: it needed low-pass filtering to be watchable on a desk. It is displayed with a permanent advisory annunciation. If that annunciation ever gets removed for looking untidy, the display starts lying.
+
+**A cached chart carries no expiry the app can see.** Sectionals run a 56-day cycle. The map shows when the layer was last pulled and warns past 27 days, which is the most an offline app can honestly do.
+
+### The acknowledgement at every launch
+
+Every marine and aviation GPS does this, and the reason is that an acknowledgement is only worth something at the start of the flight it applies to. A box ticked eight months ago says nothing about whether this pilot, today, understands what they are looking at.
+
+---
+
+## 26. Revision history
+
+### Revision 8, August 2026: weight and balance, and what an end-to-end audit found
+
+**What changed.** Weight and balance with a 14 CFR 103.1 check, fuel endurance and fuel remaining at the destination, tap an airport on the chart to identify it or go direct, chart cache accounting with a purge that leaves the owner's data alone, and a diagnostics dump that goes to the clipboard rather than to a server.
+
+**Why these five.** They came out of driving every control in the app through a browser automation harness and asking what a pilot would reach for and not find. Weight and balance was the largest gap and the only one with a legal edge to it. The rest are each a small thing the app already had the data for and did not surface.
+
+**What the audit found.** Eighty-eight scripted interactions across two passes. Five real defects, of which four were invisible from the code alone:
+
+- A dead handler bound to a removed button threw during setup and silently killed every handler defined after it, taking out the checklist page, the nearest page and destination entry. `$()` now returns an inert stub and warns, so one stale reference costs one control rather than the rest of the app.
+- **The first tap anywhere on the screen threw away the GPS fix and erased the breadcrumb trail.** The gesture that re-asks for orientation permission on iOS was re-running the whole live-mode setup, which resets position state. It only bit on devices where the orientation sensor is slow or absent, which is precisely the population that needs the GPS most. Asking for a permission must not have side effects on unrelated state.
+- A padding shorthand overrode the tab-bar clearance on four pages, leaving each one's Close button underneath the tab bar and untappable.
+- The settings button sat below the overlay pages in z-order, so settings was unreachable from the map, the charts, the checklist or the logbook.
+- `setPointerCapture` was called unguarded at the top of the map's pointerdown handler; when it throws, no gesture state is recorded and the map stops responding to touch entirely.
+
+**Why this is in the revision history at all.** Four of those five were reachable only by pretending to be a pilot with a finger, not by reading the code. That is worth recording as a method, not just as a set of fixes.
+
+### Revision 7, August 2026: MPL-2.0, so iOS stays possible
+
+**What changed.** Code moved from GPL-2.0-or-later to MPL-2.0. Hardware stays CERN-OHL-S-2.0 and specifications stay CC-BY-4.0.
+
+**Why.** GPL cannot go on Apple's App Store. Apple wraps every app, free ones included, in DRM that limits copying and ties it to an account, and GPL section 6 forbids exactly those further restrictions. VLC was pulled from the App Store in 2011 over this. An iOS client was already a stated future, and GPL forecloses it.
+
+**Why now rather than later.** Only a copyright holder can raise that objection, and today there is one. The first outside contribution under GPL would make relicensing require that person's permission, which is precisely how VLC became stuck. Relicensing was free this week and would not have been next month.
+
+**What it costs.** A fork may now be taken closed, which strong copyleft prevented. That was judged acceptable: the goal recorded in revision 4 was that the work live on rather than that it be protected from anyone, and MPL still requires that changes to Junco's own files be published.
+
+**What it does not cost.** MPL-2.0 is GPL-compatible through its Secondary License clause, so code still moves both ways with MakerPlane. That compatibility was the whole reason for choosing GPL v2 **or later** in revision 4, and it survives the change.
+
+### Revision 6, August 2026: the app became the product
+
+**What changed.** Junco is now described as two products on two schedules rather than one product with a display attached. The app ships first, free, on Google Play, and is useful with no hardware at all. The node is still the original project and still unbuilt.
+
+**Why.** The app began as a layout study for hardware that did not exist. It turned out the half of the instrument picture a phone can supply on its own is worth shipping by itself to a pilot flying with no panel. Charts, navigation, airports and frequencies, checklists and a logbook need no node. Continuing to call it a mockup was becoming false, and a document that describes something other than what exists is worse than no document.
+
+**New section 25** describes the app as a product, including how each design rule shows up in it and the two limits that must never be quietly designed away: phone attitude is not an AHRS, and a cached chart carries no expiry the app can see.
+
+**Section 4's "anything sold to anyone" is intact.** Free, no advertising, no analytics, no accounts, nothing collected. Publishing is a way to reach pilots who will not sideload an APK, not a business.
+
+**What publishing changes** is that strangers will fly with it, which is why the acknowledgement now appears at every launch rather than once, matching the convention on every marine and aviation GPS. A layout study can be wrong quietly. A published instrument cannot.
 
 ### Revision 5, August 2026: closing the open questions
 

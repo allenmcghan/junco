@@ -10,6 +10,7 @@ the firmware and are the artifacts most worth getting right.
 | `aircraft-profile.md` | Draft. Required for v1 |
 | `dronecan-engine-extension.md` | Draft. Not implemented in v1, and its choice of bus is reopened. See PRD section 24 |
 | `ble-telemetry.md` | Draft. Required for v1. The gating document |
+| `checklist.md` | Draft. Not required for v1. An interchange format and a repository convention, proposed because six vendor formats exist and none is human-readable |
 
 `ble-telemetry.md` gates firmware and app work. It carries every value the pilot
 sees, both reference clients are written against it, and PRD success criterion 4

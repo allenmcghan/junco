@@ -1,0 +1,81 @@
+/* Release build for Google Play.
+ *
+ * The raw-SDK build.sh stays for fast local iteration; it produces a debug APK
+ * in about ten seconds. Play requires an Android App Bundle, which needs the
+ * Android Gradle Plugin, so this exists alongside rather than replacing it.
+ *
+ * Signing comes from the environment, never the repository. An upload key in
+ * git is an upload key in every fork.
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+plugins { id 'com.android.application' version '8.7.3' }
+
+// The web app lives one directory up and is the payload; copy it in at build.
+def webDir = file('..')
+def stagedAssets = layout.buildDirectory.dir('web-assets')
+
+tasks.register('stageWebAssets', Copy) {
+    from(webDir) {
+        include 'index.html', 'profile.js', 'net.js', 'ops.js', 'tiles.js',
+                'airports.js', 'sw.js', 'manifest.webmanifest',
+                'icon-192.png', 'icon-512.png'
+    }
+    from(file('../data')) { into 'data' }
+    into stagedAssets
+}
+
+android {
+    namespace 'com.keylinkit.junco'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.keylinkit.junco'
+        minSdk 24
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv('JUNCO_VERSION_CODE') ?: '1')
+        versionName System.getenv('JUNCO_VERSION_NAME') ?: '0.1.0'
+        resourceConfigurations += ['en']
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = [stagedAssets]
+        }
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('JUNCO_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('JUNCO_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('JUNCO_KEY_ALIAS')
+                keyPassword System.getenv('JUNCO_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // The airport database is already compact JSON and there is no
+            // library code to strip, so shrinking buys nothing and only adds a
+            // way for the build to differ from the one that was tested.
+            minifyEnabled false
+            signingConfig System.getenv('JUNCO_KEYSTORE') ? signingConfigs.release : null
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // 1.8 MB of airport JSON compresses to under 600 kB; leave it compressed.
+    androidResources { noCompress += [] }
+}
+
+tasks.configureEach { if (name.startsWith('merge') && name.endsWith('Assets')) { dependsOn 'stageWebAssets' } }
