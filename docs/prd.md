@@ -273,7 +273,7 @@ Failed data has **two different behaviors depending on the consumer**, and they 
 
 ## 11. Aircraft profile
 
-One file describes the aircraft completely. No firmware changes to support a new airframe. A web based configuration tool generates and validates it, and the file stays human readable and hand editable.
+One file describes the aircraft completely. No firmware changes to support a new airframe. A web based configuration tool at [openchecklists.net](https://openchecklists.net) generates and validates it, and the file stays human readable and hand editable. Profiles for common Part 103 and experimental aircraft are available there; the format specification is at [github.com/allenmcghan/openchecklists](https://github.com/allenmcghan/openchecklists/blob/main/spec/aircraft-profile.md).
 
 Contents:
 
