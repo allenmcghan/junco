@@ -124,15 +124,20 @@
 
   /* on-screen controls: reachable in flight, out of the scan */
   #quick {
-    position: fixed; left: 0; bottom: 0; z-index: 20;
-    display: flex; gap: 5px;
-    padding: 5px calc(5px + env(safe-area-inset-left)) calc(5px + env(safe-area-inset-bottom)) 5px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; gap: 3px; background: rgba(0,0,0,.86);
+    border-top: 1px solid var(--rule);
+    padding: 4px calc(4px + env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
   }
   #quick button {
-    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em;
-    padding: 9px 10px; background: rgba(0,0,0,.62); border: 1px solid var(--rule);
-    color: var(--dim); border-radius: 3px; min-width: 54px;
+    flex: 1 1 0; min-width: 0;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 10px 2px; background: transparent; border: 1px solid transparent;
+    color: var(--dim); border-radius: 3px;
   }
+  #quick button.tab.sel { background: #171E23; border-color: var(--rule); color: var(--white); }
+  #panel, #wxPage, #chkPage, #logPage { padding-bottom: 76px; }
+  #mapHud { bottom: 46px; }
   #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
   #quick button.live { color: var(--green); border-color: var(--green); }
   #quick button.warn { color: var(--amber); border-color: var(--amber); }
@@ -172,7 +177,11 @@
   .ck .bx { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--rule); border-radius: 3px; margin-top: 1px; }
   .ck.on .bx { background: var(--green); border-color: var(--green); }
   .ck.on .tx { color: var(--dim); text-decoration: line-through; }
-  .ck .tx { font-size: 14px; line-height: 1.35; }
+  .ck .tx { font-size: 14px; line-height: 1.35; flex: 1; }
+  .ck input.ed { flex: 1; font-family: var(--ui); font-size: 14px; background: #0B0F12;
+    color: var(--white); border: 1px solid var(--rule); border-radius: 3px; padding: 7px 8px; }
+  .ck .mv { flex: 0 0 auto; font-family: var(--mono); font-size: 12px; padding: 6px 8px;
+    background: #1D2429; border: 1px solid var(--rule); color: var(--dim); border-radius: 3px; }
   .lg { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
   .lg b { color: var(--white); } .lg span { color: var(--dim); }
 
@@ -285,12 +294,13 @@
 </svg>
 
 <div id="quick">
+  <button class="tab sel" id="qPfd">PFD</button>
+  <button class="tab" id="qMap">MAP</button>
+  <button class="tab" id="qChk">CHK</button>
+  <button class="tab" id="qLog">LOG</button>
+  <button class="tab" id="qWx">WX</button>
   <button id="qCal">CAL</button>
   <button id="qMode">SIM</button>
-  <button id="qWx">WX</button>
-  <button id="qMap">MAP</button>
-  <button id="qChk">CHK</button>
-  <button id="qLog">LOG</button>
 </div>
 
 <button id="menuBtn" aria-label="Settings">☰</button>
@@ -319,15 +329,22 @@
         <button id="chkReset">Clear ticks</button>
         <button id="chkEdit">Edit</button>
         <button id="chkDefaults">Restore defaults</button>
+        <button id="chkAddPhase">+ Phase</button>
+        <button id="chkDelPhase">Delete phase</button>
       </div>
       <div id="chkList" style="margin-top:10px"></div>
-      <textarea id="chkEditor" class="val" style="width:100%;height:210px;text-align:left;display:none;margin-top:10px"></textarea>
       <div class="row" id="chkEditRow" style="display:none">
-        <button class="go" id="chkSave" style="flex:1">Save this phase</button>
+        <button class="go" id="chkAdd" style="flex:1">+ Add item</button>
+        <button id="chkBulk">Paste many</button>
       </div>
-      <p class="hint">One item per line. Checklists are stored against the aircraft, so switching
-      aircraft switches lists. Ticks are deliberately not remembered between sessions &mdash; a
-      checklist that recalls being complete from last week is worse than none.</p>
+      <textarea id="chkEditor" class="val" style="width:100%;height:150px;text-align:left;display:none;margin-top:8px" placeholder="One item per line"></textarea>
+      <div class="row" id="chkBulkRow" style="display:none">
+        <button class="go" id="chkBulkSave" style="flex:1">Append these</button>
+      </div>
+      <p class="hint">Checklists are stored against the aircraft, so switching aircraft switches
+      lists. Add your own phases for anything the five standard ones do not cover. Ticks are
+      deliberately not remembered between sessions &mdash; a checklist that recalls being complete
+      from last week is worse than none.</p>
     </div>
     <div class="row"><button class="go" id="chkClose" style="flex:1">Close</button></div>
   </div>
@@ -609,6 +626,20 @@ var att = { pitch: 0, roll: 0, hdg: 0 };
 var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, vs: 0, tA: 0, tM: 0 };
 var hot = false, linkDown = false, t = 0;
 var dataMode = "sim";      // sim | live
+
+/* The map drew nothing because SIM never produced a position, so the tile layer
+   bailed before requesting anything. Simulating attitude but not position made
+   half the app untestable from an armchair, which is the opposite of the point.
+   SIM now flies the demo circuit over real ground. */
+var SIM_ORIGIN = { lat: 43.9844, lon: -88.5570, name: "KOSH" };   // obvious placeholder
+var simPos = null;
+function simOrigin() {
+  var last = null;
+  try { last = JSON.parse(localStorage.getItem("junco.lastpos") || "null"); } catch (e) {}
+  if (last) { return { lat: last.lat, lon: last.lon, name: "LAST" }; }
+  if (O.nav.home) { return { lat: O.nav.home.lat, lon: O.nav.home.lon, name: "HOME" }; }
+  return SIM_ORIGIN;
+}
 var diag = { count: 0, perm: "—", geo: "—" };
 var sim = {};            // SI throughout: m/s, m, degC, litres
 var rows = [];           // engine strip, generated from the profile
@@ -857,6 +888,17 @@ function frame() {
   $("rollPtr").setAttribute("transform", "translate(0," + DY + ") rotate(" + (-rr) + " 444 238)");
   $("slip").setAttribute("x", 430 + Math.max(-16, Math.min(16, rr*0.13)));
 
+  if (dataMode === "sim") {
+    if (!simPos) { var o = simOrigin(); simPos = { lat: o.lat, lon: o.lon, name: o.name, alt: 330 }; }
+    var dt = 1 / 30, gsMs = 13.9;                       // ~27 kt, a PM-2 cruise
+    var hd = att.hdg * Math.PI / 180;
+    simPos.lat += Math.cos(hd) * gsMs * dt / 111320;
+    simPos.lon += Math.sin(hd) * gsMs * dt / (111320 * Math.cos(simPos.lat * Math.PI / 180));
+    simPos.alt = 330 + Math.sin(t * 0.3) * 20;
+    gps.lat = simPos.lat; gps.lon = simPos.lon; gps.alt = simPos.alt;
+    gps.gs = gsMs; gps.trk = att.hdg; gps.vs = Math.cos(t * 0.3) * 0.6;
+  }
+
   if (!linkDown) {
     rows.forEach(function (r, i) {
       if (r.kind === "fuel") { return; }
@@ -968,8 +1010,8 @@ function frame() {
   }
 
   // Logbook detection and breadcrumb, live data only.
+  if (gps.lat !== null) { O.addTrail(gps.lat, gps.lon, gps.alt); }
   if (dataMode === "live" && gps.lat !== null) {
-    O.addTrail(gps.lat, gps.lon, gps.alt);
     O.update(gps.lat, gps.lon, gps.alt);
     var ev = O.detect(P, gps.lat, gps.lon, gps.gs, gps.alt, Date.now());
     if (ev) { flash($("qLog"), ev.event === "takeoff" ? "OFF" : "ON", "live"); }
@@ -1015,6 +1057,7 @@ function startGeo() {
       if (gps.tM && now > gps.tM) { gps.vs = (c.altitude - gps.tA) / ((now - gps.tM) / 1000); }
       gps.tA = c.altitude; gps.tM = now; gps.alt = c.altitude;
     }
+    try { localStorage.setItem("junco.lastpos", JSON.stringify({ lat: gps.lat, lon: gps.lon })); } catch (e) {}
     diag.geo = "fix ±" + Math.round(c.accuracy) + " m"; stats();
   }, function (err) { diag.geo = err.code === 1 ? "denied" : "unavailable"; stats(); },
      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
@@ -1208,7 +1251,12 @@ function setMode(m) {
   var b = $("qMode");
   b.textContent = m === "live" ? "LIVE" : "SIM";
   b.className = m === "live" ? "live" : "";
-  if (m === "live") { goLive(); }
+  if (m === "live") {
+    simPos = null;
+    gps.lat = null; gps.lon = null; gps.alt = null; gps.gs = null; gps.trk = null;
+    O.clearTrail();
+    goLive();
+  }
   stats();
 }
 $("qMode").onclick = function () { setMode(dataMode === "live" ? "sim" : "live"); };
@@ -1261,8 +1309,8 @@ function pullOutside() {
   N.fetchTraffic(gps.lat, gps.lon, 40, altFt).then(tfcRender);
   N.fetchWx(gps.lat, gps.lon).then(wxRender);
 }
-$("qWx").onclick = function () { $("wxPage").classList.add("open"); pullOutside(); wxRender(); tfcRender(); };
-$("wxClose").onclick = function () { $("wxPage").classList.remove("open"); };
+$("qWx").onclick = function () { showPage("wx"); };
+$("wxClose").onclick = function () { showPage("pfd"); };
 $("wxRefresh").onclick = function () { N.fetchWx(gps.lat, gps.lon).then(wxRender); };
 $("tfcRefresh").onclick = function () {
   var altFt = gps.alt === null ? null : gps.alt * 3.28084;
@@ -1362,6 +1410,10 @@ function drawMap() {
   g.fillText(gps.lat === null ? "NO POSITION — SWITCH TO LIVE" :
     (sol ? sol.name + "  " + sol.dist.toFixed(1) + " nm  " + String(Math.round(sol.brg)).padStart(3,"0") + "°"
          : "No destination set"), 12, 24);
+  if (dataMode === "sim") {
+    g.fillStyle = "#E8A33D"; g.font = "600 12px ui-monospace, monospace";
+    g.fillText("SIMULATED POSITION near " + (simPos ? simPos.name : "—") + " — switch to LIVE in the aircraft", 12, 60);
+  }
   g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
   g.fillText(mapUp ? "TRACK UP" : "NORTH UP", 12, 42);
   var stale = T.age() ? Math.round((Date.now() - T.age()) / 86400000) : null;
@@ -1378,8 +1430,22 @@ function drawMap() {
   T.attribution(g, W, H);
 }
 function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
-$("qMap").onclick = function () { $("mapPage").classList.add("open"); T.setRedraw(function () {}); if (dataMode === "live") { pullOutside(); } mapLoop(); };
-$("mapClose").onclick = function () { $("mapPage").classList.remove("open"); };
+var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", wx: "wxPage" };
+function showPage(p) {
+  Object.keys(PAGES).forEach(function (k) {
+    if (PAGES[k]) { $(PAGES[k]).classList.toggle("open", k === p); }
+    var b = $("q" + k.charAt(0).toUpperCase() + k.slice(1));
+    if (b) { b.classList.toggle("sel", k === p); }
+  });
+  $("panel").classList.remove("open");
+  if (p === "map") { T.setRedraw(function () {}); if (dataMode === "live") { pullOutside(); } mapLoop(); }
+  if (p === "chk") { chkRender(); }
+  if (p === "log") { logRender(); }
+  if (p === "wx") { pullOutside(); wxRender(); tfcRender(); }
+}
+$("qPfd").onclick = function () { showPage("pfd"); };
+$("qMap").onclick = function () { showPage("map"); };
+$("mapClose").onclick = function () { showPage("pfd"); };
 $("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
 $("mapZi").onclick = function () { mapRange = Math.max(0.5, mapRange / 2); $("mapRange").textContent = mapRange + " nm"; };
 $("mapZo").onclick = function () { mapRange = Math.min(200, mapRange * 2); $("mapRange").textContent = mapRange + " nm"; };
@@ -1407,40 +1473,93 @@ $("mapHome").onclick = function () {
 
 /* ================= checklists ================= */
 var chkPhase = "preflight", chkEditing = false;
+function chkSaveList(list) {
+  var c = O.getChecklist(P.id); c[chkPhase] = list; O.saveChecklist(P.id, c);
+}
 function chkRender() {
   $("chkAc").textContent = P.name;
+  var phases = O.getPhases(P.id);
+  if (!phases.some(function (p) { return p.id === chkPhase; })) { chkPhase = phases[0].id; }
   var tabs = $("chkTabs"); tabs.innerHTML = "";
-  O.PHASES.forEach(function (p) {
+  phases.forEach(function (p) {
     var b = document.createElement("button");
-    b.textContent = p.name; b.className = p.id === chkPhase ? "go" : "";
-    b.onclick = function () { chkPhase = p.id; chkEditing = false; chkRender(); };
+    var n = (O.getChecklist(P.id)[p.id] || []).length;
+    b.textContent = p.name + (n ? " (" + n + ")" : "");
+    b.className = p.id === chkPhase ? "go" : "";
+    b.onclick = function () { chkPhase = p.id; chkRender(); };
     tabs.appendChild(b);
   });
+
   var list = O.getChecklist(P.id)[chkPhase] || [];
   var box = $("chkList"); box.innerHTML = "";
-  $("chkEditor").style.display = chkEditing ? "block" : "none";
   $("chkEditRow").style.display = chkEditing ? "flex" : "none";
-  box.style.display = chkEditing ? "none" : "block";
-  if (chkEditing) { $("chkEditor").value = list.join("\n"); return; }
-  if (!list.length) { box.innerHTML = '<p class="hint">Nothing in this phase yet. Press Edit.</p>'; return; }
+  $("chkEdit").className = chkEditing ? "go" : "";
+  $("chkEdit").textContent = chkEditing ? "Done" : "Edit";
+  if (!chkEditing) { $("chkEditor").style.display = "none"; $("chkBulkRow").style.display = "none"; }
+
+  if (!list.length) {
+    box.innerHTML = '<p class="hint">Nothing in this phase yet. Press <b>Edit</b> then <b>Add item</b>.</p>';
+    return;
+  }
+
   list.forEach(function (item, i) {
     var d = document.createElement("div");
-    d.className = "ck" + (O.ticked(chkPhase, i) ? " on" : "");
-    d.innerHTML = '<div class="bx"></div><div class="tx"></div>';
-    d.querySelector(".tx").textContent = item;
-    d.onclick = function () { O.tick(chkPhase, i, !O.ticked(chkPhase, i)); chkRender(); };
+    d.className = "ck" + (!chkEditing && O.ticked(chkPhase, i) ? " on" : "");
+
+    if (chkEditing) {
+      var inp = document.createElement("input");
+      inp.className = "ed"; inp.value = item;
+      inp.oninput = function () { list[i] = inp.value; chkSaveList(list); };
+      d.appendChild(inp);
+      [["↑", function () { if (i > 0) { list.splice(i - 1, 0, list.splice(i, 1)[0]); chkSaveList(list); chkRender(); } }],
+       ["↓", function () { if (i < list.length - 1) { list.splice(i + 1, 0, list.splice(i, 1)[0]); chkSaveList(list); chkRender(); } }],
+       ["✕", function () { list.splice(i, 1); chkSaveList(list); O.clearTicks(chkPhase); chkRender(); }]
+      ].forEach(function (b) {
+        var btn = document.createElement("button");
+        btn.className = "mv"; btn.textContent = b[0]; btn.onclick = b[1];
+        d.appendChild(btn);
+      });
+    } else {
+      d.innerHTML = '<div class="bx"></div><div class="tx"></div>';
+      d.querySelector(".tx").textContent = item;
+      d.onclick = function () { O.tick(chkPhase, i, !O.ticked(chkPhase, i)); chkRender(); };
+    }
     box.appendChild(d);
   });
 }
-$("qChk").onclick = function () { $("chkPage").classList.add("open"); chkRender(); };
-$("chkClose").onclick = function () { $("chkPage").classList.remove("open"); };
+$("qChk").onclick = function () { showPage("chk"); };
+$("chkClose").onclick = function () { showPage("pfd"); };
 $("chkReset").onclick = function () { O.clearTicks(chkPhase); chkRender(); };
 $("chkEdit").onclick = function () { chkEditing = !chkEditing; chkRender(); };
 $("chkDefaults").onclick = function () { O.resetChecklist(P.id); chkEditing = false; chkRender(); };
-$("chkSave").onclick = function () {
-  var c = O.getChecklist(P.id);
-  c[chkPhase] = $("chkEditor").value.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
-  O.saveChecklist(P.id, c); chkEditing = false; O.clearTicks(chkPhase); chkRender();
+$("chkAdd").onclick = function () {
+  var c = O.getChecklist(P.id); c[chkPhase] = c[chkPhase] || [];
+  c[chkPhase].push("New item"); O.saveChecklist(P.id, c); chkRender();
+  var ins = $("chkList").querySelectorAll("input.ed");
+  if (ins.length) { ins[ins.length - 1].focus(); ins[ins.length - 1].select(); }
+};
+$("chkBulk").onclick = function () {
+  var open = $("chkEditor").style.display === "block";
+  $("chkEditor").style.display = open ? "none" : "block";
+  $("chkBulkRow").style.display = open ? "none" : "flex";
+};
+$("chkBulkSave").onclick = function () {
+  var add = $("chkEditor").value.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+  if (!add.length) { return; }
+  var c = O.getChecklist(P.id); c[chkPhase] = (c[chkPhase] || []).concat(add);
+  O.saveChecklist(P.id, c); $("chkEditor").value = "";
+  $("chkEditor").style.display = "none"; $("chkBulkRow").style.display = "none";
+  chkRender();
+};
+$("chkAddPhase").onclick = function () {
+  var n = prompt("Name for the new phase");
+  if (!n) { return; }
+  chkPhase = O.addPhase(P.id, n.trim()); chkEditing = true; chkRender();
+};
+$("chkDelPhase").onclick = function () {
+  var ph = O.getPhases(P.id).filter(function (p) { return p.id === chkPhase; })[0];
+  if (!ph || !ph.custom) { $("chkAc").textContent = P.name + " — only custom phases can be deleted"; return; }
+  O.removePhase(P.id, chkPhase); chkPhase = "preflight"; chkRender();
 };
 
 /* ================= logbook ================= */
@@ -1473,8 +1592,8 @@ function logShow(txt, name) {
   $("logText").value = txt; $("logText").style.display = "block"; $("logTextRow").style.display = "flex";
   $("logText").dataset.name = name;
 }
-$("qLog").onclick = function () { $("logPage").classList.add("open"); logRender(); };
-$("logClose").onclick = function () { $("logPage").classList.remove("open"); };
+$("qLog").onclick = function () { showPage("log"); };
+$("logClose").onclick = function () { showPage("pfd"); };
 $("logCsv").onclick = function () { logShow(O.toCSV(), "junco-logbook.csv"); };
 $("logGpx").onclick = function () {
   var g = O.toGPX(0);

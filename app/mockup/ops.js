@@ -110,10 +110,28 @@
     };
   }
   function key(profileId) { return "junco.checklist." + profileId; }
+  function pkey(profileId) { return "junco.phases." + profileId; }
+
+  /** Standard phases plus whatever this owner added for this aircraft. */
+  function getPhases(profileId) {
+    var extra = LS.get(pkey(profileId), []);
+    return PHASES.concat(extra);
+  }
+  function addPhase(profileId, name) {
+    var extra = LS.get(pkey(profileId), []);
+    var id = "custom_" + name.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 20) + "_" + extra.length;
+    extra.push({ id: id, name: name, custom: true });
+    LS.set(pkey(profileId), extra);
+    return id;
+  }
+  function removePhase(profileId, id) {
+    LS.set(pkey(profileId), LS.get(pkey(profileId), []).filter(function (p) { return p.id !== id; }));
+    var c = LS.get(key(profileId), {}); delete c[id]; LS.set(key(profileId), c);
+  }
   function getChecklist(profileId) {
     var c = LS.get(key(profileId), null);
     if (!c) { c = defaults(); LS.set(key(profileId), c); }
-    PHASES.forEach(function (p) { if (!c[p.id]) { c[p.id] = []; } });
+    getPhases(profileId).forEach(function (p) { if (!c[p.id]) { c[p.id] = []; } });
     return c;
   }
   function saveChecklist(profileId, c) { LS.set(key(profileId), c); }
@@ -218,7 +236,7 @@
     nav: nav, solution: solution, setHome: setHome, setDest: setDest, setActive: setActive,
     parseLatLon: fmtLatLon,
     trail: trail, addTrail: addTrail, clearTrail: clearTrail,
-    PHASES: PHASES, getChecklist: getChecklist, saveChecklist: saveChecklist,
+    PHASES: PHASES, getPhases: getPhases, addPhase: addPhase, removePhase: removePhase, getChecklist: getChecklist, saveChecklist: saveChecklist,
     resetChecklist: resetChecklist, tick: tick, ticked: ticked, clearTicks: clearTicks,
     detect: detect, update: update, flights: flights, current: current, removeFlight: removeFlight,
     toCSV: toCSV, toGPX: toGPX, totals: totals, dateOnly: dateOnly, hhmm: hhmm
