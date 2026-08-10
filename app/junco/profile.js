@@ -275,6 +275,15 @@
     if (out.schema_version && out.schema_version > SCHEMA) {
       throw new Error("profile schema " + out.schema_version + " is newer than this build understands (" + SCHEMA + ")");
     }
+    // A document with none of the tables a profile is made of is not an empty
+    // profile, it is not a profile. Without this, pasting an empty clipboard
+    // into "Load from text" silently produced an aircraft made entirely of
+    // defaults, named "Imported aircraft", with someone's idea of a stall
+    // speed in it. Refusing is the only honest answer.
+    var known = ["identity", "engines", "limits", "speeds", "fuel", "units", "weight_balance"];
+    if (!known.some(function (t) { return out[t] && Object.keys(out[t]).length; })) {
+      throw new Error("this does not look like a Junco aircraft profile");
+    }
     var id = (out.identity || {});
     var en = (out.engines || {});
     var li = (out.limits || {});
