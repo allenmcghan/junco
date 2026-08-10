@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-package org.junco.mockup;
+package com.keylinkit.junco;
 
 import android.Manifest;
 import android.app.Activity;

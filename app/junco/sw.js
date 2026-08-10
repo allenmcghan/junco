@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-var CACHE = "junco-pfd-v7";
+var CACHE = "junco-v8";
 var TILES = "junco-osm-tiles-v1";
 
 var SHELL = [
@@ -18,6 +18,8 @@ var SHELL = [
   "./net.js",
   "./ops.js",
   "./tiles.js",
+  "./airports.js",
+  "./data/airports.json",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png"

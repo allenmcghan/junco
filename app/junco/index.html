@@ -136,7 +136,7 @@
     color: var(--dim); border-radius: 3px;
   }
   #quick button.tab.sel { background: #171E23; border-color: var(--rule); color: var(--white); }
-  #panel, #wxPage, #chkPage, #logPage { padding-bottom: 76px; }
+  #panel, #wxPage, #chkPage, #logPage, #nrstPage { padding-bottom: 76px; }
 
   #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
   #quick button.live { color: var(--green); border-color: var(--green); }
@@ -172,11 +172,16 @@
   #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 9px; }
   #mapHud button.on { background: var(--green); border-color: var(--green); color: #03210F; }
   #mapHud .val { min-width: 62px; padding: 8px; }
-  #chkPage, #logPage {
+  #firstRun {
+    position: fixed; inset: 0; background: #05070A; z-index: 60; overflow-y: auto;
+    padding: calc(20px + env(safe-area-inset-top)) 14px 20px; display: none;
+  }
+  #firstRun.open { display: block; }
+  #chkPage, #logPage, #nrstPage {
     position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
     display: none; overflow-y: auto; padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
   }
-  #chkPage.open, #logPage.open { display: block; }
+  #chkPage.open, #logPage.open, #nrstPage.open { display: block; }
   .ck { display: flex; align-items: flex-start; gap: 9px; padding: 9px 4px; border-bottom: 1px solid #1A2025; cursor: pointer; }
   .ck .bx { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--rule); border-radius: 3px; margin-top: 1px; }
   .ck.on .bx { background: var(--green); border-color: var(--green); }
@@ -188,6 +193,15 @@
     background: #1D2429; border: 1px solid var(--rule); color: var(--dim); border-radius: 3px; }
   .lg { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; font-family: var(--mono); font-size: 12px; line-height: 1.55; }
   .lg b { color: var(--white); } .lg span { color: var(--dim); }
+  .ap { border: 1px solid var(--rule); border-radius: 3px; padding: 9px; margin-bottom: 7px; }
+  .ap .hd { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .ap .id { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--white); }
+  .ap .dd { font-family: var(--mono); font-size: 13px; color: var(--green); }
+  .ap .nm { font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .ap .fq { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .ap .fq span { font-family: var(--mono); font-size: 12px; background: #0B0F12;
+    border: 1px solid var(--rule); border-radius: 3px; padding: 4px 7px; color: var(--white); }
+  .ap .fq span i { color: var(--dim); font-style: normal; margin-right: 5px; font-size: 10px; }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -302,12 +316,42 @@
   <button class="tab" id="qMap">MAP</button>
   <button class="tab" id="qChk">CHK</button>
   <button class="tab" id="qLog">LOG</button>
+  <button class="tab" id="qNrst">NRST</button>
   <button class="tab" id="qWx">WX</button>
   <button id="qCal">CAL</button>
   <button id="qMode">SIM</button>
 </div>
 
 <button id="menuBtn" aria-label="Settings">☰</button>
+
+<div id="firstRun">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Before you use this in an aircraft</h3>
+      <p class="hint" style="font-size:13.5px;color:#E8EAE6">
+      <b>Junco is not a certified aviation product</b> and is not tested to any aviation standard.
+      It is advisory only.</p>
+      <ul class="hint" style="font-size:13px;line-height:1.7;padding-left:18px">
+        <li><b>Do not use it as a primary flight instrument.</b> Attitude comes from your phone's
+          sensors, which drift and are affected by vibration and magnetic interference.</li>
+        <li><b>Do not remove working mechanical instruments</b> because this duplicates them.</li>
+        <li><b>Charts and airport data may be out of date.</b> Sectionals change every 56 days and
+          this app cannot tell how stale a cached chart is. Frequencies come from a community
+          database. Confirm both against current official sources.</li>
+        <li><b>Traffic is advisory and badly incomplete.</b> Coverage below 1,000&ndash;2,000 ft AGL
+          is often nothing at all, and Part 103 aircraft mostly carry no ADS-B Out. It is not a
+          see-and-avoid tool.</li>
+        <li><b>Logbook entries are drafts.</b> 14 CFR 61.51 places accuracy on you.</li>
+        <li><b>You are responsible for the safe conduct of the flight.</b></li>
+      </ul>
+      <p class="hint">Position and flight data stay on this device. Nothing is uploaded, and there is
+      no account.</p>
+      <div class="row" style="margin-top:10px">
+        <button class="go" id="frAccept" style="flex:1">I understand &mdash; continue</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="mapPage">
   <canvas id="mapC"></canvas>
@@ -324,6 +368,26 @@
     <button id="mapClrRt">CLR RT</button>
     <button id="mapMe">CENTRE</button>
     <button class="go" id="mapClose">CLOSE</button>
+  </div>
+</div>
+
+<div id="nrstPage">
+  <div class="wrap">
+    <div class="grp">
+      <h3>Nearest airports</h3>
+      <div class="row">
+        <button class="go" id="nrstRefresh" style="flex:1">Refresh</button>
+        <span class="val" id="nrstCount">—</span>
+      </div>
+      <div id="nrstList" style="margin-top:10px"></div>
+      <p class="hint">Bundled with the app, so this works with no signal &mdash; which is the point,
+      because the moment you need a nearest field is the moment you have neither signal nor time.
+      Data from <b>OurAirports</b>, public domain and community maintained: more complete than
+      official sources for small private strips, and occasionally wrong.
+      <b>Confirm a frequency against the Chart Supplement before you key the mic at a towered
+      field.</b></p>
+    </div>
+    <div class="row"><button class="go" id="nrstClose" style="flex:1">Close</button></div>
   </div>
 </div>
 
@@ -572,6 +636,7 @@
 <script src="./net.js"></script>
 <script src="./ops.js"></script>
 <script src="./tiles.js"></script>
+<script src="./airports.js"></script>
 <script>
 (function () {
 "use strict";
@@ -1250,6 +1315,20 @@ $("btnWake").onclick = function () {
   else { navigator.wakeLock.request("screen").then(function (w) { wl = w; b.className = "on"; b.textContent = "Screen awake"; })
     .catch(function () { b.textContent = "Wake lock refused"; }); }
 };
+/* Shown once, acknowledged once. Not a modal that nags, and not a line of grey
+   text nobody reads: this is a flight instrument in an aircraft with no panel,
+   and the limits belong in front of the pilot before the first flight. */
+(function firstRun() {
+  var KEY = "junco.ack.v1";
+  var seen = null;
+  try { seen = localStorage.getItem(KEY); } catch (e) {}
+  if (!seen) { $("firstRun").classList.add("open"); }
+  $("frAccept").onclick = function () {
+    try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+    $("firstRun").classList.remove("open");
+  };
+})();
+
 window.addEventListener("orientationchange", stats);
 
 /* ================= quick controls, live data, outside data ================= */
@@ -1318,6 +1397,41 @@ function pullOutside() {
   N.fetchWx(gps.lat, gps.lon).then(wxRender);
 }
 $("qWx").onclick = function () { showPage("wx"); };
+$("qNrst").onclick = function () { showPage("nrst"); };
+$("nrstClose").onclick = function () { showPage("pfd"); };
+$("nrstRefresh").onclick = function () { nrstRender(); };
+
+var AP = window.JuncoAirports;
+function nrstRender() {
+  var box = $("nrstList");
+  if (!AP.isReady()) {
+    box.innerHTML = '<p class="hint">Loading airport database…</p>';
+    AP.load().then(nrstRender);
+    return;
+  }
+  $("nrstCount").textContent = AP.count().toLocaleString() + " apt";
+  if (gps.lat === null) { box.innerHTML = '<p class="hint">No position yet.</p>'; return; }
+  var list = AP.nearest(gps.lat, gps.lon, 10, 60);
+  box.innerHTML = "";
+  if (!list.length) { box.innerHTML = '<p class="hint">Nothing within 60 nm.</p>'; return; }
+  list.forEach(function (a) {
+    var d = document.createElement("div"); d.className = "ap";
+    var fq = a.freqs.map(function (f) {
+      return "<span><i>" + AP.freqLabel(f[0]) + "</i>" + f[1].toFixed(3) + "</span>";
+    }).join("");
+    d.innerHTML =
+      '<div class="hd"><span class="id">' + a.ident + '</span>' +
+      '<span class="dd">' + a.dist.toFixed(1) + " nm  " + String(Math.round(a.brg)).padStart(3, "0") + "°</span></div>" +
+      '<div class="nm">' + a.name + "  ·  " + a.kind + "  ·  " + a.elev + " ft</div>" +
+      (fq ? '<div class="fq">' + fq + "</div>" : '<div class="nm">No published frequency</div>');
+    var go = document.createElement("button");
+    go.textContent = "Direct to"; go.style.marginTop = "8px";
+    go.onclick = function () { O.setDest(a.lat, a.lon, a.ident); O.setActive("dest"); showPage("pfd"); };
+    d.appendChild(go);
+    box.appendChild(d);
+  });
+}
+AP.load();
 $("wxClose").onclick = function () { showPage("pfd"); };
 $("wxRefresh").onclick = function () { N.fetchWx(gps.lat, gps.lon).then(wxRender); };
 $("tfcRefresh").onclick = function () {
@@ -1412,6 +1526,20 @@ function drawMap() {
     g.stroke();
   }
 
+  // airports, with the frequency you would actually call on
+  if (AP.isReady() && mapRange <= 40) {
+    var pad = mapRange / 60 + 0.02;
+    var aps = AP.inBox(A.lat - pad, A.lon - pad * 1.4, A.lat + pad, A.lon + pad * 1.4, 120);
+    g.font = "10px ui-monospace, monospace";
+    aps.forEach(function (a) {
+      var q = project(a.lat, a.lon);
+      if (q[0] < -20 || q[0] > W + 20 || q[1] < -20 || q[1] > H + 20) { return; }
+      g.strokeStyle = a.kind === "H" ? "#7FA8C0" : "#CFE0EA"; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(q[0], q[1], 4, 0, Math.PI * 2); g.stroke();
+      if (mapRange <= 15) { g.fillStyle = "#CFE0EA"; g.fillText(a.ident, q[0] + 6, q[1] + 3); }
+    });
+  }
+
   // planned route
   if (O.route.length) {
     g.strokeStyle = "#3FCF6A"; g.lineWidth = 2.5; g.setLineDash([]);
@@ -1492,7 +1620,7 @@ function drawMap() {
   T.attribution(g, W, H);
 }
 function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
-var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", wx: "wxPage" };
+var PAGES = { pfd: null, map: "mapPage", chk: "chkPage", log: "logPage", nrst: "nrstPage", wx: "wxPage" };
 function showPage(p) {
   Object.keys(PAGES).forEach(function (k) {
     if (PAGES[k]) { $(PAGES[k]).classList.toggle("open", k === p); }
@@ -1504,6 +1632,7 @@ function showPage(p) {
   if (p === "chk") { chkRender(); }
   if (p === "log") { logRender(); }
   if (p === "wx") { pullOutside(); wxRender(); tfcRender(); }
+  if (p === "nrst") { nrstRender(); }
 }
 $("qPfd").onclick = function () { showPage("pfd"); };
 $("qMap").onclick = function () { showPage("map"); };

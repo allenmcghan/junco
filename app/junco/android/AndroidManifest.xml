@@ -4,9 +4,8 @@
   SPDX-License-Identifier: GPL-2.0-or-later
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.junco.mockup"
     android:versionCode="1"
-    android:versionName="0.1-mockup">
+    android:versionName="0.1.0">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
