@@ -304,6 +304,7 @@
     <button id="mapZi">+</button>
     <button id="mapHome">HOME</button>
     <button id="mapTiles">MAP ON</button>
+    <button id="mapLayer">SECTIONAL</button>
     <button id="mapPull">PULL AREA</button>
     <button class="go" id="mapClose">CLOSE</button>
   </div>
@@ -1363,9 +1364,17 @@ function drawMap() {
          : "No destination set"), 12, 24);
   g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
   g.fillText(mapUp ? "TRACK UP" : "NORTH UP", 12, 42);
+  var stale = T.age() ? Math.round((Date.now() - T.age()) / 86400000) : null;
   g.fillText(T.isEnabled()
-    ? "OSM basemap z" + (tz === null ? "—" : tz) + " · " + T.cached() + " tiles cached · pull the area before you fly"
+    ? T.layerName() + " z" + (tz === null ? "—" : tz) + " · " + T.cached() + " tiles · " +
+      (stale === null ? "not pulled — do it on the ground" :
+       stale === 0 ? "pulled today" : "pulled " + stale + " days ago")
     : "Basemap off", 12, H - 58);
+  if (stale !== null && stale > 27) {
+    g.fillStyle = "#E8A33D";
+    g.fillText("CHART MAY BE OUT OF CYCLE", 12, H - 42);
+    g.fillStyle = "#93A0A8";
+  }
   T.attribution(g, W, H);
 }
 function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
@@ -1374,6 +1383,9 @@ $("mapClose").onclick = function () { $("mapPage").classList.remove("open"); };
 $("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
 $("mapZi").onclick = function () { mapRange = Math.max(0.5, mapRange / 2); $("mapRange").textContent = mapRange + " nm"; };
 $("mapZo").onclick = function () { mapRange = Math.min(200, mapRange * 2); $("mapRange").textContent = mapRange + " nm"; };
+$("mapLayer").onclick = function () {
+  this.textContent = T.nextLayer();
+};
 $("mapTiles").onclick = function () {
   T.setEnabled(!T.isEnabled());
   this.textContent = T.isEnabled() ? "MAP ON" : "MAP OFF";

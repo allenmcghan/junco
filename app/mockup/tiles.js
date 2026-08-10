@@ -1,4 +1,8 @@
-/* Junco mockup — OpenStreetMap raster basemap.
+/* Junco mockup — raster basemap and aeronautical charts.
+ *
+ * Three layers: OpenStreetMap for ground reference, and the FAA's own VFR
+ * Sectional and Terminal Area charts for airspace. All three are 256 px Web
+ * Mercator, so one drawing path serves them and one cache holds them.
  *
  * The earlier version of this app had no basemap on the argument that tiles need
  * a network you will not have at 800 feet over a field. That argument was wrong,
@@ -11,6 +15,17 @@
  * about 12 nm across and 13 kB, so a 7x7 block covers roughly 80 nm for under a
  * megabyte. Field boundaries, roads, rivers, towns and coastline are all legible,
  * and that is the entire content of a ground reference.
+ *
+ * CHARTS GO STALE AND THIS ONE CANNOT TELL YOU HOW STALE. Sectionals run on a
+ * 56-day cycle. A tile cached before a cycle boundary looks exactly like a
+ * current one, so the map annunciates when the layer was last pulled. Treat it
+ * as a reference for situational awareness and not as a current chart. The FAA
+ * attribution says "not for navigation" because that is the truth.
+ *
+ * Why this matters more than roads: 14 CFR 103.17 forbids operating an
+ * ultralight in Class A, B, C, D, or the surface area of Class E designated for
+ * an airport without prior ATC authorisation. For a Part 103 pilot the airspace
+ * boundary is a legal line, not a convenience.
  *
  * OSM TILE USAGE POLICY. tile.openstreetmap.org is donated infrastructure with a
  * published policy, and this file tries to be a good guest:
@@ -32,10 +47,44 @@
 (function (global) {
   "use strict";
 
-  var URL_TPL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+  /* Layers. The FAA publishes its own charts as Web Mercator tiles at 256 px,
+     which is the same scheme OSM uses, so one drawing path serves both. Note the
+     axis order differs: ArcGIS is {z}/{row}/{col}, OSM is {z}/{x}/{y}.
+
+     Sectionals matter more than roads to a Part 103 pilot. 14 CFR 103.17 forbids
+     operating in Class A, B, C, D, or the surface area of Class E designated for
+     an airport without prior ATC authorisation, so knowing where those boundaries
+     are is a legal question and not only a convenience. */
+  var LAYERS = {
+    osm: {
+      name: "OSM",
+      url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attr: "© OpenStreetMap contributors",
+      dim: 0.42, max: 17
+    },
+    sectional: {
+      name: "SECTIONAL",
+      url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}",
+      attr: "FAA Aeronautical Information Services — not for navigation",
+      dim: 0.12, max: 12
+    },
+    terminal: {
+      name: "TAC",
+      url: "https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Terminal/MapServer/tile/{z}/{y}/{x}",
+      attr: "FAA Aeronautical Information Services — not for navigation",
+      dim: 0.12, max: 14
+    }
+  };
+  var ORDER = ["osm", "sectional", "terminal"];
+  var layer = "sectional";
   var TILE = 256;
   var MAX_CACHE = 600;              // in-memory images
   var PRECACHE_CAP = 240;           // hard ceiling on a user-initiated area pull
+
+  function L() { return LAYERS[layer]; }
+  function tileURL(z, x, y) {
+    return L().url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+  }
 
   var mem = new Map();              // "z/x/y" -> Image | "fail"
   var pending = 0;
@@ -53,10 +102,10 @@
   function zoomFor(rangeNM, radiusPx, lat) {
     var want = (rangeNM * 1852) / Math.max(1, radiusPx);          // metres per pixel
     var z = Math.log2(156543.03392 * Math.cos(lat * Math.PI / 180) / want);
-    return Math.max(3, Math.min(16, Math.round(z)));
+    return Math.max(3, Math.min(L().max, Math.round(z)));
   }
 
-  function key(z, x, y) { return z + "/" + x + "/" + y; }
+  function key(z, x, y) { return layer + "/" + z + "/" + x + "/" + y; }
 
   function get(z, x, y) {
     var k = key(z, x, y), hit = mem.get(k);
@@ -68,7 +117,7 @@
     pending++;
     img.onload = function () { pending--; if (onArrive) { onArrive(); } };
     img.onerror = function () { pending--; mem.set(k, "fail"); };
-    img.src = URL_TPL.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+    img.src = tileURL(z, x, y);
     if (mem.size > MAX_CACHE) {
       var it = mem.keys();
       for (var i = 0; i < 80; i++) { var n = it.next(); if (n.done) { break; } mem.delete(n.value); }
@@ -110,7 +159,7 @@
 
     // Knock the basemap back so instrument symbology stays dominant. A basemap
     // that competes with the traffic and the course line is a hazard, not a help.
-    ctx.fillStyle = "rgba(5,7,10,0.42)";
+    ctx.fillStyle = "rgba(5,7,10," + L().dim + ")";
     ctx.fillRect(0, 0, W, H);
     return z;
   }
@@ -118,7 +167,7 @@
   /** Required by ODbL. Not optional and not hidden. */
   function attribution(ctx, W, H) {
     if (!enabled) { return; }
-    var t = "© OpenStreetMap contributors";
+    var t = L().attr;
     ctx.font = "11px ui-monospace, monospace";
     var w = ctx.measureText(t).width + 10;
     ctx.fillStyle = "rgba(0,0,0,0.55)";
@@ -136,7 +185,7 @@
     var base = zoomFor(rangeNM, radiusPx, lat);
     var list = [];
     [base, base + 1].forEach(function (z) {
-      if (z < 3 || z > 16) { return; }
+      if (z < 3 || z > L().max) { return; }
       var fx = lon2x(lon, z), fy = lat2y(lat, z), n = Math.pow(2, z);
       var span = z === base ? 3 : 4;
       for (var dx = -span; dx <= span; dx++) {
@@ -153,11 +202,10 @@
     return new Promise(function (resolve) {
       var i = 0, active = 0;
       function next() {
-        if (i >= list.length && active === 0) { resolve({ total: list.length, ok: ok }); return; }
+        if (i >= list.length && active === 0) { stamp(); resolve({ total: list.length, ok: ok }); return; }
         while (active < 4 && i < list.length) {
           var t = list[i++]; active++;
-          fetch(URL_TPL.replace("{z}", t[0]).replace("{x}", t[1]).replace("{y}", t[2]),
-                { mode: "cors", cache: "force-cache" })
+          fetch(tileURL(t[0], t[1], t[2]), { mode: "cors", cache: "force-cache" })
             .then(function () { ok++; })
             .catch(function () {})
             .then(function () {
@@ -171,8 +219,23 @@
     });
   }
 
+  /* Charts go stale. The sectional cycle is 56 days and a cached tile carries no
+     expiry the pilot can see, so the map annunciates when the layer was last
+     fetched rather than letting an old chart look current. */
+  var fetchedAt = {};
+  function stamp() { fetchedAt[layer] = Date.now(); }
+  function age() { return fetchedAt[layer] || 0; }
+
   global.JuncoTiles = {
     draw: draw, attribution: attribution, precache: precache, zoomFor: zoomFor,
+    layers: ORDER, layerName: function () { return L().name; },
+    setLayer: function (l) { if (LAYERS[l]) { layer = l; } },
+    nextLayer: function () {
+      var i = ORDER.indexOf(layer);
+      layer = ORDER[(i + 1) % ORDER.length];
+      return L().name;
+    },
+    stamp: stamp, age: age,
     setRedraw: function (f) { onArrive = f; },
     setEnabled: function (v) { enabled = !!v; },
     isEnabled: function () { return enabled; },

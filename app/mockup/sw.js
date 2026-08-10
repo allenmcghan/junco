@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-var CACHE = "junco-pfd-v6";
+var CACHE = "junco-pfd-v7";
 var TILES = "junco-osm-tiles-v1";
 
 var SHELL = [
@@ -51,7 +51,8 @@ self.addEventListener("fetch", function (e) {
   // Basemap tiles live in their own cache and are served cache-first for good.
   // A tile pulled on the ground is the whole reason the map works in the air,
   // so it is never evicted by a shell update.
-  if (e.request.url.indexOf("tile.openstreetmap.org") >= 0) {
+  if (e.request.url.indexOf("tile.openstreetmap.org") >= 0 ||
+      e.request.url.indexOf("tiles.arcgis.com") >= 0) {
     e.respondWith(
       caches.open(TILES).then(function (c) {
         return c.match(e.request).then(function (hit) {
