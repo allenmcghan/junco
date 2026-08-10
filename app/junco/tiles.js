@@ -42,7 +42,7 @@
  * a whole region as one file and would suit an offline instrument better than
  * any tile server does.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 (function (global) {
   "use strict";

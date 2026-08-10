@@ -11,6 +11,19 @@
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <title>Junco PFD</title>
+<!--
+  Junco PFD — primary flight display and electronic flight bag.
+  Copyright (c) Junco contributors.
+  SPDX-License-Identifier: MPL-2.0
+
+  This Source Code Form is subject to the terms of the Mozilla Public License,
+  v. 2.0. If a copy of the MPL was not distributed with this file, You can
+  obtain one at https://mozilla.org/MPL/2.0/.
+
+  NOT FOR PRIMARY NAVIGATION. Advisory use only. See the disclaimer shown at
+  every launch, which is deliberately not dismissible-once.
+-->
+
 <style>
   /* A cockpit display is dark in every cockpit. Single theme, every colour
      painted explicitly, no page scroll, no chrome. */
@@ -641,7 +654,22 @@
 (function () {
 "use strict";
 var NS = "http://www.w3.org/2000/svg";
-var $ = function (id) { return document.getElementById(id); };
+var $ = function (id) {
+  var e = document.getElementById(id);
+  if (!e) {
+    // A handler bound to a control that no longer exists used to throw here and
+    // silently kill every handler defined after it. One dead line took out the
+    // checklist page, the nearest page and destination entry. Never again.
+    console.warn("Junco: missing element #" + id);
+    return { style: {}, classList: { add: function () {}, remove: function () {}, toggle: function () {}, contains: function () { return false; } },
+             addEventListener: function () {}, setAttribute: function () {}, removeAttribute: function () {},
+             appendChild: function () {}, removeChild: function () {}, querySelector: function () { return null; },
+             querySelectorAll: function () { return []; }, focus: function () {}, select: function () {},
+             getBoundingClientRect: function () { return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }; },
+             dataset: {}, files: null, value: "", textContent: "", innerHTML: "", className: "", checked: false };
+  }
+  return e;
+};
 function el(n, a, t) { var e = document.createElementNS(NS, n);
   for (var k in a) { if (Object.prototype.hasOwnProperty.call(a, k)) { e.setAttribute(k, a[k]); } }
   if (t !== undefined) { e.textContent = t; } return e; }
@@ -713,6 +741,7 @@ function simOrigin() {
   return SIM_ORIGIN;
 }
 var diag = { count: 0, perm: "—", geo: "—" };
+var firstFix = true;
 var sim = {};            // SI throughout: m/s, m, degC, litres
 var rows = [];           // engine strip, generated from the profile
 
@@ -1131,6 +1160,15 @@ function startGeo() {
     }
     try { localStorage.setItem("junco.lastpos", JSON.stringify({ lat: gps.lat, lon: gps.lon })); } catch (e) {}
     diag.geo = "fix ±" + Math.round(c.accuracy) + " m"; stats();
+
+    // A page opened before the first fix used to sit on "No position yet"
+    // forever, because nothing re-rendered when the fix arrived. On the ground
+    // waiting for GPS is exactly when a pilot opens the nearest page.
+    if (firstFix) {
+      firstFix = false;
+      if ($("nrstPage").classList.contains("open")) { nrstRender(); }
+      if ($("wxPage").classList.contains("open")) { pullOutside(); }
+    }
   }, function (err) { diag.geo = err.code === 1 ? "denied" : "unavailable"; stats(); },
      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
 }
@@ -1408,7 +1446,11 @@ function nrstRender() {
     return;
   }
   $("nrstCount").textContent = AP.count().toLocaleString() + " apt";
-  if (gps.lat === null) { box.innerHTML = '<p class="hint">No position yet.</p>'; return; }
+  if (gps.lat === null) {
+    box.innerHTML = '<p class="hint">Waiting for a GPS fix. This page will fill in by itself when one arrives.' +
+      (dataMode === "sim" ? ' You are in SIM &mdash; tap LIVE for a real position.' : '') + '</p>';
+    return;
+  }
   var list = AP.nearest(gps.lat, gps.lon, 10, 60);
   box.innerHTML = "";
   if (!list.length) { box.innerHTML = '<p class="hint">Nothing within 60 nm.</p>'; return; }
@@ -1713,7 +1755,6 @@ $("mapClrRt").onclick = function () { O.clearRoute(); };
 $("mapMe").onclick = function () {
   mapFollow = true; mapCentre = null; this.className = "on";
 };
-$("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
 function setRange(r) {
   mapRange = Math.max(0.4, Math.min(240, r));
   $("mapRange").textContent = (mapRange < 10 ? mapRange.toFixed(1) : Math.round(mapRange)) + " nm";

@@ -5,7 +5,7 @@
 # comes from instead. Every run publishes it as a downloadable artifact, and
 # pushing a v* tag also attaches it to a GitHub release.
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 name: Android
 

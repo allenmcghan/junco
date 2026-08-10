@@ -10,7 +10,7 @@
 # Requires: ANDROID_HOME pointing at an SDK with build-tools and platform 34,
 # and a JDK. Produces build/junco.apk, debug-signed for sideloading.
 #
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 
 set -euo pipefail
 

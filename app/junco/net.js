@@ -25,7 +25,7 @@
  * PRD design rule 9: advisory-only data never raises an alert. Nothing here
  * may drive audio, the annunciator, or any advisory. It is a map layer.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 (function (global) {
   "use strict";

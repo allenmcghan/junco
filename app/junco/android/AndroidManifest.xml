@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Junco PFD layout mockup — Android wrapper.
-  SPDX-License-Identifier: GPL-2.0-or-later
+  SPDX-License-Identifier: MPL-2.0
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     android:versionCode="1"

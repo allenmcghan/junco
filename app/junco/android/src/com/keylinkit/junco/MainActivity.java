@@ -11,7 +11,7 @@
  * This is not the Junco client and is not on the path to being it. See
  * ../README.md and PRD section 19.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 package com.keylinkit.junco;

@@ -15,7 +15,7 @@
  * a text editor and understand it. This is a deliberately small subset: tables,
  * strings, numbers, booleans. Enough for a profile, and no more.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 (function (global) {
   "use strict";

@@ -6,7 +6,7 @@ gets stale; there is no need to run it to build the app, because the output is
 committed. Bundling rather than fetching is deliberate: the point of "nearest
 airport" is that it works when there is no signal.
 
-SPDX-License-Identifier: GPL-2.0-or-later
+SPDX-License-Identifier: MPL-2.0
 """
 import csv, io, json, os, sys, urllib.request
 

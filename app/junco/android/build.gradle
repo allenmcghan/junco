@@ -7,7 +7,7 @@
  * Signing comes from the environment, never the repository. An upload key in
  * git is an upload key in every fork.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 plugins { id 'com.android.application' version '8.7.3' }
 

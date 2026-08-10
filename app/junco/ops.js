@@ -21,7 +21,7 @@
  *              files them, and the pilot confirms. 14 CFR 61.51 puts accuracy
  *              on the pilot, so nothing here is authoritative.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 (function (global) {
   "use strict";

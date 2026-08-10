@@ -5,7 +5,7 @@
  * signal drops routinely. Cache the shell on install, serve it from cache
  * first, and never depend on the network in the air.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 var CACHE = "junco-v8";

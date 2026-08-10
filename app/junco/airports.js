@@ -13,7 +13,7 @@
  *
  * Regenerate with tools/build-airports.py.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: MPL-2.0
  */
 (function (global) {
   "use strict";

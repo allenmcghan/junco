@@ -10,9 +10,11 @@ Target cost is under $180 in parts. Target build is one person with a soldering 
 
 ## Status
 
-**Pre-Phase 0.** Nothing has flown. Nothing has been built. This repository currently contains requirements and specifications only.
+**The app works. The node does not exist yet.**
 
-See [docs/prd.md](docs/prd.md) section 16 for the phase plan and section 15 for the assumptions that only flight testing can resolve.
+[`app/junco/`](app/junco/) is an Android electronic flight bag that is useful today with no hardware at all: a primary flight display from the phone's own sensors, FAA sectional and terminal charts, direct-to navigation, 25,000 bundled US airports with frequencies, editable per-aircraft checklists, an automatic logbook, weather, and advisory traffic. Offline by design. See [its README](app/junco/README.md) and [RELEASE.md](app/junco/RELEASE.md).
+
+The **node** — the sensor hardware this project started as — is **pre-Phase 0**. Nothing has been built and nothing has flown. See [docs/prd.md](docs/prd.md) section 16 for the phase plan and section 15 for the assumptions only flight testing can resolve.
 
 [docs/open-questions.md](docs/open-questions.md) lists everything still undecided, in one place, separated into what needs a measurement and what needs a decision.
 
@@ -53,7 +55,7 @@ If you feed Junco data into an autopilot, you have made Junco flight-critical fo
 | `firmware/` | Node firmware |
 | `hardware/` | Schematics and board files |
 | `enclosure/` | Printable enclosure, pitot, static plenum |
-| `app/` | Android reference client |
+| `app/` | Android application, and the BLE client for the node |
 | `tools/` | Log recovery and analysis |
 
 ---
@@ -78,15 +80,15 @@ Different artifacts, different licenses. See [LICENSE](LICENSE), [LICENSE-HARDWA
 
 | Artifact | License | SPDX |
 |---|---|---|
-| Firmware, app, tools | GNU GPL v2 or later | `GPL-2.0-or-later` |
+| App, firmware, tools | Mozilla Public License 2.0 | `MPL-2.0` |
 | Board files, enclosure models | CERN-OHL-S-2.0 | `CERN-OHL-S-2.0` |
 | Documentation and specifications | CC-BY-4.0 | `CC-BY-4.0` |
 
-You may build Junco for yourself. You may sell assembled units. You may fork it, rename it, and compete with it. That is intentional. What you may not do is take it closed: improvements to the firmware and the hardware return to everyone under the same terms.
+You may build Junco for yourself. You may sell it. You may fork it, rename it, and compete with it, including commercially. That is intentional.
 
-Firmware is GPL v2 **or later**, which matches MakerPlane exactly, so code moves in both directions between Junco and FIX-Gateway or pyEFIS without friction. Every source file carries:
+MPL-2.0 is **weak copyleft, per file**: if you change a Junco file you publish that file's changes, and you may combine it with anything else including closed code. It is the licence Firefox for iOS ships under, which is the point — GPL cannot go on the App Store, and this can. It is also explicitly GPL-compatible, so code still moves both ways with MakerPlane's FIX-Gateway and pyEFIS. Every source file carries:
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: MPL-2.0
 
 **The specifications stay permissive deliberately.** They are meant to be implemented by anyone, including in closed products, because a protocol nobody is allowed to adopt is a protocol nobody adopts. CAN-FIX is Creative Commons for the same reason.
 

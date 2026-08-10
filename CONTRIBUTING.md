@@ -34,8 +34,8 @@ be declined regardless of its merits elsewhere.
 
 ## Licensing your contribution
 
-Code is GPL-2.0-or-later, hardware is CERN-OHL-S-2.0, documentation and
-specifications are CC-BY-4.0. By opening a pull request you agree your
+Code is MPL-2.0, hardware is CERN-OHL-S-2.0, documentation and specifications
+are CC-BY-4.0. By opening a pull request you agree your
 contribution ships under the license covering that artifact.
 
 Sign your commits off with `git commit -s`, which appends:
@@ -50,16 +50,16 @@ redistribute, including through an app store.
 
 Every source file starts with:
 
-    SPDX-License-Identifier: GPL-2.0-or-later
+    SPDX-License-Identifier: MPL-2.0
 
-The "or later" is not optional and not decorative. It is what lets code move
-between Junco and MakerPlane's FIX-Gateway and pyEFIS, which are GPL v2 or
-later, and it keeps GPLv3 reachable if ArduPilot code is ever wanted. A file
-contributed as GPL-2.0-only would break both.
+MPL is per-file copyleft. Changing a Junco file means publishing that file's
+changes; everything you combine it with stays yours. It is also GPL-compatible,
+so code still moves both ways with MakerPlane's FIX-Gateway and pyEFIS.
 
 Do not paste in code from a permissively licensed project without checking that
-the attribution requirements survive the relicensing, and do not paste in code
-from a GPLv3-only project at all.
+its attribution requirements survive. Do not paste in GPL code: MPL can be
+combined with GPL downstream, but pulling GPL code in would force the whole work
+to GPL and put Junco back where it could not ship on iOS.
 
 ## Specifications before implementations
 

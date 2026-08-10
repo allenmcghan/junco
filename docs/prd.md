@@ -2,7 +2,7 @@
 
 **Open engine and air data node for Part 103 and experimental aircraft**
 
-Status: Draft, revision 6
+Status: Draft, revision 7
 Target aircraft: ParaPlane PM-2 (twin engine powered parachute)
 Target publish: AirVenture 2027
 
@@ -13,6 +13,8 @@ Revision 3 adds traffic as a pluggable app-side channel supplied by hardware the
 Revision 4 relicenses to copyleft, drops the commercial roadmap, and positions Junco as the engine and air data front end for the MakerPlane stack rather than a parallel instrument system.
 
 Revision 5 closes the open specification questions, adds design rule 9, and moves the remaining ones into `docs/open-questions.md`.
+
+Revision 7 relicenses the code to MPL-2.0 so an iOS client stays possible.
 
 Revision 6 recognises that the app became a product before the node did. Junco is now two things that ship on different schedules: an Android electronic flight bag that is useful today with no hardware at all, and the sensor node that was the original project. Section 26 records what changed and why.
 
@@ -429,14 +431,14 @@ Phase 0 gains thermal instrumentation as well. If the Pi-class build is going to
 
 | Artifact | License |
 |---|---|
-| Firmware | GPL-2.0-or-later |
-| Android app | GPL-2.0-or-later |
+| Android app | MPL-2.0 |
+| Firmware | MPL-2.0 |
 | Board files, STLs | CERN-OHL-S-2.0 |
 | Documentation and specs | CC-BY-4.0 |
 
-Code and hardware are copyleft. Specifications are not, deliberately: they are meant to be implemented by anyone in anything, and a protocol that cannot be adopted freely does not outlive its implementation.
+Code is **weak copyleft per file**, hardware is strongly reciprocal, specifications are permissive.
 
-GPL v2 **or later** matches MakerPlane, so code moves in both directions between Junco and FIX-Gateway or pyEFIS without relicensing. See section 24.
+MPL-2.0 rather than GPL, decided in revision 7. GPL cannot ship on Apple's App Store: Apple's DRM imposes exactly the further restrictions GPL section 6 forbids, and VLC was pulled over it. MPL-2.0 is what Firefox for iOS ships under. It is also explicitly GPL-compatible through its Secondary License clause, so the two-way flow with FIX-Gateway and pyEFIS that motivated the GPL choice in revision 4 survives intact. See sections 24 and 25.
 
 Stewardship requirements, driven by the goal of outliving the maintainer:
 
@@ -800,6 +802,18 @@ Every marine and aviation GPS does this, and the reason is that an acknowledgeme
 ---
 
 ## 26. Revision history
+
+### Revision 7, August 2026: MPL-2.0, so iOS stays possible
+
+**What changed.** Code moved from GPL-2.0-or-later to MPL-2.0. Hardware stays CERN-OHL-S-2.0 and specifications stay CC-BY-4.0.
+
+**Why.** GPL cannot go on Apple's App Store. Apple wraps every app, free ones included, in DRM that limits copying and ties it to an account, and GPL section 6 forbids exactly those further restrictions. VLC was pulled from the App Store in 2011 over this. An iOS client was already a stated future, and GPL forecloses it.
+
+**Why now rather than later.** Only a copyright holder can raise that objection, and today there is one. The first outside contribution under GPL would make relicensing require that person's permission, which is precisely how VLC became stuck. Relicensing was free this week and would not have been next month.
+
+**What it costs.** A fork may now be taken closed, which strong copyleft prevented. That was judged acceptable: the goal recorded in revision 4 was that the work live on rather than that it be protected from anyone, and MPL still requires that changes to Junco's own files be published.
+
+**What it does not cost.** MPL-2.0 is GPL-compatible through its Secondary License clause, so code still moves both ways with MakerPlane. That compatibility was the whole reason for choosing GPL v2 **or later** in revision 4, and it survives the change.
 
 ### Revision 6, August 2026: the app became the product
 
