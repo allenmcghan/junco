@@ -303,6 +303,8 @@
     <span class="val" id="mapRange">10 nm</span>
     <button id="mapZi">+</button>
     <button id="mapHome">HOME</button>
+    <button id="mapTiles">MAP ON</button>
+    <button id="mapPull">PULL AREA</button>
     <button class="go" id="mapClose">CLOSE</button>
   </div>
 </div>
@@ -544,6 +546,7 @@
 <script src="./profile.js"></script>
 <script src="./net.js"></script>
 <script src="./ops.js"></script>
+<script src="./tiles.js"></script>
 <script>
 (function () {
 "use strict";
@@ -1220,7 +1223,7 @@ function flash(b, txt, cls) {
 function refreshCal() { $("qCal").className = cal ? "" : "warn"; }
 
 /* ---- weather and traffic ---- */
-var N = window.JuncoNet, O = window.JuncoOps;
+var N = window.JuncoNet, O = window.JuncoOps, T = window.JuncoTiles;
 function wxRender() {
   var m = N.wx.metar;
   $("wxAge").textContent = N.wx.at ? N.fmtAge(N.wx.at) : "—";
@@ -1286,6 +1289,7 @@ function drawMap() {
   var cx = W / 2, cy = H * 0.60, R = Math.min(W, H) * 0.42;
   var ppn = R / mapRange;                        // pixels per nautical mile
   var rot = mapUp && gps.trk !== null ? gps.trk : 0;
+  var tz = T.draw(g, W, H, gps.lat, gps.lon, R, mapRange, rot);
 
   function project(lat, lon) {
     if (gps.lat === null) { return null; }
@@ -1359,14 +1363,31 @@ function drawMap() {
          : "No destination set"), 12, 24);
   g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
   g.fillText(mapUp ? "TRACK UP" : "NORTH UP", 12, 42);
-  g.fillText("No basemap by design — tiles need a network you will not have at 800 ft.", 12, H - 58);
+  g.fillText(T.isEnabled()
+    ? "OSM basemap z" + (tz === null ? "—" : tz) + " · " + T.cached() + " tiles cached · pull the area before you fly"
+    : "Basemap off", 12, H - 58);
+  T.attribution(g, W, H);
 }
 function mapLoop() { if ($("mapPage").classList.contains("open")) { drawMap(); requestAnimationFrame(mapLoop); } }
-$("qMap").onclick = function () { $("mapPage").classList.add("open"); if (dataMode === "live") { pullOutside(); } mapLoop(); };
+$("qMap").onclick = function () { $("mapPage").classList.add("open"); T.setRedraw(function () {}); if (dataMode === "live") { pullOutside(); } mapLoop(); };
 $("mapClose").onclick = function () { $("mapPage").classList.remove("open"); };
 $("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
 $("mapZi").onclick = function () { mapRange = Math.max(0.5, mapRange / 2); $("mapRange").textContent = mapRange + " nm"; };
 $("mapZo").onclick = function () { mapRange = Math.min(200, mapRange * 2); $("mapRange").textContent = mapRange + " nm"; };
+$("mapTiles").onclick = function () {
+  T.setEnabled(!T.isEnabled());
+  this.textContent = T.isEnabled() ? "MAP ON" : "MAP OFF";
+};
+$("mapPull").onclick = function () {
+  if (gps.lat === null) { return; }
+  var b = this; b.textContent = "0%";
+  T.precache(gps.lat, gps.lon, mapRange, Math.min(innerWidth, innerHeight) * 0.42,
+    function (d, t) { b.textContent = Math.round(d / t * 100) + "%"; }
+  ).then(function (r) {
+    b.textContent = r.ok + "/" + r.total;
+    setTimeout(function () { b.textContent = "PULL AREA"; }, 2500);
+  });
+};
 $("mapHome").onclick = function () {
   if (gps.lat === null) { return; }
   O.setHome(gps.lat, gps.lon); O.setActive("home"); flash($("qMap"), "HOME", "live");

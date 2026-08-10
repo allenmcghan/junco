@@ -8,7 +8,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-var CACHE = "junco-pfd-v5";
+var CACHE = "junco-pfd-v6";
+var TILES = "junco-osm-tiles-v1";
 
 var SHELL = [
   "./",
@@ -16,6 +17,7 @@ var SHELL = [
   "./profile.js",
   "./net.js",
   "./ops.js",
+  "./tiles.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png"
@@ -35,7 +37,7 @@ self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(keys.map(function (k) {
-        return k === CACHE ? null : caches.delete(k);
+        return (k === CACHE || k === TILES) ? null : caches.delete(k);
       }));
     }).then(function () {
       return self.clients.claim();
@@ -45,6 +47,24 @@ self.addEventListener("activate", function (e) {
 
 self.addEventListener("fetch", function (e) {
   if (e.request.method !== "GET") { return; }
+
+  // Basemap tiles live in their own cache and are served cache-first for good.
+  // A tile pulled on the ground is the whole reason the map works in the air,
+  // so it is never evicted by a shell update.
+  if (e.request.url.indexOf("tile.openstreetmap.org") >= 0) {
+    e.respondWith(
+      caches.open(TILES).then(function (c) {
+        return c.match(e.request).then(function (hit) {
+          if (hit) { return hit; }
+          return fetch(e.request).then(function (res) {
+            if (res && (res.status === 200 || res.type === "opaque")) { c.put(e.request, res.clone()); }
+            return res;
+          });
+        });
+      })
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function (hit) {
       if (hit) { return hit; }

@@ -69,6 +69,11 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
 
+        // The OSM tile usage policy asks clients to identify themselves. This is
+        // that identification, and it is why the basemap is allowed to work.
+        s.setUserAgentString(s.getUserAgentString()
+            + " JuncoPFD/0.1 (+https://github.com/allenmcghan/junco)");
+
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
