@@ -137,7 +137,7 @@
   }
   #quick button.tab.sel { background: #171E23; border-color: var(--rule); color: var(--white); }
   #panel, #wxPage, #chkPage, #logPage { padding-bottom: 76px; }
-  #mapHud { bottom: 46px; }
+
   #quick button.hot { color: var(--cyan); border-color: var(--cyan); }
   #quick button.live { color: var(--green); border-color: var(--green); }
   #quick button.warn { color: var(--amber); border-color: var(--amber); }
@@ -160,13 +160,17 @@
 
   #mapPage { position: fixed; inset: 0; background: #05070A; z-index: 29; display: none; }
   #mapPage.open { display: block; }
+  #mapPage #mapHud { display: none; }
+  #mapPage.open #mapHud { display: flex; }
   #mapC { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   #mapHud {
-    position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 5px; align-items: center;
+    position: fixed; left: 0; right: 0; bottom: var(--tabh, 54px); z-index: 41;
+    display: flex; gap: 4px; align-items: center; flex-wrap: wrap;
     padding: 6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
     background: linear-gradient(transparent, rgba(0,0,0,.75));
   }
-  #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 10px; }
+  #mapHud button { font-family: var(--mono); font-size: 11px; padding: 9px 9px; }
+  #mapHud button.on { background: var(--green); border-color: var(--green); color: #03210F; }
   #mapHud .val { min-width: 62px; padding: 8px; }
   #chkPage, #logPage {
     position: fixed; inset: 0; background: rgba(0,0,0,.94); z-index: 28;
@@ -308,7 +312,6 @@
 <div id="mapPage">
   <canvas id="mapC"></canvas>
   <div id="mapHud">
-    <button id="mapUp">TRK UP</button>
     <button id="mapZo">&minus;</button>
     <span class="val" id="mapRange">10 nm</span>
     <button id="mapZi">+</button>
@@ -316,6 +319,10 @@
     <button id="mapTiles">MAP ON</button>
     <button id="mapLayer">SECTIONAL</button>
     <button id="mapPull">PULL AREA</button>
+    <button id="mapNorth">NORTH UP</button>
+    <button id="mapRoute">ROUTE</button>
+    <button id="mapClrRt">CLR RT</button>
+    <button id="mapMe">CENTRE</button>
     <button class="go" id="mapClose">CLOSE</button>
   </div>
 </div>
@@ -625,7 +632,7 @@ var mode = "demo", raw = { R: null, has: false };
 var att = { pitch: 0, roll: 0, hdg: 0 };
 var gps = { gs: null, trk: null, alt: null, lat: null, lon: null, vs: 0, tA: 0, tM: 0 };
 var hot = false, linkDown = false, t = 0;
-var dataMode = "sim";      // sim | live
+var dataMode = "live";     // live | sim — real data unless the pilot asks otherwise
 
 /* The map drew nothing because SIM never produced a position, so the tile layer
    bailed before requesting anything. Simulating attitude but not position made
@@ -1248,6 +1255,7 @@ window.addEventListener("orientationchange", stats);
 /* ================= quick controls, live data, outside data ================= */
 function setMode(m) {
   dataMode = m;
+  if (m === "sim") { simPos = null; O.clearTrail(); }
   var b = $("qMode");
   b.textContent = m === "live" ? "LIVE" : "SIM";
   b.className = m === "live" ? "live" : "";
@@ -1321,13 +1329,31 @@ setInterval(function () {
   refreshCal();
 }, 30000);
 
-window.addEventListener("resize", layout);
-layout();
+function tabH() {
+  var q = $("quick");
+  document.documentElement.style.setProperty("--tabh", (q ? q.offsetHeight : 54) + "px");
+}
+window.addEventListener("resize", function () { layout(); tabH(); });
+layout(); tabH();
 rebuild(); fillList(); fillForm(); stats(); refreshCal();
 requestAnimationFrame(frame);
 
 /* ================= map ================= */
-var mapUp = true, mapRange = 10;
+var mapUp = false, mapRange = 10;            // charts read north-up; text is legible that way
+var mapFollow = true, mapCentre = null, routeMode = false;
+
+/* An anchor always exists, so the map always draws. Own position when there is
+   one, otherwise the last real fix, HOME, or a placeholder. The previous build
+   returned early with no position and rendered nothing at all. */
+function mapAnchor() {
+  if (mapCentre && !mapFollow) { return mapCentre; }
+  if (gps.lat !== null) { return { lat: gps.lat, lon: gps.lon }; }
+  var last = null;
+  try { last = JSON.parse(localStorage.getItem("junco.lastpos") || "null"); } catch (e) {}
+  if (last) { return last; }
+  if (O.nav.home) { return { lat: O.nav.home.lat, lon: O.nav.home.lon }; }
+  return { lat: SIM_ORIGIN.lat, lon: SIM_ORIGIN.lon };
+}
 function drawMap() {
   var c = $("mapC"), dpr = window.devicePixelRatio || 1;
   var W = c.clientWidth, H = c.clientHeight;
@@ -1338,14 +1364,27 @@ function drawMap() {
   var cx = W / 2, cy = H * 0.60, R = Math.min(W, H) * 0.42;
   var ppn = R / mapRange;                        // pixels per nautical mile
   var rot = mapUp && gps.trk !== null ? gps.trk : 0;
-  var tz = T.draw(g, W, H, gps.lat, gps.lon, R, mapRange, rot);
+  var A = mapAnchor();
+  var tz = T.draw(g, W, H, A.lat, A.lon, R, mapRange, rot);
 
   function project(lat, lon) {
-    if (gps.lat === null) { return null; }
-    var d = N.distNM(gps.lat, gps.lon, lat, lon);
-    var b = (N.bearing(gps.lat, gps.lon, lat, lon) - rot) * Math.PI / 180;
+    var d = N.distNM(A.lat, A.lon, lat, lon);
+    var b = (N.bearing(A.lat, A.lon, lat, lon) - rot) * Math.PI / 180;
     return [cx + Math.sin(b) * d * ppn, cy - Math.cos(b) * d * ppn];
   }
+  /** Screen point back to a position, for tapping waypoints onto the chart. */
+  function unproject(px, py) {
+    var dx = px - cx, dy = py - cy;
+    var d = Math.hypot(dx, dy) / ppn;
+    var b = (Math.atan2(dx, -dy) * 180 / Math.PI + rot + 360) % 360;
+    var br = b * Math.PI / 180, dr = d / 3440.065;
+    var la1 = A.lat * Math.PI / 180, lo1 = A.lon * Math.PI / 180;
+    var la2 = Math.asin(Math.sin(la1) * Math.cos(dr) + Math.cos(la1) * Math.sin(dr) * Math.cos(br));
+    var lo2 = lo1 + Math.atan2(Math.sin(br) * Math.sin(dr) * Math.cos(la1),
+                               Math.cos(dr) - Math.sin(la1) * Math.sin(la2));
+    return { lat: la2 * 180 / Math.PI, lon: ((lo2 * 180 / Math.PI) + 540) % 360 - 180 };
+  }
+  mapUnproject = unproject;
 
   // range rings
   g.strokeStyle = "#243038"; g.lineWidth = 1; g.font = "11px ui-monospace, monospace";
@@ -1363,7 +1402,7 @@ function drawMap() {
   g.fillStyle = "#93A0A8"; g.fillText("N", cx + Math.sin(na) * (R + 26) - 4, cy - Math.cos(na) * (R + 26) + 4);
 
   // breadcrumb
-  if (O.trail.length > 1 && gps.lat !== null) {
+  if (O.trail.length > 1) {
     g.strokeStyle = "#35D6E8"; g.lineWidth = 2; g.beginPath();
     var started = false;
     O.trail.forEach(function (p) {
@@ -1371,6 +1410,24 @@ function drawMap() {
       if (!started) { g.moveTo(q[0], q[1]); started = true; } else { g.lineTo(q[0], q[1]); }
     });
     g.stroke();
+  }
+
+  // planned route
+  if (O.route.length) {
+    g.strokeStyle = "#3FCF6A"; g.lineWidth = 2.5; g.setLineDash([]);
+    g.beginPath();
+    O.route.forEach(function (w, i) {
+      var q = project(w.lat, w.lon);
+      if (i === 0) { g.moveTo(q[0], q[1]); } else { g.lineTo(q[0], q[1]); }
+    });
+    g.stroke();
+    g.font = "600 11px ui-monospace, monospace";
+    O.route.forEach(function (w) {
+      var q = project(w.lat, w.lon);
+      g.fillStyle = "#3FCF6A";
+      g.beginPath(); g.arc(q[0], q[1], 5, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#CFF5DC"; g.fillText(w.name, q[0] + 8, q[1] - 6);
+    });
   }
 
   // traffic, advisory only and drawn quietly on purpose
@@ -1397,9 +1454,11 @@ function drawMap() {
   mark(O.nav.home, "#3FCF6A", "HOME");
   mark(O.nav.dest, "#E845E8", O.nav.dest && O.nav.dest.name || "DEST");
 
-  // own ship
-  g.save(); g.translate(cx, cy);
-  if (!mapUp && gps.trk !== null) { g.rotate(gps.trk * Math.PI / 180); }
+  // own ship, drawn where it actually is rather than at the centre when panned
+  var me = gps.lat === null ? null : project(gps.lat, gps.lon);
+  g.save(); g.translate(me ? me[0] : cx, me ? me[1] : cy);
+  if (!me) { g.globalAlpha = 0.25; }
+  if (!mapUp && gps.trk !== null) { g.rotate((gps.trk - rot) * Math.PI / 180); }
   g.fillStyle = "#F2C63D"; g.beginPath();
   g.moveTo(0, -12); g.lineTo(-9, 10); g.lineTo(0, 5); g.lineTo(9, 10); g.closePath(); g.fill();
   g.restore();
@@ -1415,7 +1474,10 @@ function drawMap() {
     g.fillText("SIMULATED POSITION near " + (simPos ? simPos.name : "—") + " — switch to LIVE in the aircraft", 12, 60);
   }
   g.fillStyle = "#93A0A8"; g.font = "11px ui-monospace, monospace";
-  g.fillText(mapUp ? "TRACK UP" : "NORTH UP", 12, 42);
+  var rt = O.legs();
+  g.fillText((mapUp ? "TRACK UP" : "NORTH UP") + (mapFollow ? "" : "  ·  PANNED") +
+    (rt.total ? "  ·  ROUTE " + rt.total.toFixed(1) + " nm / " + rt.legs.length + " legs" : "") +
+    (routeMode ? "  ·  TAP TO ADD WAYPOINTS" : ""), 12, 42);
   var stale = T.age() ? Math.round((Date.now() - T.age()) / 86400000) : null;
   g.fillText(T.isEnabled()
     ? T.layerName() + " z" + (tz === null ? "—" : tz) + " · " + T.cached() + " tiles · " +
@@ -1446,9 +1508,91 @@ function showPage(p) {
 $("qPfd").onclick = function () { showPage("pfd"); };
 $("qMap").onclick = function () { showPage("map"); };
 $("mapClose").onclick = function () { showPage("pfd"); };
+
+var mapUnproject = null;
+(function gestures() {
+  var c = $("mapC");
+  var pts = new Map(), startDist = 0, startRange = 10, moved = 0, last = null;
+
+  function pos(e) { var r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+
+  c.addEventListener("pointerdown", function (e) {
+    c.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, pos(e));
+    moved = 0; last = pos(e);
+    if (pts.size === 2) {
+      var v = Array.from(pts.values());
+      startDist = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]);
+      startRange = mapRange;
+    }
+  });
+
+  c.addEventListener("pointermove", function (e) {
+    if (!pts.has(e.pointerId)) { return; }
+    var p = pos(e);
+    pts.set(e.pointerId, p);
+
+    if (pts.size === 2 && startDist > 0) {
+      var v = Array.from(pts.values());
+      var d = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]);
+      mapRange = Math.max(0.4, Math.min(240, startRange * startDist / Math.max(1, d)));
+      $("mapRange").textContent = (mapRange < 10 ? mapRange.toFixed(1) : Math.round(mapRange)) + " nm";
+      moved = 99;
+      return;
+    }
+
+    // single finger drags the chart
+    var dx = p[0] - last[0], dy = p[1] - last[1];
+    moved += Math.abs(dx) + Math.abs(dy);
+    last = p;
+    if (Math.abs(dx) + Math.abs(dy) < 0.5) { return; }
+    var R = Math.min(innerWidth, innerHeight) * 0.42, ppn = R / mapRange;
+    var rot = (mapUp && gps.trk !== null ? gps.trk : 0) * Math.PI / 180;
+    // screen delta -> north/east delta, undoing the map rotation
+    var east = (-dx * Math.cos(rot) - dy * Math.sin(rot)) / ppn;
+    var north = (dx * Math.sin(rot) - dy * Math.cos(rot)) / ppn * -1;
+    var A = mapAnchor();
+    mapCentre = {
+      lat: A.lat + north / 60,
+      lon: A.lon + east / (60 * Math.cos(A.lat * Math.PI / 180))
+    };
+    mapFollow = false;
+    $("mapMe").className = "";
+  });
+
+  function up(e) {
+    if (pts.size < 2) { startDist = 0; }
+    pts.delete(e.pointerId);
+    if (moved < 8 && routeMode && mapUnproject) {         // a tap, not a drag
+      var p = last || [0, 0];
+      var w = mapUnproject(p[0], p[1]);
+      O.addWpt(w.lat, w.lon);
+    }
+    moved = 0;
+  }
+  ["pointerup", "pointercancel"].forEach(function (t) { c.addEventListener(t, up); });
+})();
+
+$("mapNorth").onclick = function () {
+  mapUp = !mapUp;
+  this.textContent = mapUp ? "TRACK UP" : "NORTH UP";
+  this.className = mapUp ? "on" : "";
+};
+$("mapRoute").onclick = function () {
+  routeMode = !routeMode;
+  this.className = routeMode ? "on" : "";
+};
+$("mapClrRt").onclick = function () { O.clearRoute(); };
+$("mapMe").onclick = function () {
+  mapFollow = true; mapCentre = null; this.className = "on";
+};
 $("mapUp").onclick = function () { mapUp = !mapUp; this.textContent = mapUp ? "TRK UP" : "NTH UP"; };
-$("mapZi").onclick = function () { mapRange = Math.max(0.5, mapRange / 2); $("mapRange").textContent = mapRange + " nm"; };
-$("mapZo").onclick = function () { mapRange = Math.min(200, mapRange * 2); $("mapRange").textContent = mapRange + " nm"; };
+function setRange(r) {
+  mapRange = Math.max(0.4, Math.min(240, r));
+  $("mapRange").textContent = (mapRange < 10 ? mapRange.toFixed(1) : Math.round(mapRange)) + " nm";
+}
+$("mapZi").onclick = function () { setRange(mapRange / 2); };
+$("mapZo").onclick = function () { setRange(mapRange * 2); };
 $("mapLayer").onclick = function () {
   this.textContent = T.nextLayer();
 };
@@ -1641,7 +1785,7 @@ $("navToDest").onclick = function () { O.setActive("dest"); $("navMsg").innerHTM
    iOS the gesture requirement means the first tap anywhere completes it. */
 (function autoStart() {
   var tried = false;
-  function go() { if (tried) { return; } tried = true; goLive(); }
+  function go() { if (tried) { return; } tried = true; setMode("live"); }
   go();
   ["pointerdown", "touchstart"].forEach(function (ev) {
     window.addEventListener(ev, function once() {

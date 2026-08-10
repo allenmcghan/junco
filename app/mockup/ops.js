@@ -82,6 +82,27 @@
   }
   function clearTrail() { trail.length = 0; }
 
+  /* ================= route ================= */
+  var route = LS.get("junco.route", []);           // [{lat, lon, name}]
+  function saveRoute() { LS.set("junco.route", route); }
+  function addWpt(lat, lon, name) {
+    route.push({ lat: lat, lon: lon, name: name || String.fromCharCode(65 + (route.length % 26)) });
+    saveRoute(); return route;
+  }
+  function delWpt(i) { route.splice(i, 1); saveRoute(); return route; }
+  function clearRoute() { route.length = 0; saveRoute(); }
+  /** Leg distances and bearings, plus the total. */
+  function legs() {
+    var out = [], tot = 0;
+    for (var i = 1; i < route.length; i++) {
+      var a = route[i - 1], b = route[i];
+      var d = N.distNM(a.lat, a.lon, b.lat, b.lon);
+      tot += d;
+      out.push({ from: a.name, to: b.name, dist: d, brg: N.bearing(a.lat, a.lon, b.lat, b.lon) });
+    }
+    return { legs: out, total: tot };
+  }
+
   /* ================= checklists ================= */
   var PHASES = [
     { id: "preflight",   name: "Preflight" },
@@ -236,6 +257,7 @@
     nav: nav, solution: solution, setHome: setHome, setDest: setDest, setActive: setActive,
     parseLatLon: fmtLatLon,
     trail: trail, addTrail: addTrail, clearTrail: clearTrail,
+    route: route, addWpt: addWpt, delWpt: delWpt, clearRoute: clearRoute, legs: legs,
     PHASES: PHASES, getPhases: getPhases, addPhase: addPhase, removePhase: removePhase, getChecklist: getChecklist, saveChecklist: saveChecklist,
     resetChecklist: resetChecklist, tick: tick, ticked: ticked, clearTicks: clearTicks,
     detect: detect, update: update, flights: flights, current: current, removeFlight: removeFlight,
