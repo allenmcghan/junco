@@ -208,6 +208,9 @@
     <!-- GPS source label -->
     <text id="gpsTrackLbl" font-size="10" font-weight="700" fill="#E845E8" text-anchor="middle" letter-spacing="0.5">PHONE GNSS TRACK</text>
 
+    <!-- map attribution (outside the HSI clip so it isn't cropped) -->
+    <text id="mapAttrib" font-size="9" fill="#8894A0" text-anchor="end">© OpenStreetMap</text>
+
     <!-- ============ BOTTOM BAR ============ -->
     <rect id="botBarBg" fill="#0F1317" fill-opacity="0.92"/>
     <line id="botBarRule" stroke="#2A3238" stroke-width="1"/>
@@ -239,6 +242,7 @@
   <button id="btnHot"  aria-pressed="false">CHT over limit</button>
   <button id="btnLink" aria-pressed="false">Drop node link</button>
   <button id="btnSvs"  aria-pressed="false">Terrain (SVS)</button>
+  <button id="btnMapLayer">Map: Street</button>
 </div>
 
 <div class="diag">
@@ -590,6 +594,9 @@ function relayout() {
   $("altVal").setAttribute("x", HSI_CX); $("altVal").setAttribute("y", altBoxY + 29);
   $("altUnit").setAttribute("x", HSI_CX); $("altUnit").setAttribute("y", altBoxY + 40);
   $("gpsTrackLbl").setAttribute("x", HSI_CX); $("gpsTrackLbl").setAttribute("y", altBoxY + altBoxH + 14);
+  // map attribution: right-aligned, one line below the GNSS label so it clears it
+  $("mapAttrib").setAttribute("x", (HSI_CX + HSI_R).toFixed(0));
+  $("mapAttrib").setAttribute("y", (altBoxY + altBoxH + 27).toFixed(0));
 
   // Bottom bar
   var botY, botH, botX2;
@@ -1426,6 +1433,15 @@ $("btnSvs").addEventListener("click", function () {
         $("svsStatus").setAttribute("visibility","hidden");
         $("svsLoading").setAttribute("visibility","hidden");
     }
+});
+
+$("btnMapLayer").addEventListener("click", function () {
+  var i = (MAP_LAYERS.indexOf(MAP_LAYER) + 1) % MAP_LAYERS.length;
+  MAP_LAYER = MAP_LAYERS[i];
+  this.textContent = "Map: " + MAP_LAYER.charAt(0).toUpperCase() + MAP_LAYER.slice(1);
+  $("mapAttrib").textContent = MAP_ATTRIB[MAP_LAYER];
+  MAP_TILES.forEach(function (t) { t.el.setAttribute("href", ""); });  // force refetch
+  if (gps.lat !== null) updateMapTiles(gps.lat, gps.lon, att.hdg);
 });
 
 window.addEventListener("orientationchange",setDiag);
