@@ -175,6 +175,8 @@
       <!-- OSM map tiles (heading-up, rotates) -->
       <g id="mapGroup">
         <g id="mapTiles"></g>
+        <polyline id="trackHist" fill="none" stroke="#EAF0F4" stroke-opacity="0.7"
+                  stroke-width="2.5" stroke-linejoin="round" points=""/>
         <!-- aircraft heading north arrow (rotates with map) -->
       </g>
       <!-- slight vignette so rose text pops -->
@@ -350,6 +352,30 @@ var MAP_TILES = [];
   }
 })();
 
+// Project a lat/lon to SVG coords inside #mapGroup, relative to the map centre
+// (the aircraft). #mapGroup is rotated by -hdg, so overlays rotate with the map.
+function mapProject(lat, lon, cLat, cLon) {
+  var n = Math.pow(2, MAP_ZOOM), P = Math.PI, tileSVG = MAP_SCALE * 256;
+  function tx(lo) { return (lo + 180) / 360 * n; }
+  function ty(la) { var r = la * P / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / P) / 2 * n; }
+  return { x: HSI_CX + (tx(lon) - tx(cLon)) * tileSVG, y: HSI_CY + (ty(lat) - ty(cLat)) * tileSVG };
+}
+var TRACK_HIST = [];         // {lat, lon}, capped
+var trackTick = 0;
+function pushTrack(lat, lon) {
+  trackTick++;
+  if (trackTick % 20 !== 0) return;            // ~1/s at 20 fps
+  TRACK_HIST.push({ lat: lat, lon: lon });
+  if (TRACK_HIST.length > 600) TRACK_HIST.shift();
+}
+function renderTrack(cLat, cLon) {
+  var pts = [];
+  for (var i = 0; i < TRACK_HIST.length; i++) {
+    var p = mapProject(TRACK_HIST[i].lat, TRACK_HIST[i].lon, cLat, cLon);
+    pts.push(p.x.toFixed(1) + "," + p.y.toFixed(1));
+  }
+  $("trackHist").setAttribute("points", pts.join(" "));
+}
 function updateMapTiles(lat, lon, hdg) {
   var n = Math.pow(2, MAP_ZOOM);
   var latR = lat * Math.PI / 180;
@@ -953,7 +979,11 @@ function frame() {
   } else { $("trkDia").setAttribute("opacity","0.25"); }
 
   // Map tiles
-  if (gps.lat !== null) updateMapTiles(gps.lat, gps.lon, att.hdg);
+  if (gps.lat !== null) {
+    updateMapTiles(gps.lat, gps.lon, att.hdg);
+    pushTrack(gps.lat, gps.lon);
+    renderTrack(gps.lat, gps.lon);
+  }
 
   // SVS terrain: reload tiles if moved >1km, recompute profile if heading changed >5°
   if (SVS_ON && gps.lat !== null) {
