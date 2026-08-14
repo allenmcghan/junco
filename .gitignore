@@ -6,6 +6,9 @@ dist/
 *.bin
 *.map
 
+# Wrangler / Cloudflare Pages deploy cache
+.wrangler/
+
 # ESP-IDF
 sdkconfig.old
 managed_components/

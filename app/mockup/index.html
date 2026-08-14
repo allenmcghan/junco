@@ -12,8 +12,6 @@
 <link rel="apple-touch-icon" href="./icon-192.png">
 <title>Junco — Primary Flight Display</title>
 <style>
-  /* Deliberately single-theme: a cockpit display is dark in every cockpit.
-     Every colour is painted explicitly so the page holds on either host ground. */
   :root {
     --bezel:    #07090B;
     --panel:    #12161A;
@@ -26,123 +24,32 @@
     --amber:    #E8A33D;
     --red:      #E8483D;
     --font-data: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
-    --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-ui:   system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-
   * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bezel);
-    color: var(--white);
-    font-family: var(--font-ui);
-    -webkit-text-size-adjust: 100%;
-  }
-
-  .stage {
-    width: 100%;
-    background: var(--bezel);
-    padding: 6px;
-  }
-
-  svg.pfd {
-    display: block;
-    width: 100%;
-    height: auto;
-    background: var(--bezel);
-    border: 1px solid var(--rule);
-    border-radius: 4px;
-    touch-action: manipulation;
-  }
-
+  html, body { margin: 0; padding: 0; background: var(--bezel); color: var(--white); font-family: var(--font-ui); -webkit-text-size-adjust: 100%; }
+  .stage { width: 100%; background: var(--bezel); padding: 4px; }
+  svg.pfd { display: block; width: 100%; height: auto; background: var(--bezel); border: 1px solid var(--rule); border-radius: 4px; touch-action: manipulation; }
   text { font-family: var(--font-data); }
-
-  .bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-    padding: 8px 6px 4px;
-  }
-
-  button {
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    color: var(--white);
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 3px;
-    padding: 9px 11px;
-    cursor: pointer;
-  }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 6px 4px; }
+  button { font-family: var(--font-ui); font-size: 12px; font-weight: 600; letter-spacing: 0.03em; color: var(--white); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 9px 11px; cursor: pointer; }
   button:hover { background: #1B2126; }
   button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
   button[aria-pressed="true"] { background: var(--cyan); border-color: var(--cyan); color: #04262B; }
   button.primary { background: var(--cyan); border-color: var(--cyan); color: #04262B; }
-
-  .diag {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 10px 12px;
-    font-family: var(--font-data);
-    font-size: 11.5px;
-    line-height: 1.7;
-    color: var(--dim);
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 3px;
-  }
-  .diag h4 {
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--white);
-    margin: 0 0 6px;
-  }
+  .diag { max-width: 760px; margin: 0 auto; padding: 10px 12px; font-family: var(--font-data); font-size: 11.5px; line-height: 1.7; color: var(--dim); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; }
+  .diag h4 { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); margin: 0 0 6px; }
   .diag .row { display: flex; justify-content: space-between; gap: 12px; }
-  .diag .ok   { color: var(--green); }
-  .diag .bad  { color: var(--red); }
-  .diag .warn { color: var(--amber); }
-
-  .notes {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 14px 12px 40px;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--dim);
-  }
-  .notes h3 {
-    font-family: var(--font-data);
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--white);
-    margin: 20px 0 6px;
-  }
-  .notes p { margin: 0 0 9px; }
-  .notes strong { color: var(--white); }
-  .notes code {
-    font-family: var(--font-data);
-    font-size: 12px;
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    padding: 1px 4px;
-    border-radius: 2px;
-    color: var(--white);
-  }
+  .diag .ok { color: var(--green); } .diag .bad { color: var(--red); } .diag .warn { color: var(--amber); }
+  .notes { max-width: 760px; margin: 0 auto; padding: 14px 12px 40px; font-size: 13px; line-height: 1.6; color: var(--dim); }
+  .notes h3 { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--white); margin: 20px 0 6px; }
+  .notes p { margin: 0 0 9px; } .notes strong { color: var(--white); }
+  .notes code { font-family: var(--font-data); font-size: 12px; background: var(--panel); border: 1px solid var(--rule); padding: 1px 4px; border-radius: 2px; color: var(--white); }
   .key { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-
 
 <div class="stage">
   <svg class="pfd" viewBox="0 0 1000 660" role="img" aria-label="Primary flight display">
@@ -156,133 +63,176 @@
         <stop offset="0%"   stop-color="#8A5A2B"/>
         <stop offset="100%" stop-color="#4A2E14"/>
       </linearGradient>
-      <clipPath id="aiClip"><rect x="262" y="24" width="444" height="404" rx="3"/></clipPath>
-      <clipPath id="asiClip"><rect x="162" y="24" width="92" height="404"/></clipPath>
-      <clipPath id="altClip"><rect x="714" y="24" width="98" height="404"/></clipPath>
-      <clipPath id="hsiClip"><circle cx="484" cy="546" r="101"/></clipPath>
+      <!-- clip circles updated by relayout() -->
+      <clipPath id="aiClip"><circle id="aiClipCircle"  cx="302" cy="307" r="175"/></clipPath>
+      <clipPath id="hsiClip"><circle id="hsiClipCircle" cx="712" cy="307" r="165"/></clipPath>
     </defs>
 
-    <rect x="0" y="0" width="1000" height="660" fill="#07090B"/>
+    <rect id="bgRect" x="0" y="0" width="1000" height="660" fill="#07090B"/>
 
-    <!-- ================= ATTITUDE INDICATOR ================= -->
+    <!-- ============ EIS LEFT STRIP (landscape only) ============ -->
+    <rect id="eisBg" x="0" y="0" width="100" height="660" fill="#0F1317" stroke="#2A3238" stroke-width="1.5"/>
+    <text id="eisLabel" x="50" y="20" font-size="11" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1.5">ENGINE</text>
+    <line id="eisRule" x1="8" y1="27" x2="92" y2="27" stroke="#2A3238" stroke-width="1"/>
+    <g id="eis"></g>
+    <!-- portrait compact EIS strip (bottom, hidden in landscape) -->
+    <g id="eisCompact" visibility="hidden"></g>
+
+    <!-- ============ TOP STATUS BAR ============ -->
+    <rect id="topBarBg" x="100" y="0" width="900" height="42" fill="#0F1317" fill-opacity="0.95"/>
+    <line id="topBarRule" x1="100" y1="42" x2="1000" y2="42" stroke="#2A3238" stroke-width="1"/>
+    <!-- static labels -->
+    <text id="lbIas"   x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">IAS MPH</text>
+    <text id="lbAlt"   x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">ALT FT</text>
+    <text id="lbHdg"   x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">HDG</text>
+    <text id="lbVsi"   x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">VSI FPM</text>
+    <text id="lbGs"    x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">GND SPD</text>
+    <text id="lbGalt"  x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">GPS ALT</text>
+    <text id="lbEndur" x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">ENDUR</text>
+    <text id="lbFuel"  x="0"  y="0" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1">FUEL GAL</text>
+    <!-- dynamic values -->
+    <text id="tb-ias"    font-size="27" font-weight="700" fill="#FFFFFF"  text-anchor="middle">28</text>
+    <text id="tb-alt"    font-size="27" font-weight="700" fill="#FFFFFF"  text-anchor="middle">1180</text>
+    <text id="tb-hdg"    font-size="27" font-weight="700" fill="#FFFFFF"  text-anchor="middle">---</text>
+    <text id="tb-vsi"    font-size="22" font-weight="700" fill="#35D6E8"  text-anchor="middle">0</text>
+    <text id="tb-gs"     font-size="22" font-weight="700" fill="#E845E8"  text-anchor="middle">—</text>
+    <text id="tb-gpsalt" font-size="22" font-weight="700" fill="#E845E8"  text-anchor="middle">—</text>
+    <text id="tb-endur"  font-size="22" font-weight="700" fill="#FFFFFF"  text-anchor="middle">—</text>
+    <text id="tb-fuel"   font-size="22" font-weight="700" fill="#3FCF6A"  text-anchor="end">6.2</text>
+
+    <!-- ============ SPEED ARC RING ============ -->
+    <g id="speedArcBg"></g>
+    <line id="speedMarker" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" x1="302" y1="132" x2="302" y2="144"/>
+
+    <!-- ============ ATTITUDE INDICATOR ============ -->
     <g clip-path="url(#aiClip)">
-      <!-- horizon group: rotates by roll, translates by pitch -->
       <g id="horizon">
-        <rect x="-700" y="-1400" width="2200" height="1626" fill="url(#sky)"/>
-        <rect x="-700" y="226"   width="2200" height="1626" fill="url(#gnd)"/>
-        <line x1="-700" y1="226" x2="1500" y2="226" stroke="#FFFFFF" stroke-width="2.5"/>
-        <g id="ladder" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
-           font-size="15" font-weight="700" text-anchor="middle"></g>
+        <rect x="-1000" y="-2000" width="3000" height="2309" fill="url(#sky)"/>
+        <rect x="-1000" y="307"   width="3000" height="2000" fill="url(#gnd)"/>
+        <!-- SVS: terrain topology on ground side (safe terrain, dark brown) -->
+        <polygon id="svsTerrain" fill="#5E3E1E" opacity="0.0"/>
+        <!-- SVS: terrain that rises above aircraft altitude — amber hazard fill -->
+        <polygon id="svsHazard"  fill="#E8A33D" opacity="0.0"/>
+        <!-- SVS: terrain so close it's a pull-up warning — red -->
+        <polygon id="svsPullup"  fill="#E8483D" opacity="0.0"/>
+        <line x1="-1000" y1="307" x2="2000" y2="307" stroke="#FFFFFF" stroke-width="2.5"/>
+        <g id="ladder" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" font-size="13" font-weight="700" text-anchor="middle"></g>
       </g>
     </g>
-
-    <!-- bank scale: fixed to the display, pointer rotates -->
+    <!-- Bank scale (fixed) -->
     <g id="bankScale" stroke="#FFFFFF" stroke-width="2.5" fill="#FFFFFF"></g>
+    <!-- Roll pointer (rotates) -->
     <g id="rollPointer">
-      <polygon points="484,64 474,84 494,84" fill="#FFFFFF"/>
-      <rect id="slipSkid" x="470" y="88" width="28" height="9" fill="#FFFFFF" rx="1.5"/>
+      <polygon id="rollTri"  points="302,88 293,108 311,108" fill="#FFFFFF"/>
+      <rect    id="slipSkid" x="288" y="111" width="28" height="9" fill="#FFFFFF" rx="1.5"/>
     </g>
+    <!-- AI glass bezel -->
+    <circle id="aiBezel" cx="302" cy="307" r="175" fill="none" stroke="#3A4450" stroke-width="3"/>
 
-    <!-- fixed aircraft reference symbol -->
+    <!-- Aircraft reference symbol (recentered by relayout) -->
     <g id="acSymbol">
-      <polygon points="404,226 404,236 452,236 452,248 464,248 464,226" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
-      <polygon points="564,226 564,236 516,236 516,248 504,248 504,226" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
-      <polygon points="404,226 404,234 454,234 454,246 464,246 464,226" fill="#F2C63D"/>
-      <polygon points="564,226 564,234 514,234 514,246 504,246 504,226" fill="#F2C63D"/>
-      <rect x="478" y="222" width="12" height="9" fill="#F2C63D" stroke="#0A0C0E" stroke-width="1.5"/>
+      <polygon id="acWingLS" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
+      <polygon id="acWingRS" fill="#0A0C0E" stroke="#0A0C0E" stroke-width="5"/>
+      <polygon id="acWingL"  fill="#F2C63D"/>
+      <polygon id="acWingR"  fill="#F2C63D"/>
+      <rect    id="acDot"    fill="#F2C63D" stroke="#0A0C0E" stroke-width="1.5"/>
     </g>
 
-    <!-- AHRS source annunciator: design rule 8 in PFD idiom -->
+    <!-- VSI strip (fixed in AI, repositioned by relayout) -->
+    <g id="vsiStrip">
+      <rect id="vsiTrack" fill="#000" fill-opacity="0.45" rx="3"/>
+      <rect id="vsiBar"   fill="#35D6E8" rx="2"/>
+      <!-- ticks built by buildVsi() -->
+      <g id="vsiTicks" stroke="#9AA6AE" stroke-width="1" fill="#9AA6AE" font-size="9" font-weight="700"></g>
+      <text id="vsiLabel" font-size="8" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="0.5">FPM</text>
+      <text id="vsiVal"   font-size="12" font-weight="700" fill="#35D6E8" text-anchor="middle">0</text>
+    </g>
+
+    <!-- AHRS annunciator -->
     <g id="ahrsAnn">
-      <rect id="ahrsBox" x="286" y="386" width="188" height="26" fill="#0A0C0E" fill-opacity="0.72" stroke="#E8A33D" stroke-width="1.5" rx="2"/>
-      <text id="ahrsTxt" x="380" y="404" font-size="14" font-weight="700" fill="#E8A33D" text-anchor="middle" letter-spacing="1">PHONE AHRS · ADVISORY</text>
+      <rect id="ahrsBox" fill="#0A0C0E" fill-opacity="0.75" stroke="#35D6E8" stroke-width="1.5" rx="2"/>
+      <text id="ahrsTxt" font-size="11" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="0.8">DEMO · SIMULATED ATTITUDE</text>
     </g>
 
-    <rect x="262" y="24" width="444" height="404" fill="none" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <!-- SVS status badge (top-left of AI glass) -->
+    <text id="svsStatus" font-size="10" font-weight="700" fill="#3FCF6A" letter-spacing="1" visibility="hidden">SVS</text>
+    <text id="svsLoading" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="0.5" visibility="hidden">TERRAIN LOADING</text>
 
-    <!-- ================= AIRSPEED TAPE ================= -->
-    <rect x="162" y="24" width="92" height="404" fill="#000000" fill-opacity="0.62"/>
-    <g clip-path="url(#asiClip)">
-      <g id="asiBands"></g>
-      <g id="asiTape" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
-         font-size="19" font-weight="700" text-anchor="end"></g>
-    </g>
-    <rect x="162" y="24" width="92" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
-    <!-- current value box -->
-    <polygon points="154,226 168,208 254,208 254,244 168,244" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="2"/>
-    <text id="asiVal" x="250" y="238" font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="end">28</text>
-    <text x="208" y="16" font-size="13" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1">MPH IAS</text>
-    <text x="208" y="446" font-size="13" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PITOT</text>
+    <!-- IAS digital readout (inside AI glass, lower area) -->
+    <rect id="iasBox" fill="#0A0C0E" fill-opacity="0.8" stroke="#FFFFFF" stroke-width="1.5" rx="2"/>
+    <text id="asiVal"  font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="middle">28</text>
+    <text id="iasUnit" font-size="8"  font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="0.8">MPH IAS</text>
 
-    <!-- ================= ALTITUDE TAPE ================= -->
-    <rect x="714" y="24" width="98" height="404" fill="#000000" fill-opacity="0.62"/>
-    <g clip-path="url(#altClip)">
-      <g id="altTape" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
-         font-size="19" font-weight="700" text-anchor="start"></g>
-    </g>
-    <rect x="714" y="24" width="98" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
-    <polygon points="820,226 806,208 714,208 714,244 806,244" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="2"/>
-    <text id="altVal" x="718" y="238" font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="start">1180</text>
-    <text x="763" y="16" font-size="13" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1">FT</text>
-    <text x="763" y="446" font-size="13" font-weight="700" fill="#35D6E8" text-anchor="middle" letter-spacing="1">NODE PLENUM</text>
+    <!-- ============ ALT ARC RING ============ -->
+    <g id="altArcBg"></g>
+    <line id="altMarker" stroke="#35D6E8" stroke-width="4" stroke-linecap="round" x1="712" y1="142" x2="712" y2="154"/>
 
-    <!-- ================= VSI ================= -->
-    <rect x="818" y="24" width="50" height="404" fill="#000000" fill-opacity="0.62"/>
-    <g id="vsiScale" stroke="#9AA6AE" stroke-width="1.5" fill="#9AA6AE" font-size="12" font-weight="700"></g>
-    <rect id="vsiBar" x="822" y="226" width="14" height="0" fill="#35D6E8"/>
-    <polygon id="vsiPtr" points="818,226 834,218 834,234" fill="#FFFFFF"/>
-    <text id="vsiVal" x="843" y="231" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="start">0</text>
-    <rect x="818" y="24" width="50" height="404" fill="none" stroke="#2A3238" stroke-width="1.5"/>
-    <text x="843" y="446" font-size="12" font-weight="700" fill="#9AA6AE" text-anchor="middle">FPM</text>
-
-    <!-- ================= HSI ================= -->
-    <circle cx="484" cy="546" r="101" fill="#0A0C0E" stroke="#2A3238" stroke-width="1.5"/>
+    <!-- ============ HSI / COMPASS / MAP ============ -->
+    <!-- dark base fill -->
+    <circle id="hsiBg" cx="712" cy="307" r="165" fill="#0A0C0E"/>
+    <!-- map + rose inside clip -->
     <g clip-path="url(#hsiClip)">
-      <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF"
-         font-size="15" font-weight="700" text-anchor="middle"></g>
+      <!-- OSM map tiles (heading-up, rotates) -->
+      <g id="mapGroup">
+        <g id="mapTiles"></g>
+        <!-- aircraft heading north arrow (rotates with map) -->
+      </g>
+      <!-- slight vignette so rose text pops -->
+      <circle id="hsiVignette" cx="712" cy="307" r="165" fill="url(#vignette)" opacity="0.45"/>
+      <!-- compass rose -->
+      <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" font-size="17" font-weight="700" text-anchor="middle"></g>
     </g>
-    <!-- fixed lubber line and aircraft -->
-    <polygon points="484,441 476,457 492,457" fill="#F2C63D"/>
-    <polygon points="484,532 478,558 490,558" fill="#F2C63D" stroke="#0A0C0E" stroke-width="1"/>
+    <!-- Fixed lubber line -->
+    <polygon id="lubber" points="712,140 703,156 721,156" fill="#F2C63D"/>
+    <!-- aircraft at HSI centre -->
+    <polygon id="hsiAc"  points="712,295 706,323 718,323" fill="#F2C63D" stroke="#0A0C0E" stroke-width="1"/>
+    <!-- GPS track diamond -->
+    <polygon id="trkDia" points="712,152 706,163 712,173 718,163" fill="#E845E8"/>
     <!-- heading readout -->
-    <rect x="440" y="424" width="88" height="28" fill="#0A0C0E" stroke="#FFFFFF" stroke-width="1.5" rx="2"/>
-    <text id="hdgVal" x="484" y="445" font-size="21" font-weight="700" fill="#FFFFFF" text-anchor="middle">—</text>
-    <!-- track diamond, magenta = GPS derived, standard avionics convention -->
-    <polygon id="trkDia" points="484,452 478,462 484,472 490,462" fill="#E845E8"/>
-    <text x="484" y="666" font-size="12" font-weight="700" fill="#E845E8" text-anchor="middle">PHONE GNSS TRACK</text>
+    <rect id="hdgBox" fill="#0A0C0E" fill-opacity="0.9" stroke="#FFFFFF" stroke-width="1.5" rx="2"/>
+    <text id="hdgVal" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle">—</text>
+    <!-- HSI glass bezel -->
+    <circle id="hsiBezel" cx="712" cy="307" r="165" fill="none" stroke="#3A4450" stroke-width="3"/>
 
-    <!-- ================= LEFT: ENGINE STRIP (EIS) ================= -->
-    <rect x="8" y="24" width="146" height="628" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
-    <text x="81" y="44" font-size="12" font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="1.5">ENGINE</text>
-    <line x1="16" y1="52" x2="146" y2="52" stroke="#2A3238" stroke-width="1.5"/>
-    <g id="eis"></g>
+    <!-- ALT readout (below HSI) -->
+    <rect id="altBox" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
+    <text id="altVal"  font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="middle">1180</text>
+    <text id="altUnit" font-size="8"  font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="0.8">FT ALTITUDE</text>
 
-    <!-- ================= RIGHT: DATA COLUMN ================= -->
-    <rect x="876" y="24" width="116" height="404" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
-    <g id="rightCol"></g>
+    <!-- GPS source label -->
+    <text id="gpsTrackLbl" font-size="10" font-weight="700" fill="#E845E8" text-anchor="middle" letter-spacing="0.5">PHONE GNSS TRACK</text>
 
-    <!-- ================= BOTTOM RIGHT: NAV + ALERTS ================= -->
-    <rect x="600" y="440" width="392" height="212" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
-    <text x="614" y="462" font-size="12" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">POSITION</text>
-    <text id="posVal" x="614" y="484" font-size="16" font-weight="700" fill="#E845E8">—</text>
-    <text x="614" y="512" font-size="12" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">ALERTS</text>
+    <!-- ============ BOTTOM BAR ============ -->
+    <rect id="botBarBg" fill="#0F1317" fill-opacity="0.92"/>
+    <line id="botBarRule" stroke="#2A3238" stroke-width="1"/>
+    <text id="lbAlerts" font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">ALERTS</text>
     <g id="alerts"></g>
-
-    <!-- ================= BOTTOM LEFT: WIND ================= -->
-    <rect x="162" y="440" width="430" height="212" fill="#0F1317" stroke="#2A3238" stroke-width="1.5" rx="3"/>
-    <g id="botLeft"></g>
+    <text id="lbWind"   font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">WIND ALOFT</text>
+    <text id="windVal"  font-size="20" font-weight="700" fill="#E8A33D">245° / 9</text>
+    <text id="windSrc"  font-size="8"  font-weight="700" fill="#E8A33D" letter-spacing="0.5">MIXED SOURCE · NODE + PHONE</text>
+    <text id="lbPr"     font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">PITCH / ROLL</text>
+    <text id="prVal"    font-size="16" font-weight="700" fill="#FFFFFF">—</text>
+    <text id="lbPos"    font-size="9" font-weight="700" fill="#9AA6AE" letter-spacing="1.5">POSITION</text>
+    <text id="posVal"   font-size="13" font-weight="700" fill="#E845E8">—</text>
+    <text id="lbOat"    font-size="9"  font-weight="700" fill="#9AA6AE" letter-spacing="1">OAT</text>
+    <text id="oatVal"   font-size="16" font-weight="700" fill="#35D6E8" text-anchor="end">79°F</text>
+    <text id="lbBaro"   font-size="9"  font-weight="700" fill="#9AA6AE" letter-spacing="1">BARO</text>
+    <text id="baroVal"  font-size="16" font-weight="700" fill="#35D6E8" text-anchor="end">29.92</text>
+    <text id="lbDalt"   font-size="9"  font-weight="700" fill="#9AA6AE" letter-spacing="1">DENS ALT</text>
+    <text id="daltVal"  font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="end">—</text>
 
   </svg>
 </div>
 
 <div class="bar">
   <button class="primary" id="btnSensors">Enable phone sensors</button>
-  <button id="btnDemo" aria-pressed="true">Demo flight</button>
+  <button id="btnDemo"  aria-pressed="true">Demo flight</button>
   <button id="btnCage">Level / cage</button>
   <button id="btnFull">Fullscreen</button>
   <button id="btnWake" aria-pressed="false">Keep screen awake</button>
-  <button id="btnHot" aria-pressed="false">CHT over limit</button>
+  <button id="btnHot"  aria-pressed="false">CHT over limit</button>
   <button id="btnLink" aria-pressed="false">Drop node link</button>
+  <button id="btnSvs"  aria-pressed="false">Terrain (SVS)</button>
 </div>
 
 <div class="diag">
@@ -299,685 +249,1102 @@
 </div>
 
 <div class="notes">
-  <p><strong>It flies itself out of the box.</strong> A scripted circuit drives the attitude so the whole
-  layout is judgeable without any sensor at all. <strong>Drag anywhere on the display</strong> to fly it
-  by hand instead. The annunciator on the attitude indicator always names which source is driving it.</p>
+  <p><strong>Round-gauge landscape / portrait layout.</strong> Two circular instruments adapt
+  automatically when you rotate the device. The left circle is the attitude indicator;
+  the right (landscape) or lower (portrait) circle is the compass/HSI with a live OSM
+  map tile layer underneath the rose. Climb rate (VSI) appears as a cyan bar inside the
+  attitude indicator on its right side. <strong>Drag anywhere on the AI</strong> to fly by hand.</p>
 
-  <h3>If &ldquo;Enable phone sensors&rdquo; does nothing</h3>
-  <p>That is expected here, and the diagnostics panel above says why. This page runs inside an iframe,
-  and <code>deviceorientation</code> is gated by Permissions Policy: in a cross-origin frame it silently
-  never fires unless the parent sets <code>allow="gyroscope; accelerometer; magnetometer"</code>, which a
-  page cannot grant itself. Desktop Chrome has no motion sensors to begin with.</p>
-  <p>Three ways to get real attitude:</p>
-  <p>&mdash; <strong>Desktop Chrome:</strong> DevTools &rarr; ⋮ &rarr; More tools &rarr; <em>Sensors</em>, then set
-  a custom orientation. It drives <code>deviceorientation</code> and this page will pick it up and flip
-  the annunciator to <em>PHONE AHRS</em>.<br>
-  &mdash; <strong>Your phone, properly:</strong> save this page as an <code>.html</code> file and serve it
-  over HTTPS or from <code>localhost</code> as a top-level page, not framed.<br>
-  &mdash; <strong>Or just don't.</strong> For judging layout, the demo flight is better than real sensors
-  anyway, because it exercises bank angles and climb rates you would not get waving a phone around.</p>
+  <h3>Map</h3>
+  <p>Uses OpenStreetMap tiles at zoom 14 (~1.5 km radius around the aircraft). Tiles load
+  automatically when a GPS fix is available or the demo flight is running. The map rotates
+  heading-up: aircraft is always pointing at the lubber line. No tile requests are made
+  when a position is unknown.</p>
 
-  <h3>What is real when sensors do work</h3>
-  <p>Attitude, heading, track, ground speed, GPS altitude and position come from the device.
-  The attitude is low-pass filtered, because raw phone fusion is too jittery to look at even sitting
-  still on a desk &mdash; which is an early and not especially encouraging data point for a question the
-  PRD lists as open.</p>
+  <h3>Speed arc</h3>
+  <p>Red below stall (0–22 mph), green normal (22–38 mph), red above Vne (38–50 mph).
+  White tick sweeps to current IAS. Values from the NODE PITOT channel — simulated here.</p>
 
-  <h3>What's simulated</h3>
-  <p>Everything on the engine strip, plus indicated airspeed, pressure altitude and vertical speed.
-  Those are node channels and no node exists yet. Values are plausible PM-2 cruise numbers.</p>
+  <h3>Altitude arc</h3>
+  <p>Amber below 300 ft, green 300–2500 ft, amber above 2500 ft. Cyan tick sweeps to current
+  altitude. Scale is 0–3000 ft. Values from the NODE PLENUM channel — simulated here.</p>
 
-  <h3>Where design rule 8 went</h3>
-  <p>Not twenty small tags. Real avionics annunciate a degraded or alternate source on the instrument
-  itself, so that's what this does: <span class="key" style="background:#E8A33D"></span><strong>PHONE
-  AHRS &middot; ADVISORY</strong> sits on the attitude indicator,
-  <span class="key" style="background:#35D6E8"></span>cyan labels mark node-plumbed channels, and
-  <span class="key" style="background:#E845E8"></span>magenta marks GPS-derived data, which is already
-  the convention every pilot reads without thinking. Same rule, native idiom.</p>
+  <h3>Sensors</h3>
+  <p>Device orientation fires only in a secure top-level context. Open this page as a
+  standalone PWA or serve over HTTPS. The diagnostics panel above says exactly why
+  sensors are or are not arriving.</p>
 
-  <h3>Worth saying plainly</h3>
-  <p>A full PFD makes phone attitude look authoritative, and it isn't. PRD section 19 rejects phone
-  attitude for a control loop because OS fusion is tuned for handheld use and drifts in sustained turns,
-  and section 15 still lists <em>&ldquo;phone attitude is stable enough on a vibrating airframe to be
-  worth showing&rdquo;</em> as an open question. That question is exactly what this layout is for &mdash;
-  put it on the aircraft, run the engine, and see whether the horizon is steady enough to keep.
-  Design rule 2 stands either way: the mechanical gauges stay installed.</p>
+  <h3>Synthetic Vision (Terrain on AI)</h3>
+  <p>Click <strong>Terrain (SVS)</strong> to enable. The attitude indicator overlays a terrain
+  silhouette computed from AWS Terrarium elevation tiles (open data, no API key needed). Three
+  hazard levels mirror real avionics conventions:</p>
+  <p>&mdash; <span class="key" style="background:#5E3E1E"></span><strong>Dark brown</strong>:
+  terrain well below (safe).<br>
+  &mdash; <span class="key" style="background:#E8A33D"></span><strong>Amber</strong>:
+  terrain close below — less than ~500 m clearance.<br>
+  &mdash; <span class="key" style="background:#E8483D"></span><strong>Red</strong>:
+  terrain above aircraft altitude — pull up.</p>
+  <p>The terrain rolls and pitches with the AI so canyon walls, ridgelines, and obstacles move
+  correctly as the aircraft manoeuvres. Resolution is ~10 m/pixel at zoom 14; a canyon
+  narrower than ~30 m will not be resolved — the same limitation real SVS has.</p>
+  <p>Tiles load on demand and are cached for the session. The green <strong>SVS</strong> badge
+  confirms decoded data; <strong>TERRAIN LOADING</strong> means tiles are in flight. In demo
+  mode the aircraft flies over flat Tennessee — try real GPS in hilly terrain for the dramatic
+  version.</p>
 
   <p>Layout mockup only. Not an instrument, not airworthy, not the Android client.</p>
 </div>
 
 <script>
 (function () {
-  "use strict";
-  var SVGNS = "http://www.w3.org/2000/svg";
-  var $ = function (id) { return document.getElementById(id); };
+"use strict";
 
-  function el(name, attrs, text) {
-    var n = document.createElementNS(SVGNS, name);
-    for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) { n.setAttribute(k, attrs[k]); } }
-    if (text !== undefined) { n.textContent = text; }
-    return n;
+var SVGNS = "http://www.w3.org/2000/svg";
+var $ = function (id) { return document.getElementById(id); };
+
+function el(name, attrs, txt) {
+  var n = document.createElementNS(SVGNS, name);
+  for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]); }
+  if (txt !== undefined) n.textContent = txt;
+  return n;
+}
+function setPos(id, x, y) { var e = $(id); e.setAttribute("x", x); e.setAttribute("y", y); }
+function setXY(id, x, y) { var e = $(id); e.setAttribute("x", x); e.setAttribute("y", y); }
+
+// ---------- geometry (set by relayout) ----------
+var AI_CX, AI_CY, AI_R;
+var HSI_CX, HSI_CY, HSI_R;
+var SPD_R, SPD_W, ALT_R, ALT_W;
+var SPD_START = 218, SPD_SWEEP = 260, SPD_MAX = 50;
+var ALT_START = 218, ALT_SWEEP = 260, ALT_MAX = 3000;
+var PX_PER_DEG = 5.5;
+var MAP_SCALE;      // SVG pixels per tile pixel
+var MAP_ZOOM = 14;
+var IS_PORTRAIT = false;
+
+// ---------- arc helpers ----------
+function arcPt(cx, cy, r, degCW) {
+  var rad = (degCW - 90) * Math.PI / 180;
+  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+}
+function arcPath(cx, cy, r, sD, eD) {
+  var s = arcPt(cx, cy, r, sD), e = arcPt(cx, cy, r, eD);
+  var sweep = ((eD - sD) % 360 + 360) % 360;
+  var large = sweep > 180 ? 1 : 0;
+  return "M" + s[0].toFixed(1) + "," + s[1].toFixed(1) +
+         " A" + r + "," + r + " 0 " + large + " 1 " + e[0].toFixed(1) + "," + e[1].toFixed(1);
+}
+function spdDeg(mph) { return SPD_START + Math.max(0, Math.min(SPD_MAX, mph)) / SPD_MAX * SPD_SWEEP; }
+function altDeg(ft)  { return ALT_START + Math.max(0, Math.min(ALT_MAX, ft))  / ALT_MAX * ALT_SWEEP; }
+
+// ---------- map tiles ----------
+var MAP_TILES = [];
+(function initMapTiles() {
+  var g = $("mapTiles");
+  for (var dy = -1; dy <= 1; dy++) {
+    for (var dx = -1; dx <= 1; dx++) {
+      var img = el("image", { crossorigin: "anonymous", preserveAspectRatio: "none" });
+      g.appendChild(img);
+      MAP_TILES.push({ el: img, dx: dx, dy: dy });
+    }
+  }
+})();
+
+function updateMapTiles(lat, lon, hdg) {
+  var n = Math.pow(2, MAP_ZOOM);
+  var latR = lat * Math.PI / 180;
+  var tileX = (lon + 180) / 360 * n;
+  var tileY = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2 * n;
+  var baseX = Math.floor(tileX), baseY = Math.floor(tileY);
+  var fracX = tileX - baseX, fracY = tileY - baseY;
+  var tileSVG = MAP_SCALE * 256;
+  MAP_TILES.forEach(function (t) {
+    var tx = ((baseX + t.dx) % n + n) % n;
+    var ty = baseY + t.dy;
+    if (ty < 0 || ty >= n) { t.el.setAttribute("href", ""); return; }
+    t.el.setAttribute("href", "https://tile.openstreetmap.org/" + MAP_ZOOM + "/" + tx + "/" + ty + ".png");
+    t.el.setAttribute("x", (HSI_CX + (t.dx - fracX) * tileSVG).toFixed(2));
+    t.el.setAttribute("y", (HSI_CY + (t.dy - fracY) * tileSVG).toFixed(2));
+    t.el.setAttribute("width",  tileSVG.toFixed(2));
+    t.el.setAttribute("height", tileSVG.toFixed(2));
+  });
+  $("mapGroup").setAttribute("transform",
+    "rotate(" + (-hdg).toFixed(2) + " " + HSI_CX + " " + HSI_CY + ")");
+}
+
+// ---------- relayout ----------
+function relayout() {
+  var W = window.innerWidth, H = window.innerHeight;
+  IS_PORTRAIT = H > W;
+  var svg = document.querySelector("svg.pfd");
+  var EW; // EIS width
+
+  if (IS_PORTRAIT) {
+    svg.setAttribute("viewBox", "0 0 660 980");
+    AI_CX  = 330;  AI_CY  = 225; AI_R  = 172;
+    HSI_CX = 330;  HSI_CY = 672; HSI_R = 164;
+    SPD_R  = 184;  SPD_W  = 7;
+    ALT_R  = 176;  ALT_W  = 7;
+    EW = 0;
+    $("eisBg").setAttribute("visibility", "hidden");
+    $("eisLabel").setAttribute("visibility", "hidden");
+    $("eisRule").setAttribute("visibility", "hidden");
+    $("eis").setAttribute("visibility", "hidden");
+    $("eisCompact").setAttribute("visibility", "visible");
+  } else {
+    svg.setAttribute("viewBox", "0 0 1000 660");
+    AI_CX  = 302;  AI_CY  = 307; AI_R  = 175;
+    HSI_CX = 712;  HSI_CY = 307; HSI_R = 165;
+    SPD_R  = 188;  SPD_W  = 7;
+    ALT_R  = 178;  ALT_W  = 7;
+    EW = 100;
+    $("eisBg").setAttribute("visibility", "visible");
+    $("eisLabel").setAttribute("visibility", "visible");
+    $("eisRule").setAttribute("visibility", "visible");
+    $("eis").setAttribute("visibility", "visible");
+    $("eisCompact").setAttribute("visibility", "hidden");
   }
 
-  // ---------- geometry ----------
-  var AI = { cx: 484, cy: 226, x: 262, y: 24, w: 444, h: 404 };
-  var PX_PER_DEG = 7.2;          // attitude pitch scale
-  var ASI = { cx: 208, cy: 226, pxPerUnit: 7.0 };   // mph
-  var ALT = { cx: 763, cy: 226, pxPerUnit: 0.62 };  // ft
-  var VSI = { cy: 226, pxPer1000: 170, max: 1000 };
+  MAP_SCALE = HSI_R / 215;
 
-  // ---------- build static ladder ----------
-  (function buildLadder() {
-    var g = $("ladder");
-    for (var d = -30; d <= 30; d += 5) {
-      if (d === 0) { continue; }
-      var y = 226 - d * PX_PER_DEG;
-      var major = (d % 10 === 0);
-      var half = major ? 66 : 34;
-      g.appendChild(el("line", { x1: 484 - half, y1: y, x2: 484 + half, y2: y }));
-      if (major) {
-        g.appendChild(el("text", { x: 484 - half - 10, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
-        g.appendChild(el("text", { x: 484 + half + 10, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
-      }
+  // update clip circles
+  var ac = $("aiClipCircle");
+  ac.setAttribute("cx", AI_CX); ac.setAttribute("cy", AI_CY); ac.setAttribute("r", AI_R);
+  var hc = $("hsiClipCircle");
+  hc.setAttribute("cx", HSI_CX); hc.setAttribute("cy", HSI_CY); hc.setAttribute("r", HSI_R);
+
+  // bezel circles
+  var ab = $("aiBezel"); ab.setAttribute("cx", AI_CX); ab.setAttribute("cy", AI_CY); ab.setAttribute("r", AI_R);
+  var hb = $("hsiBezel"); hb.setAttribute("cx", HSI_CX); hb.setAttribute("cy", HSI_CY); hb.setAttribute("r", HSI_R);
+  var hbg = $("hsiBg"); hbg.setAttribute("cx", HSI_CX); hbg.setAttribute("cy", HSI_CY); hbg.setAttribute("r", HSI_R);
+  var hv = $("hsiVignette"); hv.setAttribute("cx", HSI_CX); hv.setAttribute("cy", HSI_CY); hv.setAttribute("r", HSI_R);
+
+  // background
+  $("bgRect").setAttribute("width", IS_PORTRAIT ? 660 : 1000);
+  $("bgRect").setAttribute("height", IS_PORTRAIT ? 980 : 660);
+
+  // top bar
+  var topX = IS_PORTRAIT ? 0 : EW;
+  var topW = IS_PORTRAIT ? 660 : 900;
+  $("topBarBg").setAttribute("x", topX);
+  $("topBarBg").setAttribute("width", topW);
+  $("topBarRule").setAttribute("x1", topX); $("topBarRule").setAttribute("x2", topX + topW);
+
+  // top bar label positions
+  var cols;
+  if (IS_PORTRAIT) {
+    cols = [10, 100, 195, 280, 370, 460, 540, 610];
+  } else {
+    cols = [EW + 10, EW + 100, EW + 195, EW + 285, EW + 375, EW + 462, EW + 548, EW + 634];
+  }
+  var lbIds  = ["lbIas","lbAlt","lbHdg","lbVsi","lbGs","lbGalt","lbEndur","lbFuel"];
+  var valIds = ["tb-ias","tb-alt","tb-hdg","tb-vsi","tb-gs","tb-gpsalt","tb-endur","tb-fuel"];
+  var valX   = IS_PORTRAIT
+    ? [50, 140, 235, 318, 408, 500, 577, 656]
+    : [EW+55, EW+145, EW+240, EW+327, EW+415, EW+507, EW+594, EW+700];
+  lbIds.forEach(function (id, i) { var e = $(id); e.setAttribute("x", cols[i]); e.setAttribute("y", 14); });
+  valIds.forEach(function (id, i) {
+    var e = $(id);
+    e.setAttribute("y", 38);
+    var anchor = (id === "tb-fuel") ? "end" : "middle";
+    e.setAttribute("text-anchor", anchor);
+    e.setAttribute("x", valX[i]);
+  });
+
+  // EIS strip
+  if (!IS_PORTRAIT) {
+    $("eisBg").setAttribute("width", EW);
+    $("eisBg").setAttribute("height", IS_PORTRAIT ? 980 : 660);
+    $("eisLabel").setAttribute("x", EW / 2);
+  }
+
+  // horizon base rect
+  var hr = $("horizon").querySelector("rect");
+  // (those rects use huge coords so no adjustment needed)
+
+  // Aircraft symbol (relative to AI_CX, AI_CY)
+  var hw = 68, he = 8, hd = 9, dotW = 14, dotH = 8;
+  function wingPts(side) {
+    var mx = AI_CX, my = AI_CY;
+    var s = side === "L" ? -1 : 1;
+    var wx = mx + s * hw, ix = mx + s * (dotW/2 + 2);
+    // L-shape wing
+    return wx + "," + my + " " + wx + "," + (my + he) + " " + (mx + s*(dotW/2+2)) + "," + (my+he) + " " + (mx+s*(dotW/2+2)) + "," + (my+hd+he) + " " + (mx+s*(dotW/2)) + "," + (my+hd+he) + " " + (mx+s*(dotW/2)) + "," + my;
+  }
+  $("acWingLS").setAttribute("points", wingPts("L")); $("acWingLS").setAttribute("stroke-width", 5);
+  $("acWingRS").setAttribute("points", wingPts("R")); $("acWingRS").setAttribute("stroke-width", 5);
+  $("acWingL").setAttribute("points", wingPts("L"));
+  $("acWingR").setAttribute("points", wingPts("R"));
+  $("acDot").setAttribute("x", AI_CX - dotW/2); $("acDot").setAttribute("y", AI_CY - dotH);
+  $("acDot").setAttribute("width", dotW); $("acDot").setAttribute("height", dotH);
+
+  // IAS readout (inside AI glass, lower-right area)
+  var iasX = AI_CX + 52, iasY = AI_CY + 90, iasW = 80, iasH = 40;
+  $("iasBox").setAttribute("x", iasX - iasW/2); $("iasBox").setAttribute("y", iasY - 4);
+  $("iasBox").setAttribute("width", iasW); $("iasBox").setAttribute("height", iasH);
+  $("asiVal").setAttribute("x", iasX); $("asiVal").setAttribute("y", iasY + 26);
+  $("iasUnit").setAttribute("x", iasX); $("iasUnit").setAttribute("y", iasY + 37);
+
+  // VSI strip (inside AI glass, left side)
+  var vsiX = AI_CX - 62, vsiMidY = AI_CY + 52, vsiH = 100, vsiW = 16;
+  var vsiTrackY = vsiMidY - vsiH/2;
+  $("vsiTrack").setAttribute("x", vsiX - vsiW/2); $("vsiTrack").setAttribute("y", vsiTrackY);
+  $("vsiTrack").setAttribute("width", vsiW); $("vsiTrack").setAttribute("height", vsiH);
+  $("vsiBar").setAttribute("x", vsiX - vsiW/2 + 1);
+  $("vsiLabel").setAttribute("x", vsiX); $("vsiLabel").setAttribute("y", vsiTrackY - 4);
+  $("vsiVal").setAttribute("x", vsiX); $("vsiVal").setAttribute("y", vsiTrackY + vsiH + 13);
+
+  // SVS status badges (upper-left of AI glass)
+  $("svsStatus").setAttribute("x",  AI_CX - AI_R + 8);
+  $("svsStatus").setAttribute("y",  AI_CY - AI_R + 16);
+  $("svsLoading").setAttribute("x", AI_CX - AI_R + 8);
+  $("svsLoading").setAttribute("y", AI_CY - AI_R + 16);
+
+  // AHRS annunciator (inside AI, near bottom)
+  var annY = AI_CY + 125, annW = 220, annH = 22;
+  $("ahrsBox").setAttribute("x", AI_CX - annW/2); $("ahrsBox").setAttribute("y", annY);
+  $("ahrsBox").setAttribute("width", annW); $("ahrsBox").setAttribute("height", annH);
+  $("ahrsTxt").setAttribute("x", AI_CX); $("ahrsTxt").setAttribute("y", annY + 15);
+
+  // HSI elements
+  var lubberTop = HSI_CY - HSI_R - 2;
+  $("lubber").setAttribute("points", HSI_CX + "," + lubberTop + " " + (HSI_CX-9) + "," + (lubberTop+17) + " " + (HSI_CX+9) + "," + (lubberTop+17));
+  var acTop = HSI_CY - 12;
+  $("hsiAc").setAttribute("points", HSI_CX+"," + acTop + " " + (HSI_CX-6) + "," + (acTop+28) + " " + (HSI_CX+6) + "," + (acTop+28));
+  var trkY = HSI_CY - HSI_R + 14;
+  $("trkDia").setAttribute("points", HSI_CX+","+(trkY-10)+" "+(HSI_CX-8)+","+trkY+" "+HSI_CX+","+(trkY+10)+" "+(HSI_CX+8)+","+trkY);
+  var hdgBoxW = 80, hdgBoxH = 28, hdgBoxY = HSI_CY - HSI_R + 18;
+  $("hdgBox").setAttribute("x", HSI_CX - hdgBoxW/2); $("hdgBox").setAttribute("y", hdgBoxY);
+  $("hdgBox").setAttribute("width", hdgBoxW); $("hdgBox").setAttribute("height", hdgBoxH);
+  $("hdgVal").setAttribute("x", HSI_CX); $("hdgVal").setAttribute("y", hdgBoxY + 20);
+
+  // ALT readout (below HSI)
+  var altBoxY = HSI_CY + HSI_R + 8, altBoxW = 140, altBoxH = 42;
+  $("altBox").setAttribute("x", HSI_CX - altBoxW/2); $("altBox").setAttribute("y", altBoxY);
+  $("altBox").setAttribute("width", altBoxW); $("altBox").setAttribute("height", altBoxH);
+  $("altVal").setAttribute("x", HSI_CX); $("altVal").setAttribute("y", altBoxY + 29);
+  $("altUnit").setAttribute("x", HSI_CX); $("altUnit").setAttribute("y", altBoxY + 40);
+  $("gpsTrackLbl").setAttribute("x", HSI_CX); $("gpsTrackLbl").setAttribute("y", altBoxY + altBoxH + 14);
+
+  // Bottom bar
+  var botY, botH, botX2;
+  if (IS_PORTRAIT) {
+    botY = 878; botH = 102; botX2 = 660;
+    $("botBarBg").setAttribute("x", 0); $("botBarBg").setAttribute("y", botY);
+    $("botBarBg").setAttribute("width", 660); $("botBarBg").setAttribute("height", botH);
+    $("botBarRule").setAttribute("x1", 0); $("botBarRule").setAttribute("y1", botY);
+    $("botBarRule").setAttribute("x2", 660); $("botBarRule").setAttribute("y2", botY);
+  } else {
+    botY = 566; botH = 94; botX2 = 1000;
+    $("botBarBg").setAttribute("x", EW); $("botBarBg").setAttribute("y", botY);
+    $("botBarBg").setAttribute("width", 900); $("botBarBg").setAttribute("height", botH);
+    $("botBarRule").setAttribute("x1", EW); $("botBarRule").setAttribute("y1", botY);
+    $("botBarRule").setAttribute("x2", 1000); $("botBarRule").setAttribute("y2", botY);
+  }
+  var bx = IS_PORTRAIT ? 10 : EW + 10;
+  setXY("lbAlerts", bx, botY + 16);
+  setXY("lbWind",   IS_PORTRAIT ? 10  : EW + 400, botY + 16);
+  setXY("windVal",  IS_PORTRAIT ? 10  : EW + 400, botY + 38);
+  setXY("windSrc",  IS_PORTRAIT ? 10  : EW + 400, botY + 51);
+  setXY("lbPr",     IS_PORTRAIT ? 10  : EW + 400, botY + 68);
+  setXY("prVal",    IS_PORTRAIT ? 10  : EW + 400, botY + 84);
+  setXY("lbPos",    IS_PORTRAIT ? 340 : EW + 600, botY + 16);
+  setXY("posVal",   IS_PORTRAIT ? 340 : EW + 600, botY + 34);
+  var rx = IS_PORTRAIT ? 650 : 990;
+  setXY("lbOat",  IS_PORTRAIT ? 480 : EW+700, botY + 16); $("oatVal").setAttribute("x", rx); $("oatVal").setAttribute("y", botY + 30);
+  setXY("lbBaro", IS_PORTRAIT ? 480 : EW+700, botY + 44); $("baroVal").setAttribute("x", rx); $("baroVal").setAttribute("y", botY + 58);
+  setXY("lbDalt", IS_PORTRAIT ? 480 : EW+700, botY + 70); $("daltVal").setAttribute("x", rx); $("daltVal").setAttribute("y", botY + 84);
+
+  rebuildStatic();
+}
+
+// ---------- rebuild static elements ----------
+function rebuildStatic() {
+  // Horizon ground/sky rects always large enough
+  var hor = $("horizon");
+  hor.querySelector("rect").setAttribute("y", AI_CY - 2000);
+
+  buildLadder();
+  buildBank();
+  buildSpeedArc();
+  buildAltArc();
+  buildVsi();
+  if (!IS_PORTRAIT) buildEis();
+  else buildEisCompact();
+}
+
+function clearChildren(id) { var g = $(id); while (g.firstChild) g.removeChild(g.firstChild); }
+
+function buildLadder() {
+  clearChildren("ladder");
+  var g = $("ladder");
+  for (var d = -35; d <= 35; d += 5) {
+    if (d === 0) continue;
+    var y = AI_CY - d * PX_PER_DEG;
+    var major = (d % 10 === 0), half = major ? 52 : 26;
+    g.appendChild(el("line", { x1: AI_CX - half, y1: y, x2: AI_CX + half, y2: y }));
+    if (major) {
+      g.appendChild(el("text", { x: AI_CX - half - 6, y: y + 5, "text-anchor": "end" }, String(Math.abs(d))));
+      g.appendChild(el("text", { x: AI_CX + half + 6, y: y + 5, "text-anchor": "start" }, String(Math.abs(d))));
     }
-  })();
+  }
+}
 
-  // ---------- bank scale ----------
-  (function buildBank() {
-    var g = $("bankScale");
-    var marks = [-60, -45, -30, -20, -10, 10, 20, 30, 45, 60];
-    marks.forEach(function (a) {
-      var r1 = 156, r2 = (Math.abs(a) === 30 || Math.abs(a) === 60) ? 138 : 145;
-      var rad = (a - 90) * Math.PI / 180;
-      g.appendChild(el("line", {
-        x1: 484 + Math.cos(rad) * r1, y1: 226 + Math.sin(rad) * r1,
-        x2: 484 + Math.cos(rad) * r2, y2: 226 + Math.sin(rad) * r2,
-        "stroke-width": (Math.abs(a) === 30 || Math.abs(a) === 60) ? 3 : 2
-      }));
-    });
-    // zero index triangle
-    g.appendChild(el("polygon", { points: "484,58 476,44 492,44", fill: "#FFFFFF" }));
-  })();
+function buildBank() {
+  clearChildren("bankScale");
+  var g = $("bankScale");
+  [-60, -45, -30, -20, -10, 10, 20, 30, 45, 60].forEach(function (a) {
+    var major = Math.abs(a) === 30 || Math.abs(a) === 60;
+    var r1 = AI_R + 4, r2 = major ? AI_R - 12 : AI_R - 4;
+    var rad = (a - 90) * Math.PI / 180;
+    g.appendChild(el("line", {
+      x1: (AI_CX + Math.cos(rad)*r1).toFixed(1), y1: (AI_CY + Math.sin(rad)*r1).toFixed(1),
+      x2: (AI_CX + Math.cos(rad)*r2).toFixed(1), y2: (AI_CY + Math.sin(rad)*r2).toFixed(1),
+      "stroke-width": major ? 3 : 2
+    }));
+  });
+  // zero index triangle at top
+  var ty = AI_CY - AI_R;
+  g.appendChild(el("polygon", {
+    points: (AI_CX-7)+","+(ty-3)+" "+(AI_CX+7)+","+(ty-3)+" "+AI_CX+","+(ty+8),
+    fill: "#FFFFFF"
+  }));
+  // also update roll pointer triangle initial position
+  $("rollTri").setAttribute("points", AI_CX+","+(AI_CY-AI_R-16)+" "+(AI_CX-9)+","+(AI_CY-AI_R+4)+" "+(AI_CX+9)+","+(AI_CY-AI_R+4));
+  $("slipSkid").setAttribute("x", AI_CX-14); $("slipSkid").setAttribute("y", AI_CY-AI_R+7);
+}
 
-  // ---------- VSI scale ----------
-  (function buildVsi() {
-    var g = $("vsiScale");
-    for (var v = -1000; v <= 1000; v += 250) {
-      var y = VSI.cy - (v / 1000) * VSI.pxPer1000;
-      var major = (v % 500 === 0);
-      g.appendChild(el("line", { x1: 836, y1: y, x2: major ? 852 : 846, y2: y }));
-      if (major && v !== 0) {
-        g.appendChild(el("text", { x: 856, y: y + 4, "text-anchor": "start" }, String(Math.abs(v / 100))));
-      }
+function buildArcRing(groupId, cx, cy, r, w, start, sweep, bands) {
+  clearChildren(groupId);
+  var g = $(groupId), end = start + sweep;
+  // dark shadow halo
+  g.appendChild(el("path", { d: arcPath(cx, cy, r, start, end), fill: "none", stroke: "#141C22", "stroke-width": w + 5, "stroke-linecap": "butt" }));
+  // coloured bands
+  bands.forEach(function (b) {
+    g.appendChild(el("path", { d: arcPath(cx, cy, r, b.s, b.e), fill: "none", stroke: b.c, "stroke-width": w, "stroke-linecap": "butt" }));
+  });
+  // ticks + labels
+  bands[0]._ticks && bands[0]._ticks.forEach(function (v) {
+    var deg = bands[0]._deg(v);
+    var p1 = arcPt(cx, cy, r - w/2 - 3, deg), p2 = arcPt(cx, cy, r + w/2 + 3, deg);
+    g.appendChild(el("line", { x1: p1[0].toFixed(1), y1: p1[1].toFixed(1), x2: p2[0].toFixed(1), y2: p2[1].toFixed(1), stroke: "#FFFFFF", "stroke-width": 2.5 }));
+    if (v % bands[0]._labelStep === 0) {
+      var lp = arcPt(cx, cy, r + w/2 + 14, deg);
+      g.appendChild(el("text", { x: lp[0].toFixed(1), y: (lp[1] + 4).toFixed(1), "font-size": 10, "font-weight": 700, fill: "#B8C0C6", "text-anchor": "middle" }, bands[0]._fmt(v)));
     }
-  })();
+  });
+}
 
-  // ---------- airspeed colour bands, from the aircraft profile ----------
-  (function buildBands() {
-    var g = $("asiBands");
-    // PM-2: stall ~22, cruise ~28, never-exceed ~38 mph
-    function band(lo, hi, colour) {
-      var yTop = ASI.cy - (hi - 28) * ASI.pxPerUnit;
-      var yBot = ASI.cy - (lo - 28) * ASI.pxPerUnit;
-      g.appendChild(el("rect", { x: 240, y: yTop, width: 14, height: Math.max(0, yBot - yTop), fill: colour }));
+function buildSpeedArc() {
+  clearChildren("speedArcBg");
+  var g = $("speedArcBg");
+  var cx = AI_CX, cy = AI_CY, r = SPD_R, w = SPD_W, end = SPD_START + SPD_SWEEP;
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,SPD_START,end), fill:"none", stroke:"#141C22", "stroke-width":w+5, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,SPD_START,spdDeg(22)), fill:"none", stroke:"#E8483D", "stroke-width":w, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,spdDeg(22),spdDeg(38)), fill:"none", stroke:"#3FCF6A", "stroke-width":w, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,spdDeg(38),end), fill:"none", stroke:"#E8483D", "stroke-width":w, "stroke-linecap":"butt" }));
+  [0, 10, 20, 30, 40, 50].forEach(function (v) {
+    var deg = spdDeg(v);
+    var p1 = arcPt(cx,cy,r-w/2-3,deg), p2 = arcPt(cx,cy,r+w/2+3,deg);
+    g.appendChild(el("line", { x1:p1[0].toFixed(1),y1:p1[1].toFixed(1),x2:p2[0].toFixed(1),y2:p2[1].toFixed(1), stroke:"#FFFFFF","stroke-width":2.5 }));
+    var lp = arcPt(cx,cy,r+w/2+14,deg);
+    g.appendChild(el("text", { x:lp[0].toFixed(1),y:(lp[1]+4).toFixed(1),"font-size":10,"font-weight":700,fill:"#B8C0C6","text-anchor":"middle" }, String(v)));
+  });
+}
+
+function buildAltArc() {
+  clearChildren("altArcBg");
+  var g = $("altArcBg");
+  var cx = HSI_CX, cy = HSI_CY, r = ALT_R, w = ALT_W, end = ALT_START + ALT_SWEEP;
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,ALT_START,end), fill:"none", stroke:"#141C22", "stroke-width":w+5, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,ALT_START,altDeg(300)), fill:"none", stroke:"#E8A33D", "stroke-width":w, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,altDeg(300),altDeg(2500)), fill:"none", stroke:"#3FCF6A", "stroke-width":w, "stroke-linecap":"butt" }));
+  g.appendChild(el("path", { d: arcPath(cx,cy,r,altDeg(2500),end), fill:"none", stroke:"#E8A33D", "stroke-width":w, "stroke-linecap":"butt" }));
+  [0,500,1000,1500,2000,2500,3000].forEach(function (v) {
+    var deg = altDeg(v);
+    var p1 = arcPt(cx,cy,r-w/2-3,deg), p2 = arcPt(cx,cy,r+w/2+3,deg);
+    g.appendChild(el("line", { x1:p1[0].toFixed(1),y1:p1[1].toFixed(1),x2:p2[0].toFixed(1),y2:p2[1].toFixed(1), stroke:"#FFFFFF","stroke-width":2.5 }));
+    if (v % 1000 === 0) {
+      var lp = arcPt(cx,cy,r+w/2+14,deg);
+      g.appendChild(el("text", { x:lp[0].toFixed(1),y:(lp[1]+4).toFixed(1),"font-size":10,"font-weight":700,fill:"#B8C0C6","text-anchor":"middle" }, v===0?"0":(v/1000)+"k"));
     }
-    band(22, 38, "#3FCF6A");   // normal operating
-    band(14, 22, "#E8483D");   // below stall
-    band(38, 50, "#E8483D");   // above Vne
-  })();
+  });
+}
 
-  // ---------- engine strip ----------
-  var eisRows = [
-    { key: "rpmL",  label: "RPM L",  unit: "",    min: 0,    max: 7000, redline: 6800 },
-    { key: "rpmR",  label: "RPM R",  unit: "",    min: 0,    max: 7000, redline: 6800 },
-    { key: "chtL",  label: "CHT L",  unit: "°F",  min: 100,  max: 480,  redline: 435 },
-    { key: "chtR",  label: "CHT R",  unit: "°F",  min: 100,  max: 480,  redline: 435 },
-    { key: "egtL",  label: "EGT L",  unit: "°F",  min: 700,  max: 1350, redline: 1250 },
-    { key: "egtR",  label: "EGT R",  unit: "°F",  min: 700,  max: 1350, redline: 1250 },
-    { key: "fuel",  label: "FUEL",   unit: "gal", min: 0,    max: 10,   redline: null, low: 1.5 }
+function buildVsi() {
+  // VSI strip is positioned by relayout(); just build ticks
+  clearChildren("vsiTicks");
+  var g = $("vsiTicks");
+  var cx = AI_CX - 62, midY = AI_CY + 52, halfH = 50;
+  [-1000, -500, 0, 500, 1000].forEach(function (v) {
+    var y = midY - (v / 1000) * halfH;
+    var tw = (v === 0) ? 10 : 6;
+    g.appendChild(el("line", { x1: cx - 8, y1: y, x2: cx - 8 + tw, y2: y }));
+    if (Math.abs(v) === 500 || v === 0) {
+      g.appendChild(el("text", { x: cx - 11, y: y + 4, "text-anchor": "end" },
+        v === 0 ? "0" : (v > 0 ? "+" : "") + (v/100)));
+    }
+  });
+}
+
+// ---------- engine strip ----------
+var eisRows = [
+  { key:"rpmL", label:"RPM L", min:0,   max:7000, redline:6800 },
+  { key:"rpmR", label:"RPM R", min:0,   max:7000, redline:6800 },
+  { key:"chtL", label:"CHT L", min:100, max:480,  redline:435  },
+  { key:"chtR", label:"CHT R", min:100, max:480,  redline:435  },
+  { key:"egtL", label:"EGT L", min:700, max:1350, redline:1250 },
+  { key:"egtR", label:"EGT R", min:700, max:1350, redline:1250 },
+  { key:"fuel", label:"FUEL",  min:0,   max:10,   redline:null, low:1.5 }
+];
+
+function buildEis() {
+  clearChildren("eis");
+  var g = $("eis"), y = 46;
+  eisRows.forEach(function (r) {
+    g.appendChild(el("text", { x:6, y:y, "font-size":10, "font-weight":700, fill:"#9AA6AE", "letter-spacing":0.5 }, r.label));
+    g.appendChild(el("text", { x:93, y:y, "font-size":14, "font-weight":700, fill:"#FFFFFF", "text-anchor":"end", id:"eis-"+r.key }, "—"));
+    g.appendChild(el("rect", { x:6, y:y+4, width:86, height:5, fill:"#000", stroke:"#2A3238", "stroke-width":1 }));
+    g.appendChild(el("rect", { x:7, y:y+5, width:0, height:3, fill:"#3FCF6A", id:"bar-"+r.key }));
+    if (r.redline !== null) {
+      var rx = 7 + 84*(r.redline-r.min)/(r.max-r.min);
+      g.appendChild(el("line", { x1:rx, y1:y+2, x2:rx, y2:y+11, stroke:"#E8483D", "stroke-width":2 }));
+    }
+    y += 34;
+  });
+  // sync
+  g.appendChild(el("text", { x:6,  y:y+8, "font-size":10,"font-weight":700,fill:"#9AA6AE","letter-spacing":0.5 }, "SYNC"));
+  g.appendChild(el("text", { x:93, y:y+8, "font-size":12,"font-weight":700,fill:"#FFFFFF","text-anchor":"end", id:"syncTxt" }, "Δ 0"));
+  g.appendChild(el("rect", { x:6, y:y+12, width:86, height:7, fill:"#000",stroke:"#2A3238","stroke-width":1 }));
+  g.appendChild(el("line", { x1:49,y1:y+12,x2:49,y2:y+19,stroke:"#9AA6AE","stroke-width":1.5 }));
+  g.appendChild(el("rect", { x:49, y:y+13, width:0, height:5, fill:"#3FCF6A", id:"syncBar" }));
+  y += 38;
+  g.appendChild(el("text", { x:6,  y:y, "font-size":10,"font-weight":700,fill:"#9AA6AE","letter-spacing":0.5 }, "ENG HRS"));
+  g.appendChild(el("text", { x:93, y:y+15,"font-size":14,"font-weight":700,fill:"#FFFFFF","text-anchor":"end", id:"hrsVal" }, "12.4"));
+  y += 34;
+  g.appendChild(el("text", { x:6,  y:y, "font-size":10,"font-weight":700,fill:"#9AA6AE","letter-spacing":0.5 }, "EGT SPLIT"));
+  g.appendChild(el("text", { x:93, y:y+15,"font-size":14,"font-weight":700,fill:"#FFFFFF","text-anchor":"end", id:"splitVal" }, "14°F"));
+}
+
+// Compact EIS element refs (portrait mode) — use "c" prefix to avoid ID collisions
+var COMPACT_ROWS = [];
+
+function buildEisCompact() {
+  clearChildren("eisCompact");
+  COMPACT_ROWS = [];
+  var g = $("eisCompact");
+  var y0 = 887, barH = 6;
+  var fields = [
+    { key:"rpmL", label:"RPM L", min:0,   max:7000, redline:6800, x:10  },
+    { key:"rpmR", label:"RPM R", min:0,   max:7000, redline:6800, x:175 },
+    { key:"chtL", label:"CHT",   min:100, max:480,  redline:435,  x:340 },
+    { key:"fuel", label:"FUEL",  min:0,   max:10,   redline:null, x:505, low:1.5 }
   ];
+  // background strip
+  g.appendChild(el("rect", { x:0, y:y0-14, width:660, height:barH+24, fill:"#0F1317" }));
+  fields.forEach(function (r) {
+    var bw = 140;
+    g.appendChild(el("text", { x:r.x, y:y0, "font-size":10,"font-weight":700,fill:"#9AA6AE" }, r.label));
+    var valEl = el("text", { x:r.x+bw, y:y0, "font-size":14,"font-weight":700,fill:"#FFFFFF","text-anchor":"end" }, "—");
+    var barEl = el("rect", { x:r.x+1, y:y0+5, width:0, height:barH-1, fill:"#3FCF6A", rx:1 });
+    g.appendChild(el("rect", { x:r.x, y:y0+4, width:bw, height:barH, fill:"#000",stroke:"#2A3238","stroke-width":1 }));
+    g.appendChild(barEl); g.appendChild(valEl);
+    if (r.redline) {
+      var rx = r.x+1 + (bw-2)*(r.redline-r.min)/(r.max-r.min);
+      g.appendChild(el("line", { x1:rx,y1:y0+1,x2:rx,y2:y0+12,stroke:"#E8483D","stroke-width":2 }));
+    }
+    COMPACT_ROWS.push({ key:r.key, min:r.min, max:r.max, redline:r.redline||null, low:r.low||null, bw:bw, valEl:valEl, barEl:barEl });
+  });
+}
 
-  (function buildEis() {
-    var g = $("eis"), y = 74;
-    eisRows.forEach(function (r) {
-      g.appendChild(el("text", { x: 18, y: y, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 0.8 }, r.label));
-      var v = el("text", { x: 146, y: y, "font-size": 16, "font-weight": 700, fill: "#FFFFFF", "text-anchor": "end", id: "eis-" + r.key }, "—");
-      g.appendChild(v);
-      g.appendChild(el("rect", { x: 18, y: y + 6, width: 128, height: 7, fill: "#000000", stroke: "#2A3238", "stroke-width": 1 }));
-      g.appendChild(el("rect", { x: 19, y: y + 7, width: 0, height: 5, fill: "#3FCF6A", id: "bar-" + r.key }));
-      if (r.redline !== null) {
-        var rx = 19 + 126 * (r.redline - r.min) / (r.max - r.min);
-        g.appendChild(el("line", { x1: rx, y1: y + 4, x2: rx, y2: y + 15, stroke: "#E8483D", "stroke-width": 2 }));
-      }
-      y += 40;
-    });
-    // twin sync
-    g.appendChild(el("text", { x: 18, y: y + 8, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 0.8 }, "SYNC"));
-    g.appendChild(el("text", { x: 146, y: y + 8, "font-size": 14, "font-weight": 700, fill: "#FFFFFF", "text-anchor": "end", id: "syncTxt" }, "Δ 0"));
-    g.appendChild(el("rect", { x: 18, y: y + 14, width: 128, height: 9, fill: "#000000", stroke: "#2A3238", "stroke-width": 1 }));
-    g.appendChild(el("line", { x1: 82, y1: y + 14, x2: 82, y2: y + 23, stroke: "#9AA6AE", "stroke-width": 1.5 }));
-    g.appendChild(el("rect", { x: 82, y: y + 15, width: 0, height: 7, fill: "#3FCF6A", id: "syncBar" }));
-    g.appendChild(el("text", { x: 81, y: y + 42, "font-size": 10, "font-weight": 700, fill: "#35D6E8", "text-anchor": "middle", "letter-spacing": 0.8 }, "NODE · WIRED"));
-  })();
+// ---------- state ----------
+var sim = { rpmL:5840,rpmR:5795,chtL:381,chtR:376,egtL:1118,egtR:1104,fuel:6.2,oat:79,alt:2000,vsi:0,ias:28,t:0 };
+var att  = { pitch:0, roll:0, hdg:0 };
+var raw  = { pitch:0, roll:0, hdg:0, has:false };
+var cage = { pitch:0, roll:0 };
+var gps  = { trk:null, gs:null, alt:null, lat:null, lon:null, acc:null };
+var driveHot = false, linkDown = false;
+var mode = "demo";
+var manual = { pitch:0, roll:0, hdg:0 };
 
-  // ---------- right data column ----------
-  (function buildRight() {
-    var g = $("rightCol");
-    var rows = [
-      { id: "oat",   label: "OAT",     unit: "°F",  colour: "#35D6E8" },
-      { id: "dalt",  label: "DENS ALT",unit: "ft",  colour: "#FFFFFF" },
-      { id: "gs",    label: "GND SPD", unit: "mph", colour: "#E845E8" },
-      { id: "gpsalt",label: "GPS ALT", unit: "ft",  colour: "#E845E8" },
-      { id: "endur", label: "ENDUR",   unit: "",    colour: "#FFFFFF" },
-      { id: "baro",  label: "BARO",    unit: "inHg",colour: "#35D6E8" }
-    ];
-    var y = 50;
-    rows.forEach(function (r) {
-      g.appendChild(el("text", { x: 888, y: y, "font-size": 11, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1 }, r.label));
-      g.appendChild(el("text", { x: 980, y: y + 24, "font-size": 22, "font-weight": 700, fill: r.colour, "text-anchor": "end", id: "rc-" + r.id }, "—"));
-      g.appendChild(el("text", { x: 980, y: y + 38, "font-size": 10, "font-weight": 700, fill: "#9AA6AE", "text-anchor": "end" }, r.unit));
-      y += 64;
-    });
-  })();
+// Demo GPS: flies the Columbia River Gorge — river near sea level, canyon walls
+// rise to 3000-5000 ft within a few km, so the SVS terrain overlay shows the
+// amber/red hazard tiers a Part 103 pilot would actually care about.
+var demoLat = 45.690, demoLon = -121.700;
 
-  // ---------- bottom left: wind + attitude digits ----------
-  (function buildBotLeft() {
-    var g = $("botLeft");
-    g.appendChild(el("text", { x: 176, y: 462, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "WIND ALOFT"));
-    g.appendChild(el("text", { x: 176, y: 496, "font-size": 26, "font-weight": 700, fill: "#E8A33D", id: "windVal" }, "245° / 9"));
-    g.appendChild(el("text", { x: 176, y: 514, "font-size": 10, "font-weight": 700, fill: "#E8A33D", "letter-spacing": 0.8 }, "MIXED SOURCE · NODE + PHONE"));
+function demoFlight(t) {
+  var T = t * 0.35;
+  var roll  = 18*Math.sin(T*0.28) + 6*Math.sin(T*0.11);
+  var pitch = 5.5*Math.sin(T*0.19) + 1.6*Math.sin(T*0.63);
+  demoFlight.hdg = (demoFlight.hdg + roll*0.055 + 360) % 360;
+  return { pitch:pitch, roll:roll, hdg:demoFlight.hdg };
+}
+demoFlight.hdg = 270;   // down-river (west), walls to the north and south
 
-    g.appendChild(el("text", { x: 396, y: 462, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "PITCH / ROLL"));
-    g.appendChild(el("text", { x: 396, y: 496, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "prVal" }, "—"));
-    g.appendChild(el("text", { x: 396, y: 514, "font-size": 10, "font-weight": 700, fill: "#E8A33D", "letter-spacing": 0.8 }, "PHONE FUSION · ADVISORY"));
+function wob(b, a) { return b + Math.sin(sim.t*a)*a*2 + (Math.random()-0.5)*a; }
 
-    g.appendChild(el("text", { x: 176, y: 556, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "ENGINE HOURS"));
-    g.appendChild(el("text", { x: 176, y: 590, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "hrsVal" }, "12.4"));
-
-    g.appendChild(el("text", { x: 396, y: 556, "font-size": 12, "font-weight": 700, fill: "#9AA6AE", "letter-spacing": 1.5 }, "EGT SPLIT"));
-    g.appendChild(el("text", { x: 396, y: 590, "font-size": 26, "font-weight": 700, fill: "#FFFFFF", id: "splitVal" }, "14°F"));
-  })();
-
-  // ---------- state ----------
-  var sim = {
-    rpmL: 5840, rpmR: 5795, chtL: 381, chtR: 376,
-    egtL: 1118, egtR: 1104, fuel: 6.2, oat: 79,
-    alt: 1180, vsi: 0, ias: 28, t: 0
-  };
-  var att = { pitch: 0, roll: 0, hdg: 0 };      // filtered
-  var raw = { pitch: 0, roll: 0, hdg: 0, has: false };
-  var cage = { pitch: 0, roll: 0 };
-  var gps = { trk: null, gs: null, alt: null, lat: null, lon: null, acc: null };
-  var driveHot = false, linkDown = false;
-
-  // mode: "demo" scripted flight, "phone" real sensors, "manual" drag to fly
-  var mode = "demo";
-  var manual = { pitch: 0, roll: 0, hdg: 0 };
-
-  // ---------- scripted demo flight ----------
-  // A repeating circuit so every part of the layout gets exercised:
-  // climbing right turn, level cruise, descending left turn, level.
-  function demoFlight(t) {
-    var T = t * 0.35;
-    var roll  = 18 * Math.sin(T * 0.28) + 6 * Math.sin(T * 0.11);
-    var pitch = 5.5 * Math.sin(T * 0.19) + 1.6 * Math.sin(T * 0.63);
-    // heading integrates from bank, the way an aircraft actually turns
-    demoFlight.hdg = (demoFlight.hdg + roll * 0.055 + 360) % 360;
-    return { pitch: pitch, roll: roll, hdg: demoFlight.hdg };
-  }
-  demoFlight.hdg = 247;
-
-  function wob(b, a) { return b + Math.sin(sim.t * a) * a * 2 + (Math.random() - 0.5) * a; }
-
-  // ---------- tape renderers ----------
-  function renderAsi(v) {
-    var g = $("asiTape");
-    while (g.firstChild) { g.removeChild(g.firstChild); }
-    var lo = Math.floor((v - 30) / 2) * 2, hi = v + 30;
-    for (var s = lo; s <= hi; s += 2) {
-      if (s < 0) { continue; }
-      var y = ASI.cy - (s - v) * ASI.pxPerUnit;
-      if (y < 18 || y > 434) { continue; }
-      var major = (s % 10 === 0);
-      g.appendChild(el("line", { x1: major ? 214 : 228, y1: y, x2: 240, y2: y }));
-      if (major) { g.appendChild(el("text", { x: 210, y: y + 7 }, String(s))); }
+// ---------- compass rose ----------
+function renderRose(hdg) {
+  var g = $("rose");
+  while (g.firstChild) g.removeChild(g.firstChild);
+  var cards = { 0:"N", 90:"E", 180:"S", 270:"W" };
+  for (var a = 0; a < 360; a += 10) {
+    var rel = (a - hdg) * Math.PI / 180;
+    var sin = Math.sin(rel), cos = Math.cos(rel);
+    var major = (a % 30 === 0);
+    var r1 = HSI_R - 3, r2 = major ? HSI_R - 22 : HSI_R - 12;
+    g.appendChild(el("line", {
+      x1: HSI_CX+sin*r1, y1: HSI_CY-cos*r1,
+      x2: HSI_CX+sin*r2, y2: HSI_CY-cos*r2,
+      "stroke-width": major ? 2.5 : 1.5
+    }));
+    if (major) {
+      var lbl = cards[a] !== undefined ? cards[a] : String(a/10);
+      var tr = HSI_R - 38;
+      g.appendChild(el("text", {
+        x: HSI_CX+sin*tr, y: HSI_CY-cos*tr+6,
+        "font-size": cards[a] ? 22 : 16,
+        fill: cards[a] ? "#FFFFFF" : "#C8D0D6"
+      }, lbl));
     }
   }
+}
 
-  function renderAlt(v) {
-    var g = $("altTape");
-    while (g.firstChild) { g.removeChild(g.firstChild); }
-    var lo = Math.floor((v - 340) / 20) * 20, hi = v + 340;
-    for (var s = lo; s <= hi; s += 20) {
-      var y = ALT.cy - (s - v) * ALT.pxPerUnit;
-      if (y < 18 || y > 434) { continue; }
-      var major = (s % 100 === 0);
-      g.appendChild(el("line", { x1: 716, y1: y, x2: major ? 742 : 730, y2: y }));
-      if (major) { g.appendChild(el("text", { x: 746, y: y + 7 }, String(s))); }
-    }
+// ---------- frame ----------
+function frame() {
+  sim.t += 0.05;
+
+  if (mode === "demo") {
+    var d = demoFlight(sim.t);
+    raw.pitch = d.pitch; raw.roll = d.roll; raw.hdg = d.hdg; raw.has = true;
+    cage.pitch = 0; cage.roll = 0;
+    // animate demo GPS position (27 mph ≈ 12 m/s)
+    var hdgR = att.hdg * Math.PI / 180;
+    demoLat += (12 * 0.05 / 111000) * Math.cos(hdgR);
+    demoLon += (12 * 0.05 / (111000 * Math.cos(demoLat * Math.PI/180))) * Math.sin(hdgR);
+    gps.lat = demoLat; gps.lon = demoLon; gps.acc = 10;
+    if (gps.trk === null) gps.trk = d.hdg;
+    if (gps.gs  === null) gps.gs  = 27;
+  } else if (mode === "manual") {
+    raw.pitch = manual.pitch; raw.roll = manual.roll; raw.hdg = manual.hdg; raw.has = true;
+    cage.pitch = 0; cage.roll = 0;
   }
 
-  function renderRose(hdg) {
-    var g = $("rose");
-    while (g.firstChild) { g.removeChild(g.firstChild); }
-    var cx = 484, cy = 546;
-    var cards = { 0: "N", 90: "E", 180: "S", 270: "W" };
-    for (var a = 0; a < 360; a += 10) {
-      var rel = (a - hdg) * Math.PI / 180;
-      var sin = Math.sin(rel), cos = Math.cos(rel);
-      var major = (a % 30 === 0);
-      var r1 = 99, r2 = major ? 84 : 91;
-      g.appendChild(el("line", {
-        x1: cx + sin * r1, y1: cy - cos * r1,
-        x2: cx + sin * r2, y2: cy - cos * r2,
-        "stroke-width": major ? 2.5 : 1.5
-      }));
-      if (major) {
-        var lbl = cards[a] !== undefined ? cards[a] : String(a / 10);
-        var tr = 70;
-        g.appendChild(el("text", {
-          x: cx + sin * tr, y: cy - cos * tr + 6,
-          "font-size": cards[a] !== undefined ? 18 : 14,
-          fill: cards[a] !== undefined ? "#FFFFFF" : "#C8D0D6"
-        }, lbl));
-      }
-    }
+  var k = (mode === "phone") ? 0.12 : 0.22;
+  att.pitch += (raw.pitch - cage.pitch - att.pitch) * k;
+  att.roll  += (raw.roll  - cage.roll  - att.roll)  * k;
+  var hd = raw.hdg - att.hdg;
+  while (hd >  180) hd -= 360;
+  while (hd < -180) hd += 360;
+  att.hdg = (att.hdg + hd*0.1 + 360) % 360;
+
+  // AI transform
+  var p = Math.max(-32, Math.min(32, att.pitch));
+  var r = Math.max(-75, Math.min(75, att.roll));
+  $("horizon").setAttribute("transform",
+    "rotate("+(-r)+" "+AI_CX+" "+AI_CY+") translate(0 "+(p*PX_PER_DEG)+")");
+  $("rollPointer").setAttribute("transform",
+    "rotate("+(-r)+" "+AI_CX+" "+AI_CY+")");
+  var slip = Math.max(-18, Math.min(18, r*0.14));
+  $("slipSkid").setAttribute("x", (AI_CX - 14 + slip).toFixed(1));
+
+  $("prVal").textContent = raw.has
+    ? (att.pitch>=0?"+":"")+att.pitch.toFixed(0)+"° / "+(att.roll>=0?"+":"")+att.roll.toFixed(0)+"°"
+    : "—";
+
+  if (!linkDown) {
+    sim.rpmL = wob(5840,6); sim.rpmR = wob(5795,6);
+    sim.egtL = wob(1118,4); sim.egtR = wob(1104,4);
+    sim.chtR = wob(376,2);
+    sim.chtL = driveHot ? Math.min(458,sim.chtL+1.4) : (sim.chtL>383 ? sim.chtL-1.1 : wob(381,2));
+    sim.fuel = Math.max(0, sim.fuel-0.00012);
+    sim.ias  = wob(28,0.5);
+    sim.alt  = wob(2000,2);
+    sim.vsi  = Math.sin(sim.t*0.25)*260;
   }
 
-  // ---------- main loop ----------
-  function frame() {
-    sim.t += 0.05;
+  var ias = linkDown ? 0 : sim.ias;
+  var alt = linkDown ? 0 : sim.alt;
 
-    // pick the attitude source
-    if (mode === "demo") {
-      var d = demoFlight(sim.t);
-      raw.pitch = d.pitch; raw.roll = d.roll; raw.hdg = d.hdg; raw.has = true;
-      cage.pitch = 0; cage.roll = 0;
-      if (gps.trk === null) { gps.trk = d.hdg; }
-      if (gps.gs === null) { gps.gs = 27; }
-    } else if (mode === "manual") {
-      raw.pitch = manual.pitch; raw.roll = manual.roll; raw.hdg = manual.hdg; raw.has = true;
-      cage.pitch = 0; cage.roll = 0;
+  // IAS / ALT displays
+  $("asiVal").textContent  = linkDown ? "–" : ias.toFixed(0);
+  $("altVal").textContent  = linkDown ? "–" : alt.toFixed(0);
+  $("tb-ias").textContent  = linkDown ? "–" : ias.toFixed(0);
+  $("tb-alt").textContent  = linkDown ? "–" : alt.toFixed(0);
+
+  // speed arc marker
+  var sDeg = spdDeg(ias);
+  var sm1 = arcPt(AI_CX, AI_CY, SPD_R-SPD_W/2-3, sDeg);
+  var sm2 = arcPt(AI_CX, AI_CY, SPD_R+SPD_W/2+4, sDeg);
+  $("speedMarker").setAttribute("x1",sm1[0].toFixed(1)); $("speedMarker").setAttribute("y1",sm1[1].toFixed(1));
+  $("speedMarker").setAttribute("x2",sm2[0].toFixed(1)); $("speedMarker").setAttribute("y2",sm2[1].toFixed(1));
+
+  // alt arc marker
+  var aDeg = altDeg(alt);
+  var am1 = arcPt(HSI_CX, HSI_CY, ALT_R-ALT_W/2-3, aDeg);
+  var am2 = arcPt(HSI_CX, HSI_CY, ALT_R+ALT_W/2+4, aDeg);
+  $("altMarker").setAttribute("x1",am1[0].toFixed(1)); $("altMarker").setAttribute("y1",am1[1].toFixed(1));
+  $("altMarker").setAttribute("x2",am2[0].toFixed(1)); $("altMarker").setAttribute("y2",am2[1].toFixed(1));
+
+  // VSI strip
+  var vClamp = Math.max(-1000, Math.min(1000, linkDown ? 0 : sim.vsi));
+  var vsiMidY = AI_CY + 52, vsiHalf = 50, vsiX = AI_CX - 62, vsiW = 16;
+  var vFrac = vClamp / 1000;  // -1..+1
+  var barY, barH;
+  if (vFrac >= 0) { barY = vsiMidY - vFrac*vsiHalf; barH = vFrac*vsiHalf; }
+  else            { barY = vsiMidY; barH = -vFrac*vsiHalf; }
+  $("vsiBar").setAttribute("x",  vsiX - vsiW/2 + 1);
+  $("vsiBar").setAttribute("y",  barY.toFixed(1));
+  $("vsiBar").setAttribute("width",  vsiW - 2);
+  $("vsiBar").setAttribute("height", Math.max(2, barH).toFixed(1));
+  $("vsiBar").setAttribute("fill", vClamp >= 0 ? "#35D6E8" : "#E8A33D");
+  $("vsiVal").textContent = linkDown ? "–" : (vClamp>=0?"+":"")+vClamp.toFixed(0);
+  $("tb-vsi").textContent = linkDown ? "–" : (vClamp>=0?"+":"")+vClamp.toFixed(0);
+
+  // HSI
+  renderRose(att.hdg);
+  var hdgStr = raw.has ? String(Math.round(att.hdg)).padStart(3,"0") : "—";
+  $("hdgVal").textContent = hdgStr;
+  $("tb-hdg").textContent = raw.has ? hdgStr : "---";
+
+  if (gps.trk !== null) {
+    var rel = ((gps.trk - att.hdg) * Math.PI) / 180;
+    var tx = HSI_CX + Math.sin(rel)*(HSI_R-11);
+    var ty = HSI_CY - Math.cos(rel)*(HSI_R-11);
+    $("trkDia").setAttribute("points", tx.toFixed(1)+","+(ty-10).toFixed(1)+" "+(tx-8).toFixed(1)+","+ty.toFixed(1)+" "+tx.toFixed(1)+","+(ty+10).toFixed(1)+" "+(tx+8).toFixed(1)+","+ty.toFixed(1));
+    $("trkDia").setAttribute("opacity","1");
+  } else { $("trkDia").setAttribute("opacity","0.25"); }
+
+  // Map tiles
+  if (gps.lat !== null) updateMapTiles(gps.lat, gps.lon, att.hdg);
+
+  // SVS terrain: reload tiles if moved >1km, recompute profile if heading changed >5°
+  if (SVS_ON && gps.lat !== null) {
+    if (!svsCenterLoaded ||
+        Math.abs(gps.lat - svsCenterLoaded.lat) > 0.009 ||
+        Math.abs(gps.lon - svsCenterLoaded.lon) > 0.012) {
+      svsEnsureTiles(gps.lat, gps.lon);
     }
-
-    // low-pass the attitude: raw phone fusion is unusable unfiltered
-    var k = (mode === "phone") ? 0.12 : 0.22;
-    att.pitch += (raw.pitch - cage.pitch - att.pitch) * k;
-    att.roll  += (raw.roll  - cage.roll  - att.roll)  * k;
-
-    var hd = raw.hdg - att.hdg;
-    while (hd > 180) { hd -= 360; }
-    while (hd < -180) { hd += 360; }
-    att.hdg = (att.hdg + hd * 0.1 + 360) % 360;
-
-    // attitude indicator transform
-    var p = Math.max(-32, Math.min(32, att.pitch));
-    var r = Math.max(-75, Math.min(75, att.roll));
-    $("horizon").setAttribute("transform",
-      "rotate(" + (-r) + " 484 226) translate(0 " + (p * PX_PER_DEG) + ")");
-    $("rollPointer").setAttribute("transform", "rotate(" + (-r) + " 484 226)");
-
-    // slip/skid: fake coordinated flight with a little lag off roll rate
-    var slip = Math.max(-18, Math.min(18, r * 0.14));
-    $("slipSkid").setAttribute("x", 470 + slip);
-
-    $("prVal").textContent = (raw.has ? (att.pitch >= 0 ? "+" : "") + att.pitch.toFixed(0) + "° / "
-                              + (att.roll >= 0 ? "+" : "") + att.roll.toFixed(0) + "°" : "—");
-
-    // ---- simulated node channels ----
-    if (!linkDown) {
-      sim.rpmL = wob(5840, 6);
-      sim.rpmR = wob(5795, 6);
-      sim.egtL = wob(1118, 4);
-      sim.egtR = wob(1104, 4);
-      sim.chtR = wob(376, 2);
-      sim.chtL = driveHot ? Math.min(458, sim.chtL + 1.4)
-                          : (sim.chtL > 383 ? sim.chtL - 1.1 : wob(381, 2));
-      sim.fuel = Math.max(0, sim.fuel - 0.00012);
-      sim.ias = wob(28, 0.5);
-      sim.alt = wob(1180, 2);
-      sim.vsi = Math.sin(sim.t * 0.25) * 260;
+    if (svsHasData && (svsLastHdg === null || Math.abs(att.hdg - svsLastHdg) > 5)) {
+      svsRecompute();
     }
+  }
+  svsRender();
 
-    // ---- tapes ----
-    renderAsi(sim.ias);
-    renderAlt(sim.alt);
-    $("asiVal").textContent = linkDown ? "– –" : sim.ias.toFixed(0);
-    $("altVal").textContent = linkDown ? "– – – –" : sim.alt.toFixed(0);
-
-    var vClamp = Math.max(-VSI.max, Math.min(VSI.max, linkDown ? 0 : sim.vsi));
-    var vy = VSI.cy - (vClamp / 1000) * VSI.pxPer1000;
-    $("vsiPtr").setAttribute("points", "818," + vy + " 834," + (vy - 8) + " 834," + (vy + 8));
-    $("vsiBar").setAttribute("y", Math.min(VSI.cy, vy));
-    $("vsiBar").setAttribute("height", Math.abs(VSI.cy - vy));
-    $("vsiVal").textContent = linkDown ? "–" : (vClamp >= 0 ? "+" : "") + vClamp.toFixed(0);
-
-    // ---- HSI ----
-    renderRose(att.hdg);
-    $("hdgVal").textContent = raw.has ? String(Math.round(att.hdg)).padStart(3, "0") : "—";
-    if (gps.trk !== null) {
-      var rel = ((gps.trk - att.hdg) * Math.PI) / 180;
-      var tx = 484 + Math.sin(rel) * 94, ty = 546 - Math.cos(rel) * 94;
-      $("trkDia").setAttribute("points",
-        tx + "," + (ty - 9) + " " + (tx - 7) + "," + ty + " " + tx + "," + (ty + 9) + " " + (tx + 7) + "," + ty);
-      $("trkDia").setAttribute("opacity", "1");
-    } else {
-      $("trkDia").setAttribute("opacity", "0.25");
-    }
-
-    // ---- engine strip ----
+  // Engine strip — full landscape EIS
+  if (!IS_PORTRAIT) {
     eisRows.forEach(function (row) {
       var val = sim[row.key];
-      var t = $("eis-" + row.key), b = $("bar-" + row.key);
-      if (linkDown) { t.textContent = "– –"; t.setAttribute("fill", "#9AA6AE"); b.setAttribute("width", 0); return; }
-      var dec = (row.key === "fuel") ? 1 : 0;
-      t.textContent = val.toFixed(dec);
-      var frac = Math.max(0, Math.min(1, (val - row.min) / (row.max - row.min)));
-      b.setAttribute("width", frac * 126);
-      var over = (row.redline !== null && val >= row.redline) || (row.low !== undefined && val <= row.low);
-      var near = (row.redline !== null && val >= row.redline * 0.94);
-      var col = over ? "#E8483D" : (near ? "#E8A33D" : "#3FCF6A");
-      b.setAttribute("fill", col);
-      t.setAttribute("fill", over ? "#E8483D" : "#FFFFFF");
+      var t = $("eis-"+row.key), b = $("bar-"+row.key);
+      if (!t || !b) return;
+      if (linkDown) { t.textContent="–"; t.setAttribute("fill","#9AA6AE"); b.setAttribute("width",0); return; }
+      t.textContent = val.toFixed(row.key==="fuel"?1:0);
+      var frac = Math.max(0,Math.min(1,(val-row.min)/(row.max-row.min)));
+      b.setAttribute("width", frac*84);
+      var over = (row.redline!==null&&val>=row.redline)||(row.low!==undefined&&val<=row.low);
+      var col  = over?"#E8483D":(row.redline!==null&&val>=row.redline*0.94?"#E8A33D":"#3FCF6A");
+      b.setAttribute("fill",col); t.setAttribute("fill",over?"#E8483D":"#FFFFFF");
     });
-
     var dRpm = linkDown ? 0 : sim.rpmL - sim.rpmR;
-    var sw = Math.max(-60, Math.min(60, dRpm / 300 * 60));
-    $("syncBar").setAttribute("x", sw < 0 ? 82 + sw : 82);
-    $("syncBar").setAttribute("width", Math.abs(sw));
-    $("syncBar").setAttribute("fill", Math.abs(dRpm) > 100 ? "#E8A33D" : "#3FCF6A");
-    $("syncTxt").textContent = linkDown ? "– –" : "Δ " + Math.abs(dRpm).toFixed(0);
-    $("splitVal").textContent = linkDown ? "– –" : Math.abs(sim.egtL - sim.egtR).toFixed(0) + "°F";
-    $("hrsVal").textContent = (12.4 + sim.t / 3600).toFixed(1);
-
-    // ---- right column ----
-    var burn = 1.6 + (sim.rpmL + sim.rpmR) / 2 / 3000;
-    var hrs = sim.fuel / burn;
-    function rc(id, v) { $("rc-" + id).textContent = v; }
-    rc("oat",   linkDown ? "– –" : sim.oat.toFixed(0));
-    rc("dalt",  linkDown ? "– –" : (1180 + (sim.oat - 59) * 118).toFixed(0));
-    rc("gs",    gps.gs === null ? "—" : gps.gs.toFixed(0));
-    rc("gpsalt",gps.alt === null ? "—" : gps.alt.toFixed(0));
-    rc("endur", linkDown ? "– –" : Math.floor(hrs) + ":" + String(Math.round((hrs % 1) * 60)).padStart(2, "0"));
-    rc("baro",  linkDown ? "– –" : "29.92");
-
-    $("posVal").textContent = (gps.lat === null) ? "—"
-      : gps.lat.toFixed(5) + ", " + gps.lon.toFixed(5) + "   ±" + Math.round(gps.acc) + "m";
-
-    // ---- alerts ----
-    var g = $("alerts");
-    while (g.firstChild) { g.removeChild(g.firstChild); }
-    var list = [];
-    if (linkDown) { list.push(["NODE LINK LOST — ENGINE AND AIR DATA UNAVAILABLE", "#E8483D"]); }
-    if (!linkDown && sim.chtL >= 435) { list.push(["CHT LEFT OVER LIMIT — " + sim.chtL.toFixed(0) + "°F", "#E8483D"]); }
-    if (!linkDown && hrs < 0.75) { list.push(["FUEL ENDURANCE BELOW RESERVE", "#E8A33D"]); }
-    if (!raw.has) { list.push(["ATTITUDE UNAVAILABLE — ENABLE PHONE SENSORS", "#E8A33D"]); }
-    if (!list.length) { list.push(["NO ACTIVE ALERTS", "#9AA6AE"]); }
-    var ay = 536;
-    list.slice(0, 4).forEach(function (a) {
-      g.appendChild(el("rect", { x: 614, y: ay - 14, width: 364, height: 22, fill: a[1], "fill-opacity": 0.16, stroke: a[1], "stroke-width": 1 }));
-      g.appendChild(el("text", { x: 622, y: ay + 2, "font-size": 12, "font-weight": 700, fill: a[1] }, a[0]));
-      ay += 28;
-    });
-
-    // the annunciator always names the attitude source, whatever it is
-    var annTxt = mode === "phone" ? "PHONE AHRS · ADVISORY"
-               : mode === "manual" ? "MANUAL · DRAG TO FLY"
-               : "DEMO · SIMULATED ATTITUDE";
-    var annCol = mode === "phone" ? "#E8A33D" : "#35D6E8";
-    if ($("ahrsTxt").textContent !== annTxt) {
-      $("ahrsTxt").textContent = annTxt;
-      $("ahrsTxt").setAttribute("fill", annCol);
-      $("ahrsBox").setAttribute("stroke", annCol);
-    }
-
-    requestAnimationFrame(frame);
+    var sw = Math.max(-40, Math.min(40, dRpm/300*40));
+    var sb = $("syncBar"), st = $("syncTxt");
+    if (sb) { sb.setAttribute("x",sw<0?49+sw:49); sb.setAttribute("width",Math.abs(sw)); sb.setAttribute("fill",Math.abs(dRpm)>100?"#E8A33D":"#3FCF6A"); }
+    if (st) st.textContent = linkDown?"–":"Δ "+Math.abs(dRpm).toFixed(0);
+    var sv = $("splitVal"), hv = $("hrsVal");
+    if (sv) sv.textContent = linkDown?"–":Math.abs(sim.egtL-sim.egtR).toFixed(0)+"°F";
+    if (hv) hv.textContent = (12.4+sim.t/3600).toFixed(1);
   }
+  // Engine strip — compact portrait EIS (uses stored element refs, no ID conflicts)
+  if (IS_PORTRAIT) {
+    COMPACT_ROWS.forEach(function (row) {
+      var val = sim[row.key];
+      if (linkDown) { row.valEl.textContent="–"; row.valEl.setAttribute("fill","#9AA6AE"); row.barEl.setAttribute("width",0); return; }
+      row.valEl.textContent = val.toFixed(row.key==="fuel"?1:0);
+      var frac = Math.max(0,Math.min(1,(val-row.min)/(row.max-row.min)));
+      row.barEl.setAttribute("width", frac*(row.bw-2));
+      var over = (row.redline!==null&&val>=row.redline)||(row.low!==null&&val<=row.low);
+      var col  = over?"#E8483D":(row.redline!==null&&val>=row.redline*0.94?"#E8A33D":"#3FCF6A");
+      row.barEl.setAttribute("fill",col); row.valEl.setAttribute("fill",over?"#E8483D":"#FFFFFF");
+    });
+  }
+
+  // Top bar extras
+  var burn = 1.6+(sim.rpmL+sim.rpmR)/2/3000;
+  var hrs  = sim.fuel/burn;
+  $("tb-gs").textContent     = gps.gs===null?"—":gps.gs.toFixed(0);
+  $("tb-gpsalt").textContent = gps.alt===null?"—":gps.alt.toFixed(0);
+  $("tb-endur").textContent  = linkDown?"–":Math.floor(hrs)+":"+String(Math.round((hrs%1)*60)).padStart(2,"0");
+  $("tb-fuel").textContent   = linkDown?"–":sim.fuel.toFixed(1);
+
+  // Bottom bar
+  $("oatVal").textContent   = linkDown?"–":sim.oat.toFixed(0)+"°F";
+  $("baroVal").textContent  = "29.92";
+  $("daltVal").textContent  = linkDown?"–":(sim.alt+(sim.oat-59)*120).toFixed(0);
+  $("posVal").textContent   = gps.lat===null?"—":gps.lat.toFixed(5)+", "+gps.lon.toFixed(5)+"  ±"+Math.round(gps.acc||10)+"m";
+
+  // Alerts
+  var ag = $("alerts");
+  while (ag.firstChild) ag.removeChild(ag.firstChild);
+  var list = [];
+  if (linkDown)           list.push(["NODE LINK LOST — ENGINE AND AIR DATA UNAVAILABLE","#E8483D"]);
+  if (!linkDown&&sim.chtL>=435) list.push(["CHT LEFT OVER LIMIT — "+sim.chtL.toFixed(0)+"°F","#E8483D"]);
+  if (!linkDown&&hrs<0.75) list.push(["FUEL ENDURANCE BELOW RESERVE","#E8A33D"]);
+  if (!raw.has)           list.push(["ATTITUDE UNAVAILABLE — ENABLE PHONE SENSORS","#E8A33D"]);
+  if (!list.length)       list.push(["NO ACTIVE ALERTS","#9AA6AE"]);
+  var alertX = IS_PORTRAIT ? 10 : 110;
+  var ay = IS_PORTRAIT ? 895 : 581;
+  list.slice(0,3).forEach(function (a) {
+    ag.appendChild(el("rect",{x:alertX,y:ay-13,width:380,height:19,fill:a[1],"fill-opacity":0.16,stroke:a[1],"stroke-width":1}));
+    ag.appendChild(el("text",{x:alertX+8,y:ay+1,"font-size":11,"font-weight":700,fill:a[1]},a[0]));
+    ay += 23;
+  });
+
+  // AHRS annunciator
+  var annTxt = mode==="phone"?"PHONE AHRS · ADVISORY":mode==="manual"?"MANUAL · DRAG TO FLY":"DEMO · SIMULATED ATTITUDE";
+  var annCol = mode==="phone"?"#E8A33D":"#35D6E8";
+  if ($("ahrsTxt").textContent !== annTxt) {
+    $("ahrsTxt").textContent = annTxt;
+    $("ahrsTxt").setAttribute("fill", annCol);
+    $("ahrsBox").setAttribute("stroke", annCol);
+  }
+
   requestAnimationFrame(frame);
+}
 
-  // ---------- sensors ----------
-  function screenAngle() {
-    if (screen.orientation && typeof screen.orientation.angle === "number") { return screen.orientation.angle; }
-    if (typeof window.orientation === "number") { return window.orientation; }
-    return 0;
-  }
+// ---------- sensors ----------
+function screenAngle() {
+  if (screen.orientation&&typeof screen.orientation.angle==="number") return screen.orientation.angle;
+  if (typeof window.orientation==="number") return window.orientation;
+  return 0;
+}
+var diag = { perm:"not requested", count:0, gsa:"not tried", geo:"not requested" };
+function tag(t,c) { return '<span class="'+c+'">'+t+"</span>"; }
+function setDiag() {
+  function set(id,html) { $(id).innerHTML=html; }
+  set("d-mode", mode==="phone"?tag("phone sensors","ok"):mode==="manual"?tag("manual — drag","warn"):tag("demo flight","warn"));
+  set("d-secure", window.isSecureContext?tag("yes","ok"):tag("no — sensors blocked","bad"));
+  var framed=window.self!==window.top;
+  set("d-frame", framed?tag("yes — needs allow=\"gyroscope; accelerometer\"","warn"):tag("no","ok"));
+  set("d-doe", ("DeviceOrientationEvent"in window)?tag("present","ok"):tag("missing","bad"));
+  set("d-perm",diag.perm); set("d-count",diag.count>0?tag(String(diag.count),"ok"):tag("0 — nothing arriving","bad"));
+  set("d-gsa",diag.gsa); set("d-geo",diag.geo); set("d-angle",screenAngle()+"°");
+}
 
-  // ---------- diagnostics ----------
-  var diag = { perm: "not requested", count: 0, gsa: "not tried", geo: "not requested" };
+function onOrient(e) {
+  if (e.beta===null&&e.gamma===null&&e.alpha===null) return;
+  diag.count++;
+  if (mode!=="phone") { mode="phone"; setDiag(); }
+  raw.has=true;
+  var b=e.beta||0, gm=e.gamma||0, a=screenAngle(), p, rr;
+  if      (a===90)           { p=gm; rr=b; }
+  else if (a===-90||a===270) { p=-gm; rr=-b; }
+  else if (a===180)          { p=-(b-90); rr=-gm; }
+  else                       { p=b-90; rr=gm; }
+  raw.pitch=p; raw.roll=rr;
+  var h=(typeof e.webkitCompassHeading==="number")?e.webkitCompassHeading:(e.alpha!==null?(360-e.alpha+a)%360:null);
+  if (h!==null&&!isNaN(h)) raw.hdg=h;
+}
 
-  function tag(txt, cls) { return '<span class="' + cls + '">' + txt + "</span>"; }
-
-  function setDiag() {
-    function set(id, html) { $(id).innerHTML = html; }
-    set("d-mode", mode === "phone" ? tag("phone sensors", "ok")
-                : mode === "manual" ? tag("manual — drag the horizon", "warn")
-                : tag("demo flight", "warn"));
-    set("d-secure", window.isSecureContext ? tag("yes", "ok") : tag("no — sensors blocked", "bad"));
-    var framed = window.self !== window.top;
-    set("d-frame", framed
-      ? tag("yes — needs allow=\"gyroscope; accelerometer\"", "warn")
-      : tag("no", "ok"));
-    set("d-doe", ("DeviceOrientationEvent" in window) ? tag("present", "ok") : tag("missing", "bad"));
-    set("d-perm", diag.perm);
-    set("d-count", diag.count > 0 ? tag(String(diag.count), "ok") : tag("0 — nothing arriving", "bad"));
-    set("d-gsa", diag.gsa);
-    set("d-geo", diag.geo);
-    set("d-angle", screenAngle() + "°");
-  }
-
-  function onOrient(e) {
-    if (e.beta === null && e.gamma === null && e.alpha === null) { return; }
-    diag.count++;
-    if (mode !== "phone") { mode = "phone"; setDiag(); }
-    raw.has = true;
-    var b = e.beta || 0, gm = e.gamma || 0;
-    var a = screenAngle();
-    var p, r;
-    if (a === 90)        { p = gm;  r = b; }
-    else if (a === -90 || a === 270) { p = -gm; r = -b; }
-    else if (a === 180)  { p = -(b - 90); r = -gm; }
-    else                 { p = b - 90;    r = gm; }
-    raw.pitch = p;
-    raw.roll = r;
-    var h = (typeof e.webkitCompassHeading === "number") ? e.webkitCompassHeading
-          : (e.alpha !== null ? (360 - e.alpha + a) % 360 : null);
-    if (h !== null && !isNaN(h)) { raw.hdg = h; }
-  }
-
-  // Second path: the Generic Sensor API. Different plumbing, same Permissions
-  // Policy gate, so if one is blocked the other usually is too — but it reports
-  // a real error instead of failing silently, which is why it is worth trying.
-  function tryGenericSensor() {
-    var Ctor = window.AbsoluteOrientationSensor || window.RelativeOrientationSensor;
-    if (!Ctor) { diag.gsa = tag("unsupported", "warn"); setDiag(); return; }
-    try {
-      var s = new Ctor({ frequency: 30, referenceFrame: "screen" });
-      s.addEventListener("reading", function () {
-        var q = s.quaternion;
-        if (!q) { return; }
-        diag.count++;
-        if (mode !== "phone") { mode = "phone"; }
-        raw.has = true;
-        var x = q[0], y = q[1], z = q[2], w = q[3];
-        raw.roll  = Math.atan2(2 * (w * y + x * z), 1 - 2 * (y * y + x * x)) * 180 / Math.PI;
-        raw.pitch = Math.asin(Math.max(-1, Math.min(1, 2 * (w * x - y * z)))) * 180 / Math.PI;
-        raw.hdg   = (Math.atan2(2 * (w * z + x * y), 1 - 2 * (z * z + x * x)) * 180 / Math.PI + 360) % 360;
-        diag.gsa = tag("streaming", "ok");
-        setDiag();
-      });
-      s.addEventListener("error", function (ev) {
-        diag.gsa = tag((ev.error && ev.error.name) || "error", "bad");
-        setDiag();
-      });
-      s.start();
-      diag.gsa = "starting";
-    } catch (err) {
-      diag.gsa = tag(err.name || "blocked", "bad");
-    }
-    setDiag();
-  }
-
-  function startGeo() {
-    if (!navigator.geolocation) { diag.geo = tag("unsupported", "bad"); setDiag(); return; }
-    diag.geo = "acquiring";
-    setDiag();
-    navigator.geolocation.watchPosition(function (pos) {
-      var c = pos.coords;
-      gps.lat = c.latitude; gps.lon = c.longitude; gps.acc = c.accuracy;
-      gps.gs = (c.speed === null || isNaN(c.speed)) ? 0 : c.speed * 2.23694;
-      gps.trk = (c.heading === null || isNaN(c.heading)) ? gps.trk : c.heading;
-      gps.alt = (c.altitude === null || isNaN(c.altitude)) ? null : c.altitude * 3.28084;
-      diag.geo = tag("fix ±" + Math.round(c.accuracy) + " m", "ok");
-      setDiag();
-    }, function (err) {
-      diag.geo = tag(err.code === 1 ? "denied" : "unavailable", "bad");
-      setDiag();
-    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 });
-  }
-
-  $("btnSensors").addEventListener("click", function () {
-    var btn = this;
-    startGeo();
-    tryGenericSensor();
-    var D = window.DeviceOrientationEvent;
-    if (D && typeof D.requestPermission === "function") {
-      diag.perm = "asking";
-      setDiag();
-      D.requestPermission().then(function (res) {
-        diag.perm = res === "granted" ? tag("granted", "ok") : tag(res, "bad");
-        if (res === "granted") { window.addEventListener("deviceorientation", onOrient, true); }
-        setDiag();
-      }).catch(function (e) {
-        diag.perm = tag((e && e.name) || "rejected", "bad");
-        setDiag();
-      });
-    } else {
-      diag.perm = tag("not required on this browser", "ok");
-      window.addEventListener("deviceorientation", onOrient, true);
-      setDiag();
-    }
-    btn.textContent = "Sensors requested";
-
-    // If nothing arrives, say so plainly instead of sitting there dead.
-    setTimeout(function () {
-      if (diag.count === 0) {
-        btn.textContent = "No sensor data — using demo";
-        setDiag();
-      }
-    }, 2500);
-  });
-
-  $("btnDemo").addEventListener("click", function () {
-    mode = (mode === "demo") ? "manual" : "demo";
-    this.setAttribute("aria-pressed", String(mode === "demo"));
-    this.textContent = mode === "demo" ? "Demo flight" : "Manual — drag horizon";
-    setDiag();
-  });
-
-  // ---------- drag to fly ----------
-  (function dragToFly() {
-    var svg = document.querySelector("svg.pfd");
-    var dragging = false, sx = 0, sy = 0, p0 = 0, r0 = 0;
-    svg.addEventListener("pointerdown", function (e) {
-      dragging = true;
-      mode = "manual";
-      $("btnDemo").setAttribute("aria-pressed", "false");
-      $("btnDemo").textContent = "Manual — drag horizon";
-      sx = e.clientX; sy = e.clientY;
-      p0 = manual.pitch; r0 = manual.roll;
-      manual.hdg = att.hdg;
-      svg.setPointerCapture(e.pointerId);
-      setDiag();
+function tryGenericSensor() {
+  var Ctor=window.AbsoluteOrientationSensor||window.RelativeOrientationSensor;
+  if (!Ctor) { diag.gsa=tag("unsupported","warn"); setDiag(); return; }
+  try {
+    var s=new Ctor({frequency:30,referenceFrame:"screen"});
+    s.addEventListener("reading",function(){
+      var q=s.quaternion; if(!q) return;
+      diag.count++; if(mode!=="phone") mode="phone"; raw.has=true;
+      var x=q[0],y=q[1],z=q[2],w=q[3];
+      raw.roll =Math.atan2(2*(w*y+x*z),1-2*(y*y+x*x))*180/Math.PI;
+      raw.pitch=Math.asin(Math.max(-1,Math.min(1,2*(w*x-y*z))))*180/Math.PI;
+      raw.hdg  =(Math.atan2(2*(w*z+x*y),1-2*(z*z+x*x))*180/Math.PI+360)%360;
+      diag.gsa=tag("streaming","ok"); setDiag();
     });
-    svg.addEventListener("pointermove", function (e) {
-      if (!dragging) { return; }
-      var rect = svg.getBoundingClientRect();
-      var scale = 1000 / rect.width;
-      manual.pitch = Math.max(-30, Math.min(30, p0 + (e.clientY - sy) * scale / PX_PER_DEG));
-      manual.roll  = Math.max(-60, Math.min(60, r0 + (e.clientX - sx) * scale * 0.18));
-      manual.hdg   = (manual.hdg + manual.roll * 0.02 + 360) % 360;
-    });
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) {
-      svg.addEventListener(t, function () { dragging = false; });
-    });
-  })();
-
-  window.addEventListener("orientationchange", setDiag);
+    s.addEventListener("error",function(ev){ diag.gsa=tag((ev.error&&ev.error.name)||"error","bad"); setDiag(); });
+    s.start(); diag.gsa="starting";
+  } catch(err) { diag.gsa=tag(err.name||"blocked","bad"); }
   setDiag();
-  setInterval(setDiag, 2000);
+}
 
-  $("btnCage").addEventListener("click", function () {
-    cage.pitch = raw.pitch;
-    cage.roll = raw.roll;
-    att.pitch = 0; att.roll = 0;
+function startGeo() {
+  if (!navigator.geolocation) { diag.geo=tag("unsupported","bad"); setDiag(); return; }
+  diag.geo="acquiring"; setDiag();
+  navigator.geolocation.watchPosition(function(pos){
+    var c=pos.coords;
+    gps.lat=c.latitude; gps.lon=c.longitude; gps.acc=c.accuracy;
+    gps.gs =(c.speed===null||isNaN(c.speed))?0:c.speed*2.23694;
+    gps.trk=(c.heading===null||isNaN(c.heading))?gps.trk:c.heading;
+    gps.alt=(c.altitude===null||isNaN(c.altitude))?null:c.altitude*3.28084;
+    diag.geo=tag("fix ±"+Math.round(c.accuracy)+" m","ok"); setDiag();
+  },function(err){ diag.geo=tag(err.code===1?"denied":"unavailable","bad"); setDiag(); },
+  {enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+}
+
+$("btnSensors").addEventListener("click",function(){
+  var btn=this; startGeo(); tryGenericSensor();
+  var D=window.DeviceOrientationEvent;
+  if (D&&typeof D.requestPermission==="function") {
+    diag.perm="asking"; setDiag();
+    D.requestPermission().then(function(res){
+      diag.perm=res==="granted"?tag("granted","ok"):tag(res,"bad");
+      if (res==="granted") window.addEventListener("deviceorientation",onOrient,true);
+      setDiag();
+    }).catch(function(e){ diag.perm=tag((e&&e.name)||"rejected","bad"); setDiag(); });
+  } else {
+    diag.perm=tag("not required","ok");
+    window.addEventListener("deviceorientation",onOrient,true);
+    setDiag();
+  }
+  btn.textContent="Sensors requested";
+  setTimeout(function(){ if(diag.count===0){btn.textContent="No sensor data — using demo"; setDiag();} },2500);
+});
+
+$("btnDemo").addEventListener("click",function(){
+  mode=(mode==="demo")?"manual":"demo";
+  this.setAttribute("aria-pressed",String(mode==="demo"));
+  this.textContent=mode==="demo"?"Demo flight":"Manual — drag horizon";
+  setDiag();
+});
+
+// drag to fly
+(function dragToFly(){
+  var svg=document.querySelector("svg.pfd"), dragging=false, sx=0,sy=0,p0=0,r0=0;
+  svg.addEventListener("pointerdown",function(e){
+    dragging=true; mode="manual";
+    $("btnDemo").setAttribute("aria-pressed","false"); $("btnDemo").textContent="Manual — drag horizon";
+    sx=e.clientX; sy=e.clientY; p0=manual.pitch; r0=manual.roll; manual.hdg=att.hdg;
+    svg.setPointerCapture(e.pointerId); setDiag();
   });
+  svg.addEventListener("pointermove",function(e){
+    if (!dragging) return;
+    var rect=svg.getBoundingClientRect();
+    var scale=(IS_PORTRAIT?660:1000)/rect.width;
+    manual.pitch=Math.max(-30,Math.min(30,p0+(e.clientY-sy)*scale/PX_PER_DEG));
+    manual.roll =Math.max(-60,Math.min(60,r0+(e.clientX-sx)*scale*0.18));
+    manual.hdg  =(manual.hdg+manual.roll*0.02+360)%360;
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(function(t){ svg.addEventListener(t,function(){ dragging=false; }); });
+})();
 
-  var wakeLock = null;
-  $("btnWake").addEventListener("click", function () {
-    var b = this;
-    if (!("wakeLock" in navigator)) { b.textContent = "Wake lock unsupported"; return; }
-    if (wakeLock) {
-      wakeLock.release(); wakeLock = null;
-      b.setAttribute("aria-pressed", "false"); b.textContent = "Keep screen awake";
-    } else {
-      navigator.wakeLock.request("screen").then(function (w) {
-        wakeLock = w;
-        b.setAttribute("aria-pressed", "true"); b.textContent = "Screen stays awake";
-      }).catch(function () { b.textContent = "Wake lock refused"; });
+window.addEventListener("orientationchange", function(){ setTimeout(relayout, 100); });
+window.addEventListener("resize", function(){ setTimeout(relayout, 150); });
+
+$("btnCage").addEventListener("click",function(){ cage.pitch=raw.pitch; cage.roll=raw.roll; att.pitch=0; att.roll=0; });
+
+var wakeLock=null;
+$("btnWake").addEventListener("click",function(){
+  var b=this;
+  if (!("wakeLock"in navigator)){b.textContent="Wake lock unsupported";return;}
+  if (wakeLock){wakeLock.release();wakeLock=null;b.setAttribute("aria-pressed","false");b.textContent="Keep screen awake";}
+  else{navigator.wakeLock.request("screen").then(function(w){wakeLock=w;b.setAttribute("aria-pressed","true");b.textContent="Screen stays awake";}).catch(function(){b.textContent="Wake lock refused";});}
+});
+
+$("btnFull").addEventListener("click",function(){
+  var s=document.querySelector(".stage");
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (s.requestFullscreen) s.requestFullscreen().catch(function(){});
+});
+
+$("btnHot").addEventListener("click",function(){ var on=this.getAttribute("aria-pressed")==="true"; this.setAttribute("aria-pressed",String(!on)); driveHot=!on; });
+$("btnLink").addEventListener("click",function(){ var on=this.getAttribute("aria-pressed")==="true"; this.setAttribute("aria-pressed",String(!on)); linkDown=!on; this.textContent=linkDown?"Restore node link":"Drop node link"; });
+
+// ================================================================
+//  SYNTHETIC VISION SYSTEM (SVS)
+//  Elevation source: AWS Terrarium tiles (open, no key needed)
+//  Terrarium encoding: height_m = R*256 + G + B/256 - 32768
+//  Three hazard tiers:
+//    terrain >8° below horizon  → dark brown topo fill
+//    terrain  0–8° below horizon → amber caution
+//    terrain above horizon        → red pull-up
+// ================================================================
+
+var SVS_ON = false;
+var SVS_ZOOM = 14;           // ~10 m/pixel resolution at mid-latitudes
+var svsTiles = {};           // "z/x/y" → Uint8ClampedArray | "loading" | null
+var svsProfile = [];         // [{az, elev}] degrees
+var svsCenterLoaded = null;  // last tile-load anchor
+var svsLastHdg = null;       // heading at last profile compute
+var svsHasData = false;      // at least one decoded tile in cache
+
+// ---- convert lat/lon to tile indices ----
+function svsCoords(lat, lon, z) {
+    var n = Math.pow(2, z), latR = lat * Math.PI / 180;
+    var tx = Math.floor((lon + 180) / 360 * n);
+    var yf = (1 - Math.log(Math.tan(latR) + 1 / Math.cos(latR)) / Math.PI) / 2;
+    var ty = Math.floor(yf * n);
+    return { tx: tx, ty: ty, fx: (lon + 180) / 360 * n - tx, fy: yf * n - ty };
+}
+
+// ---- load one tile, decode on arrival ----
+function svsLoadTile(z, tx, ty) {
+    var key = z + "/" + tx + "/" + ty;
+    if (svsTiles[key] !== undefined) return;
+    svsTiles[key] = "loading";
+    var cv = document.createElement("canvas"); cv.width = 256; cv.height = 256;
+    var ctx = cv.getContext("2d");
+    var img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = function () {
+        ctx.drawImage(img, 0, 0);
+        try {
+            svsTiles[key] = ctx.getImageData(0, 0, 256, 256).data;
+            svsHasData = true;
+            svsRecompute();
+        } catch (e) { svsTiles[key] = null; }
+    };
+    img.onerror = function () { svsTiles[key] = null; };
+    img.src = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + tx + "/" + ty + ".png";
+}
+
+// ---- ensure 3×3 tile block around position ----
+function svsEnsureTiles(lat, lon) {
+    var n = Math.pow(2, SVS_ZOOM), c = svsCoords(lat, lon, SVS_ZOOM);
+    for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+            var tx = ((c.tx + dx) % n + n) % n, ty = c.ty + dy;
+            if (ty >= 0 && ty < n) svsLoadTile(SVS_ZOOM, tx, ty);
+        }
     }
-  });
+    svsCenterLoaded = { lat: lat, lon: lon };
+}
 
-  $("btnFull").addEventListener("click", function () {
-    var s = document.querySelector(".stage");
-    if (document.fullscreenElement) { document.exitFullscreen(); }
-    else if (s.requestFullscreen) { s.requestFullscreen().catch(function () {}); }
-  });
+// ---- query elevation at a lat/lon (meters, null if tile missing) ----
+function svsElev(lat, lon) {
+    var c = svsCoords(lat, lon, SVS_ZOOM);
+    var key = SVS_ZOOM + "/" + c.tx + "/" + c.ty;
+    var d = svsTiles[key];
+    if (!d || typeof d === "string") return null;
+    var px = Math.min(255, Math.floor(c.fx * 256));
+    var py = Math.min(255, Math.floor(c.fy * 256));
+    var i = (py * 256 + px) * 4;
+    return d[i] * 256 + d[i + 1] + d[i + 2] / 256 - 32768;
+}
 
-  $("btnHot").addEventListener("click", function () {
-    var on = this.getAttribute("aria-pressed") === "true";
-    this.setAttribute("aria-pressed", String(!on));
-    driveHot = !on;
-  });
+// ---- recompute terrain profile for current heading ----
+function svsRecompute() {
+    if (!gps.lat) return;
+    var lat = gps.lat, lon = gps.lon, hdg = att.hdg;
+    var altM = gps.alt ? gps.alt * 0.3048 : sim.alt * 0.3048;
+    var PI = Math.PI, cosLat = Math.cos(lat * PI / 180);
+    var profile = [];
 
-  $("btnLink").addEventListener("click", function () {
-    var on = this.getAttribute("aria-pressed") === "true";
-    this.setAttribute("aria-pressed", String(!on));
-    linkDown = !on;
-    this.textContent = linkDown ? "Restore node link" : "Drop node link";
-  });
+    for (var az = -90; az <= 90; az += 3) {
+        var absRad = ((hdg + az + 360) % 360) * PI / 180;
+        var maxAngle = -90;
+        // Ray-cast at 7 distances
+        [300, 600, 1200, 2500, 5000, 8000, 12000].forEach(function (d) {
+            var dlat = d * Math.cos(absRad) / 111111;
+            var dlon = d * Math.sin(absRad) / (111111 * cosLat);
+            var elev = svsElev(lat + dlat, lon + dlon);
+            if (elev === null) return;
+            var ang = Math.atan2(elev - altM, d) * 180 / PI;
+            if (ang > maxAngle) maxAngle = ang;
+        });
+        profile.push({ az: az, elev: maxAngle });
+    }
+    svsProfile = profile;
+    svsLastHdg = hdg;
+}
+
+// ---- render SVS polygons into the horizon group ----
+function svsRender() {
+    var polyTerr = $("svsTerrain"), polyHaz = $("svsHazard"), polyPull = $("svsPullup");
+    var badge = $("svsStatus"), loading = $("svsLoading");
+
+    if (!SVS_ON) {
+        polyTerr.setAttribute("opacity","0"); polyHaz.setAttribute("opacity","0"); polyPull.setAttribute("opacity","0");
+        badge.setAttribute("visibility","hidden"); loading.setAttribute("visibility","hidden");
+        return;
+    }
+
+    // Status badges
+    var anyLoading = Object.keys(svsTiles).some(function(k){ return svsTiles[k]==="loading"; });
+    badge.setAttribute("visibility",  svsHasData ? "visible" : "hidden");
+    loading.setAttribute("visibility", (!svsHasData && anyLoading) ? "visible" : "hidden");
+
+    if (!svsProfile.length) {
+        polyTerr.setAttribute("opacity","0"); polyHaz.setAttribute("opacity","0"); polyPull.setAttribute("opacity","0");
+        return;
+    }
+
+    var PI = Math.PI, CX = AI_CX, CY = AI_CY, PPD = PX_PER_DEG, R = AI_R;
+
+    // Build three polygon point lists
+    var pts = [], haz = [], pul = [];
+    svsProfile.forEach(function (p) {
+        var x = CX + Math.sin(p.az * PI / 180) * R;
+        var eClamped = Math.max(-35, Math.min(35, p.elev));
+        var yTop = CY - eClamped * PPD; // terrain top in horizon coords
+
+        // terrain polygon — always touches or is below horizon
+        pts.push(x + "," + Math.max(yTop, CY));
+
+        // amber caution: less than ~500m clearance (< ~2.5°)
+        if (p.elev > -2.5 && p.elev <= 0) {
+            haz.push(x + "," + Math.max(yTop, CY));
+        }
+        // red pull-up: terrain above aircraft altitude
+        if (p.elev > 0) {
+            pul.push(x + "," + yTop);
+        }
+    });
+
+    var bL = CX - R, bR = CX + R;
+    // terrain ground polygon
+    pts.push(bR + ",9999", bL + ",9999");
+    polyTerr.setAttribute("points", pts.join(" "));
+    polyTerr.setAttribute("opacity", svsHasData ? "0.9" : "0");
+
+    if (haz.length > 1) {
+        haz.push(bR + ",9999", bL + ",9999");
+        polyHaz.setAttribute("points", haz.join(" "));
+        polyHaz.setAttribute("opacity", "0.78");
+    } else { polyHaz.setAttribute("opacity","0"); }
+
+    if (pul.length > 1) {
+        pul.push(bR + "," + CY, bL + "," + CY);
+        polyPull.setAttribute("points", pul.join(" "));
+        polyPull.setAttribute("opacity", "0.82");
+    } else { polyPull.setAttribute("opacity","0"); }
+}
+
+$("btnSvs").addEventListener("click", function () {
+    SVS_ON = !SVS_ON;
+    this.setAttribute("aria-pressed", String(SVS_ON));
+    if (SVS_ON && gps.lat) {
+        svsEnsureTiles(gps.lat, gps.lon);
+        svsRecompute();
+    }
+    if (!SVS_ON) {
+        $("svsTerrain").setAttribute("opacity","0");
+        $("svsHazard").setAttribute("opacity","0");
+        $("svsPullup").setAttribute("opacity","0");
+        $("svsStatus").setAttribute("visibility","hidden");
+        $("svsLoading").setAttribute("visibility","hidden");
+    }
+});
+
+window.addEventListener("orientationchange",setDiag);
+setDiag(); setInterval(setDiag,2000);
+
+// ---------- boot ----------
+relayout();
+requestAnimationFrame(frame);
+
 })();
 </script>
 
-
 <script>
-// Progressive web app shell. Registering the worker is what makes this work
-// with no cell signal, which is the normal condition at 800 feet over a field.
-(function () {
+(function(){
   "use strict";
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("./sw.js").catch(function () {});
-    });
+  if ("serviceWorker"in navigator) {
+    window.addEventListener("load",function(){ navigator.serviceWorker.register("./sw.js").catch(function(){}); });
   }
-
-  var standalone = window.matchMedia("(display-mode: fullscreen)").matches
-                || window.matchMedia("(display-mode: standalone)").matches
-                || window.navigator.standalone === true;
-
-  if (standalone) {
-    // Installed to the home screen: behave like an instrument, not a web page.
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("landscape").catch(function () {});
-    }
-    if ("wakeLock" in navigator) {
-      var lock = null;
-      var take = function () {
-        navigator.wakeLock.request("screen").then(function (w) { lock = w; }).catch(function () {});
-      };
+  var standalone=window.matchMedia("(display-mode: fullscreen)").matches||window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+  if (standalone){
+    if (screen.orientation&&screen.orientation.lock) screen.orientation.lock("landscape").catch(function(){});
+    if ("wakeLock"in navigator){
+      var lock=null, take=function(){ navigator.wakeLock.request("screen").then(function(w){lock=w;}).catch(function(){}); };
       take();
-      document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible" && lock === null) { take(); }
-      });
+      document.addEventListener("visibilitychange",function(){ if(document.visibilityState==="visible"&&lock===null) take(); });
     }
   }
 })();

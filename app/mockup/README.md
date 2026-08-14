@@ -70,6 +70,16 @@ appropriate for a mockup and would not be appropriate for anything else.
 **Real, from the device:** attitude, heading, track, ground speed, GPS altitude,
 position.
 
+**Real, from open data:** the synthetic-vision terrain overlay on the attitude
+indicator. Elevation comes from the AWS Terrarium open elevation tiles (no key,
+CORS-enabled), decoded in-browser and ray-cast into a horizon silhouette: brown
+below you, amber inside ~500 m clearance, red where terrain rises above your
+altitude. It is **advisory** — the fix is GPS, the tiles are cached, and it has
+no idea what is between the samples — but it answers "is there a ridge in that
+turn?" which a bubble horizon cannot. The demo flight is seeded over the Columbia
+River Gorge so the hazard tiers are visible without real GPS; over flat ground it
+correctly shows nothing but brown.
+
 **Simulated:** the entire engine strip, indicated airspeed, pressure altitude,
 and vertical speed. Those are node channels and no node exists. Values are
 plausible PM-2 cruise numbers.
