@@ -24,10 +24,15 @@ Three questions it was built to answer:
 
 ## Running it
 
-It works with no sensors at all. On load it flies a scripted circuit, and
-dragging anywhere on the display flies it by hand. That is enough to judge
-layout, and arguably better than real sensors, because it holds sustained bank
-angles you would not produce waving a phone around.
+It works with no sensors at all. On load it flies a scripted waypoint route
+down the Columbia River Gorge with coordinated turns, and dragging anywhere on
+the display flies it by hand. That is enough to judge layout, and arguably
+better than real sensors, because it holds sustained bank angles you would not
+produce waving a phone around. The compass map carries a track-history
+breadcrumb and a curved predictive track vector (30/60/90 s) the way a Garmin
+moving map does, and its imagery switches between street, terrain, and satellite
+layers. The attitude indicator shows layered synthetic-vision terrain (see
+below).
 
 For **real** attitude the page has to be a top-level HTTPS document. Device
 orientation is gated by Permissions Policy, so in a cross-origin iframe it never
@@ -70,15 +75,19 @@ appropriate for a mockup and would not be appropriate for anything else.
 **Real, from the device:** attitude, heading, track, ground speed, GPS altitude,
 position.
 
-**Real, from open data:** the synthetic-vision terrain overlay on the attitude
-indicator. Elevation comes from the AWS Terrarium open elevation tiles (no key,
-CORS-enabled), decoded in-browser and ray-cast into a horizon silhouette: brown
-below you, amber inside ~500 m clearance, red where terrain rises above your
-altitude. It is **advisory** — the fix is GPS, the tiles are cached, and it has
-no idea what is between the samples — but it answers "is there a ridge in that
-turn?" which a bubble horizon cannot. The demo flight is seeded over the Columbia
-River Gorge so the hazard tiers are visible without real GPS; over flat ground it
-correctly shows nothing but brown.
+**Real, from open data:** the synthetic-vision terrain on the attitude indicator
+and the terrain/satellite map layers on the compass. Elevation comes from the
+AWS Terrarium open elevation tiles (no key, CORS-enabled), decoded in-browser and
+ray-cast into the horizon at seven distance rings, painted far-to-near with
+atmospheric haze so ridgelines read as depth (nearer terrain occludes farther, as
+it should). Over that sit the hazard tiers: amber inside ~500 m clearance, red
+where terrain rises above your altitude. It is **advisory** — the fix is GPS, the
+tiles are cached, and it has no idea what is between the samples — but it answers
+"is there a ridge in that turn?" which a bubble horizon cannot. The demo flies the
+Columbia River Gorge so the terrain and hazard tiers are visible without real GPS;
+over flat ground the bands collapse to the horizon and nothing alarms. The compass
+map's terrain (OpenTopoMap) and satellite (Esri World Imagery) layers are likewise
+keyless, attributed, and best-effort for a mockup.
 
 **Simulated:** the entire engine strip, indicated airspeed, pressure altitude,
 and vertical speed. Those are node channels and no node exists. Values are
