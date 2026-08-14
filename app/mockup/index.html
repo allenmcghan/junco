@@ -109,6 +109,7 @@
       <g id="horizon">
         <rect x="-1000" y="-2000" width="3000" height="2309" fill="url(#sky)"/>
         <rect x="-1000" y="307"   width="3000" height="2000" fill="url(#gnd)"/>
+        <g id="svsBandGroup"></g>
         <!-- SVS: terrain topology on ground side (safe terrain, dark brown) -->
         <polygon id="svsTerrain" fill="#5E3E1E" opacity="0.0"/>
         <!-- SVS: terrain that rises above aircraft altitude — amber hazard fill -->
@@ -1348,65 +1349,57 @@ function svsRecompute() {
 }
 
 // ---- render SVS polygons into the horizon group ----
+// Haze palette, far (index 0) -> near (last): bluish/hazy -> dark brown.
+var SVS_HAZE = ["#8FA6B4","#7E93A0","#6E7E7F","#5E6A5E","#585234","#4E3E22","#42301A"];
+function svsBandFill(i, n) { return SVS_HAZE[Math.min(SVS_HAZE.length - 1, Math.round(i / (n - 1) * (SVS_HAZE.length - 1)))]; }
+
 function svsRender() {
-    var polyTerr = $("svsTerrain"), polyHaz = $("svsHazard"), polyPull = $("svsPullup");
-    var badge = $("svsStatus"), loading = $("svsLoading");
+  var badge = $("svsStatus"), loading = $("svsLoading"), grp = $("svsBandGroup");
+  var polyHaz = $("svsHazard"), polyPull = $("svsPullup"), polyTerr = $("svsTerrain");
+  if (!SVS_ON) {
+    grp.setAttribute("opacity", "0");
+    polyTerr.setAttribute("opacity","0"); polyHaz.setAttribute("opacity","0"); polyPull.setAttribute("opacity","0");
+    badge.setAttribute("visibility","hidden"); loading.setAttribute("visibility","hidden");
+    return;
+  }
+  var anyLoading = Object.keys(svsTiles).some(function(k){ return svsTiles[k]==="loading"; });
+  badge.setAttribute("visibility",  svsHasData ? "visible" : "hidden");
+  loading.setAttribute("visibility", (!svsHasData && anyLoading) ? "visible" : "hidden");
+  grp.setAttribute("opacity", "1");
+  polyTerr.setAttribute("opacity","0");   // superseded by bands; kept for structure
 
-    if (!SVS_ON) {
-        polyTerr.setAttribute("opacity","0"); polyHaz.setAttribute("opacity","0"); polyPull.setAttribute("opacity","0");
-        badge.setAttribute("visibility","hidden"); loading.setAttribute("visibility","hidden");
-        return;
-    }
+  var PI = Math.PI, CX = AI_CX, CY = AI_CY, PPD = PX_PER_DEG, R = AI_R;
+  // Ensure one <polygon> per band, reused across frames.
+  while (grp.childNodes.length < svsBands.length) grp.appendChild(el("polygon", {}));
+  while (grp.childNodes.length > svsBands.length) grp.removeChild(grp.lastChild);
 
-    // Status badges
-    var anyLoading = Object.keys(svsTiles).some(function(k){ return svsTiles[k]==="loading"; });
-    badge.setAttribute("visibility",  svsHasData ? "visible" : "hidden");
-    loading.setAttribute("visibility", (!svsHasData && anyLoading) ? "visible" : "hidden");
-
-    if (!svsProfile.length) {
-        polyTerr.setAttribute("opacity","0"); polyHaz.setAttribute("opacity","0"); polyPull.setAttribute("opacity","0");
-        return;
-    }
-
-    var PI = Math.PI, CX = AI_CX, CY = AI_CY, PPD = PX_PER_DEG, R = AI_R;
-
-    // Build three polygon point lists
-    var pts = [], haz = [], pul = [];
-    svsProfile.forEach(function (p) {
-        var x = CX + Math.sin(p.az * PI / 180) * R;
-        var eClamped = Math.max(-35, Math.min(35, p.elev));
-        var yTop = CY - eClamped * PPD; // terrain top in horizon coords
-
-        // terrain polygon — always touches or is below horizon
-        pts.push(x + "," + Math.max(yTop, CY));
-
-        // amber caution: less than ~500m clearance (< ~2.5°)
-        if (p.elev > -2.5 && p.elev <= 0) {
-            haz.push(x + "," + Math.max(yTop, CY));
-        }
-        // red pull-up: terrain above aircraft altitude
-        if (p.elev > 0) {
-            pul.push(x + "," + yTop);
-        }
+  svsBands.forEach(function (band, bi) {
+    var poly = grp.childNodes[bi], pts = [];
+    band.pts.forEach(function (p) {
+      var x = CX + Math.sin(p.az * PI / 180) * R;
+      var e = Math.max(-35, Math.min(35, p.elev));
+      pts.push(x.toFixed(1) + "," + Math.max(CY - e * PPD, CY - 35 * PPD).toFixed(1));
     });
+    pts.push((CX + R) + ",9999", (CX - R) + ",9999");
+    poly.setAttribute("points", pts.join(" "));
+    poly.setAttribute("fill", svsBandFill(bi, svsBands.length));
+    poly.setAttribute("opacity", "0.96");
+  });
 
-    var bL = CX - R, bR = CX + R;
-    // terrain ground polygon
-    pts.push(bR + ",9999", bL + ",9999");
-    polyTerr.setAttribute("points", pts.join(" "));
-    polyTerr.setAttribute("opacity", svsHasData ? "0.9" : "0");
-
-    if (haz.length > 1) {
-        haz.push(bR + ",9999", bL + ",9999");
-        polyHaz.setAttribute("points", haz.join(" "));
-        polyHaz.setAttribute("opacity", "0.78");
-    } else { polyHaz.setAttribute("opacity","0"); }
-
-    if (pul.length > 1) {
-        pul.push(bR + "," + CY, bL + "," + CY);
-        polyPull.setAttribute("points", pul.join(" "));
-        polyPull.setAttribute("opacity", "0.82");
-    } else { polyPull.setAttribute("opacity","0"); }
+  // Hazard overlays from the max profile (unchanged logic).
+  var haz = [], pul = [];
+  svsProfile.forEach(function (p) {
+    var x = CX + Math.sin(p.az * PI / 180) * R;
+    var e = Math.max(-35, Math.min(35, p.elev));
+    var yTop = CY - e * PPD;
+    if (p.elev > -2.5 && p.elev <= 0) haz.push(x.toFixed(1) + "," + Math.max(yTop, CY).toFixed(1));
+    if (p.elev > 0) pul.push(x.toFixed(1) + "," + yTop.toFixed(1));
+  });
+  var bL = CX - R, bR = CX + R;
+  if (haz.length > 1) { haz.push(bR + ",9999", bL + ",9999"); polyHaz.setAttribute("points", haz.join(" ")); polyHaz.setAttribute("opacity","0.65"); }
+  else polyHaz.setAttribute("opacity","0");
+  if (pul.length > 1) { pul.push(bR + "," + CY, bL + "," + CY); polyPull.setAttribute("points", pul.join(" ")); polyPull.setAttribute("opacity","0.7"); }
+  else polyPull.setAttribute("opacity","0");
 }
 
 $("btnSvs").addEventListener("click", function () {
