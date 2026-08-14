@@ -177,6 +177,9 @@
         <g id="mapTiles"></g>
         <polyline id="trackHist" fill="none" stroke="#EAF0F4" stroke-opacity="0.7"
                   stroke-width="2.5" stroke-linejoin="round" points=""/>
+        <polyline id="trendVec" fill="none" stroke="#E85AD6" stroke-width="3"
+                  stroke-linejoin="round" points=""/>
+        <g id="trendTicks" stroke="#E85AD6" stroke-width="3"></g>
         <!-- aircraft heading north arrow (rotates with map) -->
       </g>
       <!-- slight vignette so rose text pops -->
@@ -375,6 +378,31 @@ function renderTrack(cLat, cLon) {
     pts.push(p.x.toFixed(1) + "," + p.y.toFixed(1));
   }
   $("trackHist").setAttribute("points", pts.join(" "));
+}
+// Project the aircraft forward along its ground track using current speed and
+// turn rate: constant-radius arc, so it curves in a turn and straightens level.
+// Ticks at 30/60/90 s ahead. Uses flt.hdg/gs/bank (demo). Draws #trendVec/#trendTicks.
+function renderTrend(cLat, cLon) {
+  var V = flt.gs * 0.44704;                                   // m/s
+  var turn = (9.81 * Math.tan(flt.bank * Math.PI / 180)) / Math.max(V, 1); // rad/s
+  var pts = [], ticks = [], tickAt = { 30: 1, 60: 1, 90: 1 };
+  var lat = cLat, lon = cLon, hdg = flt.hdg * Math.PI / 180;
+  for (var t = 0; t <= 120; t += 2) {
+    var p = mapProject(lat, lon, cLat, cLon);
+    pts.push(p.x.toFixed(1) + "," + p.y.toFixed(1));
+    if (tickAt[t]) {
+      var nx = Math.cos(hdg + Math.PI / 2), ny = Math.sin(hdg + Math.PI / 2);
+      ticks.push("M" + (p.x - nx * 7).toFixed(1) + "," + (p.y - ny * 7).toFixed(1) +
+                 "L" + (p.x + nx * 7).toFixed(1) + "," + (p.y + ny * 7).toFixed(1));
+    }
+    var step = V * 2;                                          // advance 2 s
+    lat += (step * Math.cos(hdg)) / 111111;
+    lon += (step * Math.sin(hdg)) / (111111 * Math.cos(lat * Math.PI / 180));
+    hdg += turn * 2;
+  }
+  $("trendVec").setAttribute("points", pts.join(" "));
+  var tg = $("trendTicks"); while (tg.firstChild) tg.removeChild(tg.firstChild);
+  ticks.forEach(function (d) { tg.appendChild(el("path", { d: d })); });
 }
 function updateMapTiles(lat, lon, hdg) {
   var n = Math.pow(2, MAP_ZOOM);
@@ -983,6 +1011,7 @@ function frame() {
     updateMapTiles(gps.lat, gps.lon, att.hdg);
     pushTrack(gps.lat, gps.lon);
     renderTrack(gps.lat, gps.lon);
+    renderTrend(gps.lat, gps.lon);
   }
 
   // SVS terrain: reload tiles if moved >1km, recompute profile if heading changed >5°
