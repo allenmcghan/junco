@@ -773,11 +773,11 @@ var manual = { pitch:0, roll:0, hdg:0 };
 var ROUTE = [
   { lat: 45.690, lon: -121.700 },
   { lat: 45.694, lon: -121.740 },
-  { lat: 45.699, lon: -121.795 },
+  { lat: 45.699, lon: -121.795, alt: 2400 },
   { lat: 45.706, lon: -121.860 },
   { lat: 45.712, lon: -121.900 },
   { lat: 45.700, lon: -121.930 },  // bend south around Bonneville
-  { lat: 45.685, lon: -121.900 },
+  { lat: 45.685, lon: -121.900, alt: 1700 },
   { lat: 45.680, lon: -121.850 },
   { lat: 45.682, lon: -121.790 },
   { lat: 45.686, lon: -121.735 }
@@ -815,6 +815,10 @@ function flyRoute(dt) {
   var hr = flt.hdg * Math.PI / 180;
   flt.lat += (step * Math.cos(hr)) / 111111;
   flt.lon += (step * Math.sin(hr)) / (111111 * Math.cos(flt.lat * Math.PI / 180));
+  var tgtAlt = wp.alt || 2000;
+  var altErr = tgtAlt - flt.alt;
+  flt.vs = Math.max(-400, Math.min(400, altErr * 0.5));  // fpm, capped
+  flt.alt += flt.vs / 60 * dt;
 }
 
 function wob(b, a) { return b + Math.sin(sim.t*a)*a*2 + (Math.random()-0.5)*a; }
@@ -885,14 +889,15 @@ function frame() {
     : "—";
 
   if (!linkDown) {
-    sim.rpmL = wob(5840,6); sim.rpmR = wob(5795,6);
-    sim.egtL = wob(1118,4); sim.egtR = wob(1104,4);
+    var pwr = 1 + Math.max(-0.15, Math.min(0.15, flt.vs / 400)); // climb=more power
+    sim.rpmL = wob(5840 * pwr, 4); sim.rpmR = wob(5795 * pwr, 4);
+    sim.egtL = wob(1118 * pwr, 3); sim.egtR = wob(1104 * pwr, 3);
     sim.chtR = wob(376,2);
     sim.chtL = driveHot ? Math.min(458,sim.chtL+1.4) : (sim.chtL>383 ? sim.chtL-1.1 : wob(381,2));
     sim.fuel = Math.max(0, sim.fuel-0.00012);
-    sim.ias  = wob(28,0.5);
-    sim.alt  = wob(2000,2);
-    sim.vsi  = Math.sin(sim.t*0.25)*260;
+    sim.ias  = flt.gs + wob(0, 0.4);      // GS≈IAS in still air, tiny noise
+    sim.alt  = flt.alt;
+    sim.vsi  = flt.vs;
   }
 
   var ias = linkDown ? 0 : sim.ias;
