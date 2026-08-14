@@ -384,14 +384,21 @@ function renderTrack(cLat, cLon) {
   }
   $("trackHist").setAttribute("points", pts.join(" "));
 }
-// Project the aircraft forward along its ground track using current speed and
-// turn rate: constant-radius arc, so it curves in a turn and straightens level.
-// Ticks at 30/60/90 s ahead. Uses flt.hdg/gs/bank (demo). Draws #trendVec/#trendTicks.
+// Project the aircraft forward along its ground track using current ground
+// speed and turn rate: constant-radius arc, so it curves in a turn and
+// straightens level. Ticks at 30/60/90 s ahead. Mode-agnostic — reads the real
+// ground track/speed (gps.trk/gps.gs) and the displayed bank (att.roll), which
+// in demo mode equal the scripted flight. Draws #trendVec/#trendTicks.
 function renderTrend(cLat, cLon) {
-  var V = flt.gs * 0.44704;                                   // m/s
-  var turn = (9.81 * Math.tan(flt.bank * Math.PI / 180)) / Math.max(V, 1); // rad/s
+  if (gps.gs === null || gps.trk === null) {                  // no ground track yet
+    $("trendVec").setAttribute("points", "");
+    var tg0 = $("trendTicks"); while (tg0.firstChild) tg0.removeChild(tg0.firstChild);
+    return;
+  }
+  var V = gps.gs * 0.44704;                                   // mph -> m/s
+  var turn = (9.81 * Math.tan(att.roll * Math.PI / 180)) / Math.max(V, 1); // rad/s
   var pts = [], ticks = [], tickAt = { 30: 1, 60: 1, 90: 1 };
-  var lat = cLat, lon = cLon, hdg = flt.hdg * Math.PI / 180;
+  var lat = cLat, lon = cLon, hdg = gps.trk * Math.PI / 180;
   for (var t = 0; t <= 120; t += 2) {
     var p = mapProject(lat, lon, cLat, cLon);
     pts.push(p.x.toFixed(1) + "," + p.y.toFixed(1));
