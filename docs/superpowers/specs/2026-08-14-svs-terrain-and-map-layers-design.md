@@ -1,4 +1,4 @@
-# Junco PFD — synthetic-vision terrain + selectable map layers
+# Junco PFD — synthetic-vision terrain, map layers & a believable demo flight
 
 **Date:** 2026-08-14
 **Status:** design, awaiting review
@@ -29,13 +29,22 @@ hard-coded to OpenStreetMap.
    rise into view and the pilot reads relief at a glance. Hazard tiers stay.
 2. **HSI map layers:** a selector to switch the compass map between **street**,
    **terrain**, and **satellite** imagery.
+3. **Believable flight:** replace the random-wander demo with a scripted
+   waypoint route flown with coordinated turns, a **track-history breadcrumb**
+   behind the aircraft, and a **curved predictive track vector** ahead — the map
+   should read like a real Garmin moving map, not a spinning tile grid with
+   jittering gauges.
 
 ## Non-goals (YAGNI)
 
 - No map imagery draped on the AI (relief only — confirmed with user).
 - No triangular-mesh terrain (approach B) — too heavy for a phone PWA.
 - No 3D buildings, no offline pre-caching of all three tile layers.
-- Not touching the engine strip, tapes, or BLE story.
+- Engine strip stays, but its values become coherent with the flight (not a
+  rewrite of the tapes or the BLE story).
+- Not a real flight simulator, flight plan, or route entry UI — the route is a
+  fixed demo script; there's no destination/desired-track guidance, only a
+  dead-reckoning trend vector.
 
 ---
 
@@ -118,12 +127,68 @@ algorithm (farthest first), which gives correct ridge occlusion for free:
 
 ---
 
+---
+
+## Feature 3 — believable flight, track history, predictive track vector
+
+### Flight model (scripted waypoint route)
+
+Replaces `demoFlight`'s sine-wander + independent `wob()` gauges with a small
+autopilot that flies a fixed route:
+
+- **Route:** an ordered list of lat/lon waypoints down the Columbia Gorge,
+  following the river (starts at the existing `45.690, -121.700`). Loops at the
+  end (reverse or wrap).
+- **Guidance each frame:** bearing to the active waypoint; heading error →
+  **commanded bank** (proportional, clamped to ~±22°); sequence to the next
+  waypoint within a capture radius (~300 m).
+- **Coordinated turn:** heading rate `= g·tan(bank)/V` (real turn physics), so
+  bank angle, heading, and ground track stay consistent — the AI and the map
+  agree. Roll eases in/out (rate-limited) rather than snapping.
+- **Vertical / speed:** airspeed holds cruise (~27 mph GS) with light noise;
+  altitude follows a gentle per-leg profile inside the 0–3000 ft gauge range;
+  `pitch` and `vsi` derive from the altitude rate (not independent random).
+- **Engine gauges:** settle to coherent cruise values (RPM/CHT/EGT steady with
+  small correlated noise), not independent `wob()` jitter. Power ties loosely to
+  climb/descent so the strip reads plausibly.
+
+`gps.trk`, `gps.gs`, `gps.hdg` come from the model, so every readout is
+self-consistent.
+
+### Track history (breadcrumb)
+
+- Ring buffer of `{lat, lon}` sampled ~1×/s, capped ~600 points (~10 min).
+- Rendered as a polyline in the HSI **map group** (so it pans/rotates with the
+  map), thin, trailing behind the aircraft. Distinct from the magenta track
+  vector — a muted trail colour (e.g. white/grey at low opacity).
+
+### Predictive track vector (curved trend, Garmin-style)
+
+- Project the aircraft forward along the current ground track using current
+  **speed + turn rate**: sample positions at t = 0..~120 s, constant-radius arc
+  from instantaneous turn rate → curves in a turn, straight wings-level.
+- Polyline in the map group ahead of the aircraft, **magenta** (app's
+  GPS-derived convention), with tick marks at **30 / 60 / 90 s**.
+- Degenerates to a straight line as turn rate → 0.
+
+### Notes
+
+- All three are HSI-map features and reuse the existing lat/lon→screen tile
+  projection in `updateMapTiles`; factor that projection into a helper both the
+  tiles and the overlays call.
+- Breadcrumb + vector are drawn above tiles, below the compass rose.
+
+---
+
 ## Data flow
 
 ```
-GPS lat/lon/hdg/alt ─┬─> updateMapTiles(layer)     ─> HSI map <image> grid
-                     └─> svsRecompute()            ─> svsBands + hazard profile
-                                                    ─> svsRender() ─> AI band polys
+scripted flight model ─> att(pitch,roll,hdg), gps(lat,lon,trk,gs,alt), sim(...)
+        │
+        ├─> updateMapTiles(layer)                 ─> HSI map <image> grid
+        ├─> track history buffer + trend projection ─> HSI breadcrumb + vector
+        └─> svsRecompute()                        ─> svsBands + hazard profile
+                                                   ─> svsRender() ─> AI band polys
 ```
 
 ## Error handling / offline
@@ -142,6 +207,12 @@ GPS lat/lon/hdg/alt ─┬─> updateMapTiles(layer)     ─> HSI map <image> gr
    to eyeball the depth/relief.
 3. Console: zero page errors on fresh load for every layer.
 4. Flat-ground sanity: bands collapse to near the horizon, no false hazards.
+5. Flight model: over ~60 s, assert the aircraft sequences waypoints (position
+   advances along the route), bank correlates with heading rate, and the track
+   history polyline grows. Screenshot the map showing trail behind + magenta
+   curved vector ahead. Assert the vector curves when `|turn rate| > 0`.
+6. Coherence: `gps.trk`/`hdg`/ground track agree within tolerance; no gauge
+   readout moves independently of the flight state.
 
 ## Open decisions
 
