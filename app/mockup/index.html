@@ -1320,29 +1320,31 @@ function svsElev(lat, lon) {
 }
 
 // ---- recompute terrain profile for current heading ----
+var svsBands = [];   // [{ dist, pts:[{az, elev}] }], far -> near
 function svsRecompute() {
-    if (!gps.lat) return;
-    var lat = gps.lat, lon = gps.lon, hdg = att.hdg;
-    var altM = gps.alt ? gps.alt * 0.3048 : sim.alt * 0.3048;
-    var PI = Math.PI, cosLat = Math.cos(lat * PI / 180);
-    var profile = [];
-
-    for (var az = -90; az <= 90; az += 3) {
-        var absRad = ((hdg + az + 360) % 360) * PI / 180;
-        var maxAngle = -90;
-        // Ray-cast at 7 distances
-        [300, 600, 1200, 2500, 5000, 8000, 12000].forEach(function (d) {
-            var dlat = d * Math.cos(absRad) / 111111;
-            var dlon = d * Math.sin(absRad) / (111111 * cosLat);
-            var elev = svsElev(lat + dlat, lon + dlon);
-            if (elev === null) return;
-            var ang = Math.atan2(elev - altM, d) * 180 / PI;
-            if (ang > maxAngle) maxAngle = ang;
-        });
-        profile.push({ az: az, elev: maxAngle });
+  if (!gps.lat) return;
+  var lat = gps.lat, lon = gps.lon, hdg = att.hdg;
+  var altM = gps.alt ? gps.alt * 0.3048 : sim.alt * 0.3048;
+  var PI = Math.PI, cosLat = Math.cos(lat * PI / 180);
+  var RINGS = [12000, 8000, 5000, 2500, 1200, 600, 300];   // far -> near
+  var bands = [], maxProf = [];
+  for (var az = -90; az <= 90; az += 3) maxProf.push({ az: az, elev: -90 });
+  RINGS.forEach(function (d) {
+    var pts = [];
+    for (var i = 0, az = -90; az <= 90; az += 3, i++) {
+      var absRad = ((hdg + az + 360) % 360) * PI / 180;
+      var dlat = d * Math.cos(absRad) / 111111;
+      var dlon = d * Math.sin(absRad) / (111111 * cosLat);
+      var elevM = svsElev(lat + dlat, lon + dlon);
+      var ang = elevM === null ? -90 : Math.atan2(elevM - altM, d) * 180 / PI;
+      pts.push({ az: az, elev: ang });
+      if (ang > maxProf[i].elev) maxProf[i].elev = ang;
     }
-    svsProfile = profile;
-    svsLastHdg = hdg;
+    bands.push({ dist: d, pts: pts });
+  });
+  svsBands = bands;
+  svsProfile = maxProf;         // reused by hazard overlay
+  svsLastHdg = hdg;
 }
 
 // ---- render SVS polygons into the horizon group ----
