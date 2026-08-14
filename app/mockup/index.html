@@ -905,11 +905,16 @@ function renderRose(hdg) {
 }
 
 // ---------- frame ----------
-function frame() {
-  sim.t += 0.05;
+function frame(ts) {
+  // Real elapsed seconds from the rAF timestamp, clamped so a background tab or
+  // slow first frame can't jump the sim. Keeps the flight the same wall-clock
+  // speed on a 30 Hz or 120 Hz display instead of frame-count time.
+  var dt = frame.last ? Math.min(0.1, (ts - frame.last) / 1000) : 0.05;
+  frame.last = ts;
+  sim.t += dt;
 
   if (mode === "demo") {
-    flyRoute(0.05);
+    flyRoute(dt);
     raw.pitch = -flt.vs / 100;          // gentle pitch from vertical speed
     raw.roll = flt.bank; raw.hdg = flt.hdg; raw.has = true;
     cage.pitch = 0; cage.roll = 0;
