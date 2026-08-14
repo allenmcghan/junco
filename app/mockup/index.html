@@ -767,19 +767,55 @@ var driveHot = false, linkDown = false;
 var mode = "demo";
 var manual = { pitch:0, roll:0, hdg:0 };
 
-// Demo GPS: flies the Columbia River Gorge — river near sea level, canyon walls
-// rise to 3000-5000 ft within a few km, so the SVS terrain overlay shows the
-// amber/red hazard tiers a Part 103 pilot would actually care about.
-var demoLat = 45.690, demoLon = -121.700;
+// Demo route: a string of waypoints down the Columbia River Gorge, following
+// the river so the flight stays in dramatic terrain. Flown with coordinated
+// turns and looped. (lat, lon)
+var ROUTE = [
+  { lat: 45.690, lon: -121.700 },
+  { lat: 45.694, lon: -121.740 },
+  { lat: 45.699, lon: -121.795 },
+  { lat: 45.706, lon: -121.860 },
+  { lat: 45.712, lon: -121.900 },
+  { lat: 45.700, lon: -121.930 },  // bend south around Bonneville
+  { lat: 45.685, lon: -121.900 },
+  { lat: 45.680, lon: -121.850 },
+  { lat: 45.682, lon: -121.790 },
+  { lat: 45.686, lon: -121.735 }
+];
+// Flight state
+var flt = { lat: ROUTE[0].lat, lon: ROUTE[0].lon, hdg: 270, bank: 0, gs: 27, alt: 2000, vs: 0, wp: 1 };
 
-function demoFlight(t) {
-  var T = t * 0.35;
-  var roll  = 18*Math.sin(T*0.28) + 6*Math.sin(T*0.11);
-  var pitch = 5.5*Math.sin(T*0.19) + 1.6*Math.sin(T*0.63);
-  demoFlight.hdg = (demoFlight.hdg + roll*0.055 + 360) % 360;
-  return { pitch:pitch, roll:roll, hdg:demoFlight.hdg };
+function bearingTo(lat1, lon1, lat2, lon2) {
+  var y = (lon2 - lon1) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
+  var x = (lat2 - lat1);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
-demoFlight.hdg = 270;   // down-river (west), walls to the north and south
+function distM(lat1, lon1, lat2, lon2) {
+  var dlat = (lat2 - lat1) * 111111;
+  var dlon = (lon2 - lon1) * 111111 * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
+  return Math.hypot(dlat, dlon);
+}
+
+// Advance the flight one frame (dt seconds). Coordinated turn: heading rate =
+// g*tan(bank)/V. Bank is commanded proportional to heading error, rate-limited.
+function flyRoute(dt) {
+  var wp = ROUTE[flt.wp];
+  if (distM(flt.lat, flt.lon, wp.lat, wp.lon) < 300) {   // capture -> next wp
+    flt.wp = (flt.wp + 1) % ROUTE.length;
+    wp = ROUTE[flt.wp];
+  }
+  var desired = bearingTo(flt.lat, flt.lon, wp.lat, wp.lon);
+  var err = ((desired - flt.hdg + 540) % 360) - 180;      // -180..180
+  var bankCmd = Math.max(-22, Math.min(22, err * 1.2));   // deg
+  flt.bank += Math.max(-8 * dt, Math.min(8 * dt, bankCmd - flt.bank)); // ease, 8°/s
+  var V = flt.gs * 0.44704;                               // mph -> m/s
+  var hdgRate = (9.81 * Math.tan(flt.bank * Math.PI / 180)) / Math.max(V, 1) * 180 / Math.PI;
+  flt.hdg = (flt.hdg + hdgRate * dt + 360) % 360;
+  var step = V * dt;                                      // metres this frame
+  var hr = flt.hdg * Math.PI / 180;
+  flt.lat += (step * Math.cos(hr)) / 111111;
+  flt.lon += (step * Math.sin(hr)) / (111111 * Math.cos(flt.lat * Math.PI / 180));
+}
 
 function wob(b, a) { return b + Math.sin(sim.t*a)*a*2 + (Math.random()-0.5)*a; }
 
@@ -815,16 +851,12 @@ function frame() {
   sim.t += 0.05;
 
   if (mode === "demo") {
-    var d = demoFlight(sim.t);
-    raw.pitch = d.pitch; raw.roll = d.roll; raw.hdg = d.hdg; raw.has = true;
+    flyRoute(0.05);
+    raw.pitch = -flt.vs / 100;          // gentle pitch from vertical speed
+    raw.roll = flt.bank; raw.hdg = flt.hdg; raw.has = true;
     cage.pitch = 0; cage.roll = 0;
-    // animate demo GPS position (27 mph ≈ 12 m/s)
-    var hdgR = att.hdg * Math.PI / 180;
-    demoLat += (12 * 0.05 / 111000) * Math.cos(hdgR);
-    demoLon += (12 * 0.05 / (111000 * Math.cos(demoLat * Math.PI/180))) * Math.sin(hdgR);
-    gps.lat = demoLat; gps.lon = demoLon; gps.acc = 10;
-    if (gps.trk === null) gps.trk = d.hdg;
-    if (gps.gs  === null) gps.gs  = 27;
+    gps.lat = flt.lat; gps.lon = flt.lon; gps.acc = 10;
+    gps.trk = flt.hdg; gps.gs = flt.gs;
   } else if (mode === "manual") {
     raw.pitch = manual.pitch; raw.roll = manual.roll; raw.hdg = manual.hdg; raw.has = true;
     cage.pitch = 0; cage.roll = 0;
