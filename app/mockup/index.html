@@ -405,6 +405,16 @@ function renderTrend(cLat, cLon) {
   var tg = $("trendTicks"); while (tg.firstChild) tg.removeChild(tg.firstChild);
   ticks.forEach(function (d) { tg.appendChild(el("path", { d: d })); });
 }
+// Map layers: keyless, CORS-enabled raster sources. Note the coordinate order
+// differs per provider (Esri is z/y/x, no extension).
+var MAP_LAYERS = ["street", "terrain", "satellite"];
+var MAP_LAYER = "street";
+function tileUrl(z, x, y) {
+  if (MAP_LAYER === "terrain")   return "https://a.tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";
+  if (MAP_LAYER === "satellite") return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x;
+  return "https://tile.openstreetmap.org/" + z + "/" + x + "/" + y + ".png";
+}
+var MAP_ATTRIB = { street: "© OpenStreetMap", terrain: "© OpenTopoMap (CC-BY-SA)", satellite: "Esri, Maxar, Earthstar Geographics" };
 function updateMapTiles(lat, lon, hdg) {
   var n = Math.pow(2, MAP_ZOOM);
   var latR = lat * Math.PI / 180;
@@ -417,7 +427,7 @@ function updateMapTiles(lat, lon, hdg) {
     var tx = ((baseX + t.dx) % n + n) % n;
     var ty = baseY + t.dy;
     if (ty < 0 || ty >= n) { t.el.setAttribute("href", ""); return; }
-    t.el.setAttribute("href", "https://tile.openstreetmap.org/" + MAP_ZOOM + "/" + tx + "/" + ty + ".png");
+    t.el.setAttribute("href", tileUrl(MAP_ZOOM, tx, ty));
     t.el.setAttribute("x", (HSI_CX + (t.dx - fracX) * tileSVG).toFixed(2));
     t.el.setAttribute("y", (HSI_CY + (t.dy - fracY) * tileSVG).toFixed(2));
     t.el.setAttribute("width",  tileSVG.toFixed(2));
