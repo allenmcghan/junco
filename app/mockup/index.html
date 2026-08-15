@@ -884,12 +884,18 @@ function flyRoute(dt) {
     wp = ROUTE[flt.wp];
   }
   var desired = bearingTo(flt.lat, flt.lon, wp.lat, wp.lon);
-  var err = ((desired - flt.hdg + 540) % 360) - 180;      // -180..180
-  var bankCmd = Math.max(-22, Math.min(22, err * 1.2));   // deg
-  flt.bank += Math.max(-8 * dt, Math.min(8 * dt, bankCmd - flt.bank)); // ease, 8°/s
+  var err = ((desired - flt.hdg + 540) % 360) - 180;      // -180..180 deg
   var V = flt.gs * 0.44704;                               // mph -> m/s
-  var hdgRate = (9.81 * Math.tan(flt.bank * Math.PI / 180)) / Math.max(V, 1) * 180 / Math.PI;
-  flt.hdg = (flt.hdg + hdgRate * dt + 360) % 360;
+  // Turn toward the bearing at a limited, proportional heading RATE. Driving
+  // heading rate directly (instead of commanding bank and letting bank drive
+  // heading) is well damped — as the error nulls the rate nulls, so it rolls
+  // out smoothly with no weaving. Cap ~4°/s (a gentle, standard-rate turn).
+  var turnRate = Math.max(-4, Math.min(4, err * 0.5));    // deg/s
+  flt.hdg = (flt.hdg + turnRate * dt + 360) % 360;
+  // Bank is the visual consequence of a coordinated turn: tan(bank) = omega*V/g.
+  // Ease toward it so the wings roll smoothly rather than snapping.
+  var wantBank = Math.atan((turnRate * Math.PI / 180) * V / 9.81) * 180 / Math.PI;
+  flt.bank += (wantBank - flt.bank) * Math.min(1, 4 * dt);
   var step = V * dt;                                      // metres this frame
   var hr = flt.hdg * Math.PI / 180;
   flt.lat += (step * Math.cos(hr)) / 111111;
