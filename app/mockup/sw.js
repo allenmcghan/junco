@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-var CACHE = "junco-pfd-v3";
+var CACHE = "junco-pfd-v4";
 
 var SHELL = [
   "./",
