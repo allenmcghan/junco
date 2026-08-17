@@ -170,24 +170,23 @@
 
     <!-- ============ HSI / COMPASS / MAP ============ -->
     <!-- dark base fill -->
-    <circle id="hsiBg" cx="712" cy="307" r="165" fill="#0A0C0E"/>
-    <!-- map + rose inside clip -->
+    <circle id="hsiBg" cx="712" cy="307" r="137" fill="#0A0C0E"/>
+    <!-- map clipped to the inner circle; the compass ring sits in the annulus
+         OUTSIDE it. Map is track-up: the direction of travel is always up. -->
     <g clip-path="url(#hsiClip)">
-      <!-- OSM map tiles (heading-up, rotates) -->
       <g id="mapGroup">
         <g id="mapTiles"></g>
-        <polyline id="trackHist" fill="none" stroke="#EAF0F4" stroke-opacity="0.7"
-                  stroke-width="2.5" stroke-linejoin="round" points=""/>
-        <polyline id="trendVec" fill="none" stroke="#E85AD6" stroke-width="3"
-                  stroke-linejoin="round" points=""/>
-        <g id="trendTicks" stroke="#E85AD6" stroke-width="3"></g>
-        <!-- aircraft heading north arrow (rotates with map) -->
+        <!-- flown track: solid dark grey, geographic, rotates with the map -->
+        <polyline id="trackHist" fill="none" stroke="#4A5560"
+                  stroke-width="3" stroke-linejoin="round" points=""/>
       </g>
-      <!-- slight vignette so rose text pops -->
-      <circle id="hsiVignette" cx="712" cy="307" r="165" fill="url(#vignette)" opacity="0.45"/>
-      <!-- compass rose -->
-      <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" font-size="17" font-weight="700" text-anchor="middle"></g>
+      <!-- projected path: always straight ahead (up), dashed light grey -->
+      <polyline id="trendVec" fill="none" stroke="#C8D0D6" stroke-width="2.5"
+                stroke-dasharray="7 5" stroke-linecap="round" points=""/>
+      <circle id="hsiVignette" cx="712" cy="307" r="137" fill="url(#vignette)" opacity="0.45"/>
     </g>
+    <!-- compass rose ring, around the OUTSIDE of the map -->
+    <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" font-size="15" font-weight="700" text-anchor="middle"></g>
     <!-- Fixed lubber line -->
     <polygon id="lubber" points="712,140 703,156 721,156" fill="#F2C63D"/>
     <!-- aircraft at HSI centre -->
@@ -241,7 +240,7 @@
   <button id="btnWake" aria-pressed="false">Keep screen awake</button>
   <button id="btnHot"  aria-pressed="false">CHT over limit</button>
   <button id="btnLink" aria-pressed="false">Drop node link</button>
-  <button id="btnSvs"  aria-pressed="false">Terrain (SVS)</button>
+  <button id="btnSvs"  aria-pressed="true">Terrain (SVS)</button>
   <button id="btnMapLayer">Map: Street</button>
 </div>
 
@@ -329,6 +328,7 @@ var SPD_START = 218, SPD_SWEEP = 260, SPD_MAX = 50;
 var ALT_START = 218, ALT_SWEEP = 260, ALT_MAX = 3000;
 var PX_PER_DEG = 5.5;
 var MAP_SCALE;      // SVG pixels per tile pixel
+var MAP_R;          // map radius (inner); compass ring occupies HSI_R - MAP_R
 var MAP_ZOOM = 14;
 var IS_PORTRAIT = false;
 
@@ -384,37 +384,17 @@ function renderTrack(cLat, cLon) {
   }
   $("trackHist").setAttribute("points", pts.join(" "));
 }
-// Project the aircraft forward along its ground track using current ground
-// speed and turn rate: constant-radius arc, so it curves in a turn and
-// straightens level. Ticks at 30/60/90 s ahead. Mode-agnostic — reads the real
-// ground track/speed (gps.trk/gps.gs) and the displayed bank (att.roll), which
-// in demo mode equal the scripted flight. Draws #trendVec/#trendTicks.
-function renderTrend(cLat, cLon) {
-  if (gps.gs === null || gps.trk === null) {                  // no ground track yet
+// Projected path: always straight ahead. Because the map is track-up (the
+// direction of travel is up), "ahead" is a fixed vertical line from the
+// aircraft to the top of the map. It never arcs.
+function renderTrend() {
+  if (gps.gs === null || gps.trk === null) {   // no ground track yet
     $("trendVec").setAttribute("points", "");
-    var tg0 = $("trendTicks"); while (tg0.firstChild) tg0.removeChild(tg0.firstChild);
     return;
   }
-  var V = gps.gs * 0.44704;                                   // mph -> m/s
-  var turn = (9.81 * Math.tan(att.roll * Math.PI / 180)) / Math.max(V, 1); // rad/s
-  var pts = [], ticks = [], tickAt = { 30: 1, 60: 1, 90: 1 };
-  var lat = cLat, lon = cLon, hdg = gps.trk * Math.PI / 180;
-  for (var t = 0; t <= 120; t += 2) {
-    var p = mapProject(lat, lon, cLat, cLon);
-    pts.push(p.x.toFixed(1) + "," + p.y.toFixed(1));
-    if (tickAt[t]) {
-      var nx = Math.cos(hdg + Math.PI / 2), ny = Math.sin(hdg + Math.PI / 2);
-      ticks.push("M" + (p.x - nx * 7).toFixed(1) + "," + (p.y - ny * 7).toFixed(1) +
-                 "L" + (p.x + nx * 7).toFixed(1) + "," + (p.y + ny * 7).toFixed(1));
-    }
-    var step = V * 2;                                          // advance 2 s
-    lat += (step * Math.cos(hdg)) / 111111;
-    lon += (step * Math.sin(hdg)) / (111111 * Math.cos(lat * Math.PI / 180));
-    hdg += turn * 2;
-  }
-  $("trendVec").setAttribute("points", pts.join(" "));
-  var tg = $("trendTicks"); while (tg.firstChild) tg.removeChild(tg.firstChild);
-  ticks.forEach(function (d) { tg.appendChild(el("path", { d: d })); });
+  var len = (MAP_R || HSI_R) - 6;
+  $("trendVec").setAttribute("points",
+    HSI_CX + "," + HSI_CY + " " + HSI_CX + "," + (HSI_CY - len));
 }
 // Map layers: keyless, CORS-enabled raster sources. Note the coordinate order
 // differs per provider (Esri is z/y/x, no extension).
@@ -481,19 +461,20 @@ function relayout() {
     $("eisCompact").setAttribute("visibility", "hidden");
   }
 
-  MAP_SCALE = HSI_R / 215;
+  MAP_R = HSI_R - 28;          // leave a 28px ring outside the map for the compass
+  MAP_SCALE = MAP_R / 188;
 
-  // update clip circles
+  // update clip circles — map clips to the inner radius, compass ring is outside
   var ac = $("aiClipCircle");
   ac.setAttribute("cx", AI_CX); ac.setAttribute("cy", AI_CY); ac.setAttribute("r", AI_R);
   var hc = $("hsiClipCircle");
-  hc.setAttribute("cx", HSI_CX); hc.setAttribute("cy", HSI_CY); hc.setAttribute("r", HSI_R);
+  hc.setAttribute("cx", HSI_CX); hc.setAttribute("cy", HSI_CY); hc.setAttribute("r", MAP_R);
 
-  // bezel circles
+  // bezel circles (outer glass stays at HSI_R)
   var ab = $("aiBezel"); ab.setAttribute("cx", AI_CX); ab.setAttribute("cy", AI_CY); ab.setAttribute("r", AI_R);
   var hb = $("hsiBezel"); hb.setAttribute("cx", HSI_CX); hb.setAttribute("cy", HSI_CY); hb.setAttribute("r", HSI_R);
-  var hbg = $("hsiBg"); hbg.setAttribute("cx", HSI_CX); hbg.setAttribute("cy", HSI_CY); hbg.setAttribute("r", HSI_R);
-  var hv = $("hsiVignette"); hv.setAttribute("cx", HSI_CX); hv.setAttribute("cy", HSI_CY); hv.setAttribute("r", HSI_R);
+  var hbg = $("hsiBg"); hbg.setAttribute("cx", HSI_CX); hbg.setAttribute("cy", HSI_CY); hbg.setAttribute("r", MAP_R);
+  var hv = $("hsiVignette"); hv.setAttribute("cx", HSI_CX); hv.setAttribute("cy", HSI_CY); hv.setAttribute("r", MAP_R);
 
   // background
   $("bgRect").setAttribute("width", IS_PORTRAIT ? 660 : 1000);
@@ -849,28 +830,27 @@ var manual = { pitch:0, roll:0, hdg:0 };
 // Demo route: a string of waypoints down the Columbia River Gorge, following
 // the river so the flight stays in dramatic terrain. Flown with coordinated
 // turns and looped. (lat, lon)
+// Down the middle of the Columbia — waypoints on the river centerline (the
+// valley floor, ~45.70, confirmed from the elevation data). Flies west down
+// the gorge and loops back east, staying over the water.
 var ROUTE = [
-  { lat: 45.690, lon: -121.700 },
-  { lat: 45.697, lon: -121.714 },
-  { lat: 45.700, lon: -121.730, alt: 2300 },
-  { lat: 45.697, lon: -121.747 },
-  { lat: 45.701, lon: -121.764 },
-  { lat: 45.706, lon: -121.780 },
-  { lat: 45.703, lon: -121.798 },
-  { lat: 45.697, lon: -121.814 },
-  { lat: 45.700, lon: -121.832 },
-  { lat: 45.705, lon: -121.849, alt: 2500 },
-  { lat: 45.699, lon: -121.864 },
-  { lat: 45.690, lon: -121.871 },   // turn-around near Bonneville
-  { lat: 45.681, lon: -121.864, alt: 1800 },
-  { lat: 45.679, lon: -121.847 },
-  { lat: 45.684, lon: -121.830 },
-  { lat: 45.681, lon: -121.812 },
-  { lat: 45.685, lon: -121.793 },
-  { lat: 45.681, lon: -121.774 },
-  { lat: 45.685, lon: -121.755 },
-  { lat: 45.682, lon: -121.736 },
-  { lat: 45.687, lon: -121.718 }
+  { lat: 45.701, lon: -121.700 },
+  { lat: 45.700, lon: -121.722 },
+  { lat: 45.700, lon: -121.744, alt: 2200 },
+  { lat: 45.702, lon: -121.766 },
+  { lat: 45.703, lon: -121.788 },
+  { lat: 45.704, lon: -121.810 },
+  { lat: 45.703, lon: -121.832 },
+  { lat: 45.703, lon: -121.854 },
+  { lat: 45.700, lon: -121.874, alt: 1800 },   // west end, near Cascade Locks
+  { lat: 45.705, lon: -121.870 },              // U-turn back east
+  { lat: 45.707, lon: -121.850 },
+  { lat: 45.708, lon: -121.828 },
+  { lat: 45.707, lon: -121.806 },
+  { lat: 45.706, lon: -121.784 },
+  { lat: 45.706, lon: -121.762 },
+  { lat: 45.705, lon: -121.740 },
+  { lat: 45.704, lon: -121.718 }
 ];
 // Flight state
 var flt = { lat: ROUTE[0].lat, lon: ROUTE[0].lon, hdg: 270, bank: 0, gs: 27, alt: 2000, vs: 0, wp: 1 };
@@ -928,7 +908,7 @@ function renderRose(hdg) {
     var rel = (a - hdg) * Math.PI / 180;
     var sin = Math.sin(rel), cos = Math.cos(rel);
     var major = (a % 30 === 0);
-    var r1 = HSI_R - 3, r2 = major ? HSI_R - 22 : HSI_R - 12;
+    var r1 = HSI_R - 2, r2 = major ? HSI_R - 14 : HSI_R - 8;
     g.appendChild(el("line", {
       x1: HSI_CX+sin*r1, y1: HSI_CY-cos*r1,
       x2: HSI_CX+sin*r2, y2: HSI_CY-cos*r2,
@@ -936,10 +916,10 @@ function renderRose(hdg) {
     }));
     if (major) {
       var lbl = cards[a] !== undefined ? cards[a] : String(a/10);
-      var tr = HSI_R - 38;
+      var tr = HSI_R - 21;
       g.appendChild(el("text", {
-        x: HSI_CX+sin*tr, y: HSI_CY-cos*tr+6,
-        "font-size": cards[a] ? 22 : 16,
+        x: HSI_CX+sin*tr, y: HSI_CY-cos*tr+5,
+        "font-size": cards[a] ? 16 : 12,
         fill: cards[a] ? "#FFFFFF" : "#C8D0D6"
       }, lbl));
     }
@@ -1058,7 +1038,7 @@ function frame(ts) {
     updateMapTiles(gps.lat, gps.lon, att.hdg);
     pushTrack(gps.lat, gps.lon);
     renderTrack(gps.lat, gps.lon);
-    renderTrend(gps.lat, gps.lon);
+    renderTrend();
   }
 
   // SVS terrain: reload tiles if moved >1km, recompute profile if heading changed >5°
@@ -1300,7 +1280,7 @@ $("btnLink").addEventListener("click",function(){ var on=this.getAttribute("aria
 //    terrain above horizon        → red pull-up
 // ================================================================
 
-var SVS_ON = false;
+var SVS_ON = true;
 var SVS_ZOOM = 14;           // ~10 m/pixel resolution at mid-latitudes
 var svsTiles = {};           // "z/x/y" → Uint8ClampedArray | "loading" | null
 var svsProfile = [];         // [{az, elev}] degrees
