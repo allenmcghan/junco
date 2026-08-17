@@ -187,6 +187,15 @@
     </g>
     <!-- compass rose ring, around the OUTSIDE of the map -->
     <g id="rose" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" font-size="15" font-weight="700" text-anchor="middle"></g>
+    <!-- Home / Destination markers (upright; clamped to the map edge when off-map) -->
+    <g id="mkHome" visibility="hidden">
+      <circle r="8" fill="#1E7A3E" stroke="#EAF0F4" stroke-width="1.5"/>
+      <text y="3.5" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">H</text>
+    </g>
+    <g id="mkDest" visibility="hidden">
+      <circle r="8" fill="#C24A2C" stroke="#EAF0F4" stroke-width="1.5"/>
+      <text y="3.5" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">D</text>
+    </g>
     <!-- Fixed lubber line -->
     <polygon id="lubber" points="712,140 703,156 721,156" fill="#F2C63D"/>
     <!-- aircraft at HSI centre -->
@@ -395,6 +404,29 @@ function renderTrend() {
   var len = (MAP_R || HSI_R) - 6;
   $("trendVec").setAttribute("points",
     HSI_CX + "," + HSI_CY + " " + HSI_CX + "," + (HSI_CY - len));
+}
+
+// Home and destination for the demo (east and west ends of the river run).
+var HOME = { lat: 45.701, lon: -121.700 };
+var DEST = { lat: 45.700, lon: -121.876 };
+// Place a marker at its map position; if it falls outside the map, clamp the
+// icon to the map's edge on the bearing to it (so you always see which way it is).
+function placeMarker(id, m, cLat, cLon, hdgDeg) {
+  var e = $(id);
+  if (cLat === null || cLon === null) { e.setAttribute("visibility", "hidden"); return; }
+  var p = mapProject(m.lat, m.lon, cLat, cLon);           // unrotated map coords
+  var ang = -hdgDeg * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+  var dx = p.x - HSI_CX, dy = p.y - HSI_CY;
+  var sx = HSI_CX + dx * ca - dy * sa;                    // apply the map's -hdg rotation
+  var sy = HSI_CY + dx * sa + dy * ca;
+  var d = Math.hypot(sx - HSI_CX, sy - HSI_CY), rMax = (MAP_R || HSI_R) - 11;
+  if (d > rMax) { var k = rMax / d; sx = HSI_CX + (sx - HSI_CX) * k; sy = HSI_CY + (sy - HSI_CY) * k; }
+  e.setAttribute("transform", "translate(" + sx.toFixed(1) + " " + sy.toFixed(1) + ")");
+  e.setAttribute("visibility", "visible");
+}
+function renderMarkers(cLat, cLon, hdgDeg) {
+  placeMarker("mkHome", HOME, cLat, cLon, hdgDeg);
+  placeMarker("mkDest", DEST, cLat, cLon, hdgDeg);
 }
 // Map layers: keyless, CORS-enabled raster sources. Note the coordinate order
 // differs per provider (Esri is z/y/x, no extension).
@@ -1039,6 +1071,7 @@ function frame(ts) {
     pushTrack(gps.lat, gps.lon);
     renderTrack(gps.lat, gps.lon);
     renderTrend();
+    renderMarkers(gps.lat, gps.lon, att.hdg);
   }
 
   // SVS terrain: reload tiles if moved >1km, recompute profile if heading changed >5°
