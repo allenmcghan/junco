@@ -739,25 +739,6 @@ function buildSpeedArc() {
   });
 }
 
-function buildAltArc() {
-  clearChildren("altArcBg");
-  var g = $("altArcBg");
-  var cx = HSI_CX, cy = HSI_CY, r = ALT_R, w = ALT_W, end = ALT_START + ALT_SWEEP;
-  g.appendChild(el("path", { d: arcPath(cx,cy,r,ALT_START,end), fill:"none", stroke:"#141C22", "stroke-width":w+5, "stroke-linecap":"butt" }));
-  g.appendChild(el("path", { d: arcPath(cx,cy,r,ALT_START,altDeg(300)), fill:"none", stroke:"#E8A33D", "stroke-width":w, "stroke-linecap":"butt" }));
-  g.appendChild(el("path", { d: arcPath(cx,cy,r,altDeg(300),altDeg(2500)), fill:"none", stroke:"#3FCF6A", "stroke-width":w, "stroke-linecap":"butt" }));
-  g.appendChild(el("path", { d: arcPath(cx,cy,r,altDeg(2500),end), fill:"none", stroke:"#E8A33D", "stroke-width":w, "stroke-linecap":"butt" }));
-  [0,500,1000,1500,2000,2500,3000].forEach(function (v) {
-    var deg = altDeg(v);
-    var p1 = arcPt(cx,cy,r-w/2-3,deg), p2 = arcPt(cx,cy,r+w/2+3,deg);
-    g.appendChild(el("line", { x1:p1[0].toFixed(1),y1:p1[1].toFixed(1),x2:p2[0].toFixed(1),y2:p2[1].toFixed(1), stroke:"#FFFFFF","stroke-width":2.5 }));
-    if (v % 1000 === 0) {
-      var lp = arcPt(cx,cy,r+w/2+14,deg);
-      g.appendChild(el("text", { x:lp[0].toFixed(1),y:(lp[1]+4).toFixed(1),"font-size":10,"font-weight":700,fill:"#B8C0C6","text-anchor":"middle" }, v===0?"0":(v/1000)+"k"));
-    }
-  });
-}
-
 function buildVsi() {
   // VSI strip is positioned by relayout(); just build ticks
   clearChildren("vsiTicks");
