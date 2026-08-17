@@ -164,10 +164,6 @@
     <text id="asiVal"  font-size="30" font-weight="700" fill="#FFFFFF" text-anchor="middle">28</text>
     <text id="iasUnit" font-size="8"  font-weight="700" fill="#9AA6AE" text-anchor="middle" letter-spacing="0.8">MPH IAS</text>
 
-    <!-- ============ ALT ARC RING ============ -->
-    <g id="altArcBg"></g>
-    <line id="altMarker" stroke="#35D6E8" stroke-width="4" stroke-linecap="round" x1="712" y1="142" x2="712" y2="154"/>
-
     <!-- ============ HSI / COMPASS / MAP ============ -->
     <!-- dark base fill -->
     <circle id="hsiBg" cx="712" cy="307" r="137" fill="#0A0C0E"/>
@@ -407,8 +403,8 @@ function renderTrend() {
 }
 
 // Home and destination for the demo (east and west ends of the river run).
-var HOME = { lat: 45.701, lon: -121.700 };
-var DEST = { lat: 45.700, lon: -121.876 };
+var HOME = { lat: 45.694, lon: -121.700 };
+var DEST = { lat: 45.686, lon: -121.880 };
 // Place a marker at its map position; if it falls outside the map, clamp the
 // icon to the map's edge on the bearing to it (so you always see which way it is).
 function placeMarker(id, m, cLat, cLon, hdgDeg) {
@@ -659,7 +655,6 @@ function rebuildStatic() {
   buildLadder();
   buildBank();
   buildSpeedArc();
-  buildAltArc();
   buildVsi();
   if (!IS_PORTRAIT) buildEis();
   else buildEisCompact();
@@ -862,27 +857,28 @@ var manual = { pitch:0, roll:0, hdg:0 };
 // Demo route: a string of waypoints down the Columbia River Gorge, following
 // the river so the flight stays in dramatic terrain. Flown with coordinated
 // turns and looped. (lat, lon)
-// Down the middle of the Columbia — waypoints on the river centerline (the
-// valley floor, ~45.70, confirmed from the elevation data). Flies west down
-// the gorge and loops back east, staying over the water.
+// Down the middle of the Columbia — waypoints on the river centerline, taken
+// from the MIDPOINT of the water band at each longitude (from the elevation
+// data). Flies west down the gorge and back east, an out-and-back on the water.
 var ROUTE = [
-  { lat: 45.701, lon: -121.700 },
-  { lat: 45.700, lon: -121.722 },
-  { lat: 45.700, lon: -121.744, alt: 2200 },
-  { lat: 45.702, lon: -121.766 },
-  { lat: 45.703, lon: -121.788 },
-  { lat: 45.704, lon: -121.810 },
-  { lat: 45.703, lon: -121.832 },
-  { lat: 45.703, lon: -121.854 },
-  { lat: 45.700, lon: -121.874, alt: 1800 },   // west end, near Cascade Locks
-  { lat: 45.705, lon: -121.870 },              // U-turn back east
-  { lat: 45.707, lon: -121.850 },
-  { lat: 45.708, lon: -121.828 },
-  { lat: 45.707, lon: -121.806 },
-  { lat: 45.706, lon: -121.784 },
-  { lat: 45.706, lon: -121.762 },
-  { lat: 45.705, lon: -121.740 },
-  { lat: 45.704, lon: -121.718 }
+  { lat: 45.694, lon: -121.700 },
+  { lat: 45.696, lon: -121.720 },
+  { lat: 45.695, lon: -121.740, alt: 2300 },
+  { lat: 45.697, lon: -121.760 },
+  { lat: 45.701, lon: -121.780 },
+  { lat: 45.706, lon: -121.800 },
+  { lat: 45.705, lon: -121.820 },
+  { lat: 45.698, lon: -121.840 },
+  { lat: 45.690, lon: -121.860, alt: 1900 },
+  { lat: 45.686, lon: -121.880 },              // west end — U-turn
+  { lat: 45.690, lon: -121.860 },
+  { lat: 45.698, lon: -121.840 },
+  { lat: 45.705, lon: -121.820 },
+  { lat: 45.706, lon: -121.800 },
+  { lat: 45.701, lon: -121.780 },
+  { lat: 45.697, lon: -121.760 },
+  { lat: 45.695, lon: -121.740 },
+  { lat: 45.696, lon: -121.720 }              // east end wraps to start — U-turn
 ];
 // Flight state
 var flt = { lat: ROUTE[0].lat, lon: ROUTE[0].lon, hdg: 270, bank: 0, gs: 27, alt: 2000, vs: 0, wp: 1 };
@@ -1028,13 +1024,6 @@ function frame(ts) {
   var sm2 = arcPt(AI_CX, AI_CY, SPD_R+SPD_W/2+4, sDeg);
   $("speedMarker").setAttribute("x1",sm1[0].toFixed(1)); $("speedMarker").setAttribute("y1",sm1[1].toFixed(1));
   $("speedMarker").setAttribute("x2",sm2[0].toFixed(1)); $("speedMarker").setAttribute("y2",sm2[1].toFixed(1));
-
-  // alt arc marker
-  var aDeg = altDeg(alt);
-  var am1 = arcPt(HSI_CX, HSI_CY, ALT_R-ALT_W/2-3, aDeg);
-  var am2 = arcPt(HSI_CX, HSI_CY, ALT_R+ALT_W/2+4, aDeg);
-  $("altMarker").setAttribute("x1",am1[0].toFixed(1)); $("altMarker").setAttribute("y1",am1[1].toFixed(1));
-  $("altMarker").setAttribute("x2",am2[0].toFixed(1)); $("altMarker").setAttribute("y2",am2[1].toFixed(1));
 
   // VSI strip
   var vClamp = Math.max(-1000, Math.min(1000, linkDown ? 0 : sim.vsi));
